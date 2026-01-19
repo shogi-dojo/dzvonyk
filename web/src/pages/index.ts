@@ -1,12 +1,10 @@
 export { Dashboard } from './Dashboard';
 export { Teachers } from './Teachers';
 export { Subjects } from './Subjects';
-export { ActivityTags } from './ActivityTags';
 export { Students } from './Students';
 export { Activities } from './Activities';
 export { Rooms } from './Rooms';
-export { TimeConstraints } from './TimeConstraints';
-export { SpaceConstraints } from './SpaceConstraints';
+export { Constraints } from './Constraints';
 export { Generate } from './Generate';
 export { Timetable } from './Timetable';
 export { Settings } from './Settings';

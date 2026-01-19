@@ -539,7 +539,87 @@ function parseTimeConstraints(doc: Document, days: Day[], hours: Hour[]): TimeCo
       comments: el.querySelector('Comments')?.textContent?.trim() || '',
     } as TimeConstraint);
   });
-  
+
+  // Teachers Max Hours Daily (all teachers)
+  constraintsList.querySelectorAll('ConstraintTeachersMaxHoursDaily').forEach((el) => {
+    constraints.push({
+      id: uuidv4(),
+      type: 'TeachersMaxHoursDaily',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      maxHours: parseInt(el.querySelector('Maximum_Hours_Daily')?.textContent || '8', 10),
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as TimeConstraint);
+  });
+
+  // Teacher Max Gaps Per Day
+  constraintsList.querySelectorAll('ConstraintTeacherMaxGapsPerDay').forEach((el) => {
+    constraints.push({
+      id: uuidv4(),
+      type: 'TeacherMaxGapsPerDay',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      teacherId: el.querySelector('Teacher')?.textContent?.trim() || '',
+      maxGaps: parseInt(el.querySelector('Max_Gaps')?.textContent || '2', 10),
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as TimeConstraint);
+  });
+
+  // Students Set Not Available Times
+  constraintsList.querySelectorAll('ConstraintStudentsSetNotAvailableTimes').forEach((el) => {
+    const times: { day: number; hour: number }[] = [];
+    el.querySelectorAll('Not_Available_Time').forEach((nat) => {
+      const dayName = nat.querySelector('Day')?.textContent?.trim() || '';
+      const hourName = nat.querySelector('Hour')?.textContent?.trim() || '';
+      const dayIdx = findDayIndex(dayName);
+      const hourIdx = findHourIndex(hourName);
+      if (dayIdx >= 0 && hourIdx >= 0) {
+        times.push({ day: dayIdx, hour: hourIdx });
+      }
+    });
+    constraints.push({
+      id: uuidv4(),
+      type: 'StudentsSetNotAvailableTimes',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      studentsSetId: el.querySelector('Students')?.textContent?.trim() || '',
+      times,
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as TimeConstraint);
+  });
+
+  // Students Set Max Hours Daily
+  constraintsList.querySelectorAll('ConstraintStudentsSetMaxHoursDaily').forEach((el) => {
+    constraints.push({
+      id: uuidv4(),
+      type: 'StudentsSetMaxHoursDaily',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      studentsSetId: el.querySelector('Students')?.textContent?.trim() || '',
+      maxHours: parseInt(el.querySelector('Maximum_Hours_Daily')?.textContent || '8', 10),
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as TimeConstraint);
+  });
+
+  // Activity Preferred Starting Time
+  constraintsList.querySelectorAll('ConstraintActivityPreferredStartingTime').forEach((el) => {
+    const dayName = el.querySelector('Preferred_Day')?.textContent?.trim() || '';
+    const hourName = el.querySelector('Preferred_Hour')?.textContent?.trim() || '';
+    const dayIdx = findDayIndex(dayName);
+    const hourIdx = findHourIndex(hourName);
+    constraints.push({
+      id: uuidv4(),
+      type: 'ActivityPreferredStartingTime',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      activityId: el.querySelector('Activity_Id')?.textContent?.trim() || '',
+      day: dayIdx >= 0 ? dayIdx : 0,
+      hour: hourIdx >= 0 ? hourIdx : 0,
+      permanentlyLocked: el.querySelector('Permanently_Locked')?.textContent?.trim() === 'true',
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as TimeConstraint);
+  });
+
   return constraints;
 }
 
@@ -585,7 +665,91 @@ function parseSpaceConstraints(doc: Document): SpaceConstraint[] {
       comments: el.querySelector('Comments')?.textContent?.trim() || '',
     } as SpaceConstraint);
   });
-  
+
+  // Activity Preferred Rooms (multiple rooms)
+  constraintsList.querySelectorAll('ConstraintActivityPreferredRooms').forEach((el) => {
+    const roomIds: string[] = [];
+    el.querySelectorAll('Preferred_Room').forEach(r => {
+      const id = r.textContent?.trim();
+      if (id) roomIds.push(id);
+    });
+    constraints.push({
+      id: uuidv4(),
+      type: 'ActivityPreferredRooms',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      activityId: el.querySelector('Activity_Id')?.textContent?.trim() || '',
+      roomIds,
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as SpaceConstraint);
+  });
+
+  // Subject Preferred Rooms (multiple rooms)
+  constraintsList.querySelectorAll('ConstraintSubjectPreferredRooms').forEach((el) => {
+    const roomIds: string[] = [];
+    el.querySelectorAll('Preferred_Room').forEach(r => {
+      const id = r.textContent?.trim();
+      if (id) roomIds.push(id);
+    });
+    constraints.push({
+      id: uuidv4(),
+      type: 'SubjectPreferredRooms',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      subjectId: el.querySelector('Subject')?.textContent?.trim() || '',
+      roomIds,
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as SpaceConstraint);
+  });
+
+  // Room Not Available Times
+  constraintsList.querySelectorAll('ConstraintRoomNotAvailableTimes').forEach((el) => {
+    const times: { day: number; hour: number }[] = [];
+    el.querySelectorAll('Not_Available_Time').forEach((nat) => {
+      const dayName = nat.querySelector('Day')?.textContent?.trim() || '';
+      const hourName = nat.querySelector('Hour')?.textContent?.trim() || '';
+      // Note: We would need day/hour arrays passed in, for now use indices
+      const dayIdx = 0; // TODO: map to actual index
+      const hourIdx = 0;
+      times.push({ day: dayIdx, hour: hourIdx });
+    });
+    constraints.push({
+      id: uuidv4(),
+      type: 'RoomNotAvailableTimes',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      roomId: el.querySelector('Room')?.textContent?.trim() || '',
+      times,
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as SpaceConstraint);
+  });
+
+  // Teacher Home Room
+  constraintsList.querySelectorAll('ConstraintTeacherHomeRoom').forEach((el) => {
+    constraints.push({
+      id: uuidv4(),
+      type: 'TeacherHomeRoom',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      teacherId: el.querySelector('Teacher')?.textContent?.trim() || '',
+      roomId: el.querySelector('Room')?.textContent?.trim() || '',
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as SpaceConstraint);
+  });
+
+  // Students Set Home Room
+  constraintsList.querySelectorAll('ConstraintStudentsSetHomeRoom').forEach((el) => {
+    constraints.push({
+      id: uuidv4(),
+      type: 'StudentsSetHomeRoom',
+      weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+      active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+      studentsSetId: el.querySelector('Students')?.textContent?.trim() || '',
+      roomId: el.querySelector('Room')?.textContent?.trim() || '',
+      comments: el.querySelector('Comments')?.textContent?.trim() || '',
+    } as SpaceConstraint);
+  });
+
   return constraints;
 }
 

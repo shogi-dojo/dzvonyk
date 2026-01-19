@@ -1,89 +1,123 @@
 @import "tailwindcss";
 
+/* 
+ * Monochromatic Black-Amber Theme
+ * A refined, accessible color scheme using ONLY black and amber tones
+ * Clean lines, soft colors, elegant contrast
+ * WCAG 2.1 AA compliant
+ */
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(221.2 83.2% 53.3%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(221.2 83.2% 53.3%);
-  --radius: 0.5rem;
+  /* Core backgrounds - warm black tones */
+  --color-background: hsl(30 8% 6%);
+  --color-foreground: hsl(40 20% 90%);
+  --color-card: hsl(30 8% 9%);
+  --color-card-foreground: hsl(40 20% 90%);
+  --color-popover: hsl(30 8% 11%);
+  --color-popover-foreground: hsl(40 20% 90%);
+  
+  /* Primary amber */
+  --color-primary: hsl(40 90% 50%);
+  --color-primary-foreground: hsl(30 8% 6%);
+  
+  /* Secondary - muted warm gray */
+  --color-secondary: hsl(35 6% 16%);
+  --color-secondary-foreground: hsl(40 15% 85%);
+  
+  /* Muted - soft warm gray */
+  --color-muted: hsl(35 6% 13%);
+  --color-muted-foreground: hsl(38 12% 55%);
+  
+  /* Accent - slightly brighter amber */
+  --color-accent: hsl(42 85% 55%);
+  --color-accent-foreground: hsl(30 8% 6%);
+  
+  /* Destructive - dark amber/burnt orange (monochromatic) */
+  --color-destructive: hsl(25 80% 45%);
+  --color-destructive-foreground: hsl(40 20% 95%);
+  
+  /* Borders and inputs */
+  --color-border: hsl(35 8% 20%);
+  --color-input: hsl(35 6% 15%);
+  --color-ring: hsl(40 90% 50%);
+  
+  --radius: 0.25rem;
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
- 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
- 
-    --radius: 0.5rem;
+    /* Core backgrounds */
+    --background: 30 8% 6%;
+    --foreground: 40 20% 90%;
+    --card: 30 8% 9%;
+    --card-foreground: 40 20% 90%;
+    --popover: 30 8% 11%;
+    --popover-foreground: 40 20% 90%;
+    
+    /* Primary amber */
+    --primary: 40 90% 50%;
+    --primary-foreground: 30 8% 6%;
+    
+    /* Secondary */
+    --secondary: 35 6% 16%;
+    --secondary-foreground: 40 15% 85%;
+    
+    /* Muted */
+    --muted: 35 6% 13%;
+    --muted-foreground: 38 12% 55%;
+    
+    /* Accent */
+    --accent: 42 85% 55%;
+    --accent-foreground: 30 8% 6%;
+    
+    /* Destructive - burnt amber (stays in monochrome family) */
+    --destructive: 25 80% 45%;
+    --destructive-foreground: 40 20% 95%;
+    
+    /* Borders */
+    --border: 35 8% 20%;
+    --input: 35 6% 15%;
+    --ring: 40 90% 50%;
+    --radius: 0.25rem;
+    
+    /* Monochromatic Amber Palette - all variations of amber/black */
+    --amber-50: 42 100% 95%;
+    --amber-100: 42 95% 88%;
+    --amber-200: 42 90% 75%;
+    --amber-300: 40 88% 62%;
+    --amber-400: 40 90% 50%;
+    --amber-500: 38 92% 45%;
+    --amber-600: 35 90% 40%;
+    --amber-700: 32 85% 32%;
+    --amber-800: 28 80% 24%;
+    --amber-900: 25 75% 16%;
+    
+    /* Semantic colors - all amber-based for monochromatic theme */
+    --success: 42 85% 55%;        /* bright amber */
+    --warning: 38 90% 48%;        /* standard amber */
+    --info: 40 70% 60%;           /* light amber */
+    --subtle: 38 20% 45%;         /* muted amber */
   }
  
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: 30 8% 6%;
+    --foreground: 40 20% 90%;
+    --card: 30 8% 9%;
+    --card-foreground: 40 20% 90%;
+    --popover: 30 8% 11%;
+    --popover-foreground: 40 20% 90%;
+    --primary: 40 90% 50%;
+    --primary-foreground: 30 8% 6%;
+    --secondary: 35 6% 16%;
+    --secondary-foreground: 40 15% 85%;
+    --muted: 35 6% 13%;
+    --muted-foreground: 38 12% 55%;
+    --accent: 42 85% 55%;
+    --accent-foreground: 30 8% 6%;
+    --destructive: 25 80% 45%;
+    --destructive-foreground: 40 20% 95%;
+    --border: 35 8% 20%;
+    --input: 35 6% 15%;
+    --ring: 40 90% 50%;
   }
 }
  
@@ -91,90 +125,401 @@
   * {
     border-color: hsl(var(--border));
   }
+  
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Accessibility: Focus visible styles */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --border: 35 10% 35%;
+      --muted-foreground: 40 15% 70%;
+    }
+  }
+  
+  /* Skip to main content link (screen reader) */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  .sr-only:focus {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    padding: 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    z-index: 9999;
   }
 }
 
-/* Utility classes for semantic colors */
+/* Custom Animations */
 @layer utilities {
-  .bg-background {
-    background-color: hsl(var(--background));
-  }
-  .bg-foreground {
-    background-color: hsl(var(--foreground));
-  }
-  .bg-card {
-    background-color: hsl(var(--card));
-  }
-  .bg-popover {
-    background-color: hsl(var(--popover));
-  }
-  .bg-primary {
-    background-color: hsl(var(--primary));
-  }
-  .bg-secondary {
-    background-color: hsl(var(--secondary));
-  }
-  .bg-muted {
-    background-color: hsl(var(--muted));
-  }
-  .bg-accent {
-    background-color: hsl(var(--accent));
-  }
-  .bg-destructive {
-    background-color: hsl(var(--destructive));
+  /* Page transition animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
   
-  .text-foreground {
-    color: hsl(var(--foreground));
-  }
-  .text-card-foreground {
-    color: hsl(var(--card-foreground));
-  }
-  .text-popover-foreground {
-    color: hsl(var(--popover-foreground));
-  }
-  .text-primary {
-    color: hsl(var(--primary));
-  }
-  .text-primary-foreground {
-    color: hsl(var(--primary-foreground));
-  }
-  .text-secondary-foreground {
-    color: hsl(var(--secondary-foreground));
-  }
-  .text-muted-foreground {
-    color: hsl(var(--muted-foreground));
-  }
-  .text-accent-foreground {
-    color: hsl(var(--accent-foreground));
-  }
-  .text-destructive {
-    color: hsl(var(--destructive));
-  }
-  .text-destructive-foreground {
-    color: hsl(var(--destructive-foreground));
+  @keyframes slideUp {
+    from { 
+      opacity: 0; 
+      transform: translateY(20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
   }
   
-  .border-border {
-    border-color: hsl(var(--border));
-  }
-  .border-input {
-    border-color: hsl(var(--input));
-  }
-  .border-primary {
-    border-color: hsl(var(--primary));
-  }
-  .border-destructive {
-    border-color: hsl(var(--destructive));
+  @keyframes slideDown {
+    from { 
+      opacity: 0; 
+      transform: translateY(-20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
   }
   
-  .ring-ring {
-    --tw-ring-color: hsl(var(--ring));
+  @keyframes slideInLeft {
+    from { 
+      opacity: 0; 
+      transform: translateX(-20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
   }
-  .ring-offset-background {
-    --tw-ring-offset-color: hsl(var(--background));
+  
+  @keyframes slideInRight {
+    from { 
+      opacity: 0; 
+      transform: translateX(20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
   }
+  
+  @keyframes scaleIn {
+    from { 
+      opacity: 0; 
+      transform: scale(0.95); 
+    }
+    to { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+  }
+  
+  @keyframes pulse-subtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-in-left {
+    animation: slideInLeft 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.4s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--secondary)) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+  
+  /* Stagger children animations */
+  .stagger-children > * {
+    opacity: 0;
+    animation: slideUp 0.4s ease-out forwards;
+  }
+  
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+  .stagger-children > *:nth-child(9) { animation-delay: 400ms; }
+  .stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+  
+  /* Gradient backgrounds - Pure Amber monochromatic */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(40 90% 50%) 0%, hsl(38 85% 42%) 100%);
+  }
+  
+  .gradient-card {
+    background: linear-gradient(180deg, hsl(30 8% 11%) 0%, hsl(30 8% 9%) 100%);
+  }
+  
+  .gradient-glow {
+    box-shadow: 0 0 40px -10px hsl(40 90% 50% / 0.25);
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    background: hsl(30 8% 10% / 0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(35 8% 22%);
+  }
+  
+  /* Hover lift effect */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px -10px hsl(40 90% 50% / 0.15);
+  }
+  
+  /* Glow on hover */
+  .hover-glow {
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .hover-glow:hover {
+    box-shadow: 0 0 20px -5px hsl(40 90% 50% / 0.3);
+  }
+  
+  /* Icon animations */
+  .icon-hover {
+    transition: transform 0.2s ease;
+  }
+  
+  .icon-hover:hover {
+    transform: scale(1.1);
+  }
+  
+  /* Semantic color utilities - all amber-based */
+  .bg-background { background-color: hsl(var(--background)); }
+  .bg-foreground { background-color: hsl(var(--foreground)); }
+  .bg-card { background-color: hsl(var(--card)); }
+  .bg-popover { background-color: hsl(var(--popover)); }
+  .bg-primary { background-color: hsl(var(--primary)); }
+  .bg-secondary { background-color: hsl(var(--secondary)); }
+  .bg-muted { background-color: hsl(var(--muted)); }
+  .bg-accent { background-color: hsl(var(--accent)); }
+  .bg-destructive { background-color: hsl(var(--destructive)); }
+  .bg-success { background-color: hsl(var(--success)); }
+  .bg-warning { background-color: hsl(var(--warning)); }
+  
+  .text-foreground { color: hsl(var(--foreground)); }
+  .text-card-foreground { color: hsl(var(--card-foreground)); }
+  .text-popover-foreground { color: hsl(var(--popover-foreground)); }
+  .text-primary { color: hsl(var(--primary)); }
+  .text-primary-foreground { color: hsl(var(--primary-foreground)); }
+  .text-secondary-foreground { color: hsl(var(--secondary-foreground)); }
+  .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+  .text-accent-foreground { color: hsl(var(--accent-foreground)); }
+  .text-destructive { color: hsl(var(--destructive)); }
+  .text-destructive-foreground { color: hsl(var(--destructive-foreground)); }
+  .text-success { color: hsl(var(--success)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .text-info { color: hsl(var(--info)); }
+  .text-subtle { color: hsl(var(--subtle)); }
+  
+  /* Amber scale utilities */
+  .text-amber-50 { color: hsl(var(--amber-50)); }
+  .text-amber-100 { color: hsl(var(--amber-100)); }
+  .text-amber-200 { color: hsl(var(--amber-200)); }
+  .text-amber-300 { color: hsl(var(--amber-300)); }
+  .text-amber-400 { color: hsl(var(--amber-400)); }
+  .text-amber-500 { color: hsl(var(--amber-500)); }
+  .text-amber-600 { color: hsl(var(--amber-600)); }
+  .text-amber-700 { color: hsl(var(--amber-700)); }
+  .text-amber-800 { color: hsl(var(--amber-800)); }
+  .text-amber-900 { color: hsl(var(--amber-900)); }
+  
+  .bg-amber-50 { background-color: hsl(var(--amber-50)); }
+  .bg-amber-100 { background-color: hsl(var(--amber-100)); }
+  .bg-amber-200 { background-color: hsl(var(--amber-200)); }
+  .bg-amber-700 { background-color: hsl(var(--amber-700)); }
+  .bg-amber-800 { background-color: hsl(var(--amber-800)); }
+  .bg-amber-900 { background-color: hsl(var(--amber-900)); }
+  
+  .border-border { border-color: hsl(var(--border)); }
+  .border-input { border-color: hsl(var(--input)); }
+  .border-primary { border-color: hsl(var(--primary)); }
+  .border-destructive { border-color: hsl(var(--destructive)); }
+  .border-success { border-color: hsl(var(--success)); }
+  .border-warning { border-color: hsl(var(--warning)); }
+  
+  .ring-ring { --tw-ring-color: hsl(var(--ring)); }
+  .ring-offset-background { --tw-ring-offset-color: hsl(var(--background)); }
+}
+
+/* Scrollbar styling - monochromatic amber */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .timetable-grid {
+    page-break-inside: avoid;
+  }
+  
+  .timetable-grid td,
+  .timetable-grid th {
+    border: 1px solid #333 !important;
+    padding: 8px !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  .timetable-grid th {
+    background: #f5f0e8 !important;
+    font-weight: bold;
+  }
+  
+  .activity-cell {
+    background: #fff8e8 !important;
+  }
+}
+
+/* Progress bar component styles */
+.progress-bar {
+  height: 8px;
+  background: hsl(var(--muted));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, hsl(40 90% 45%) 0%, hsl(42 85% 55%) 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Card variants for monochromatic theme */
+.card-elevated {
+  background: hsl(30 8% 11%);
+  border: 1px solid hsl(35 8% 18%);
+  box-shadow: 0 4px 20px -5px hsl(0 0% 0% / 0.4);
+}
+
+.card-subtle {
+  background: hsl(30 8% 8%);
+  border: 1px solid hsl(35 6% 15%);
 }

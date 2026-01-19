@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { 
   createNewRules, 
@@ -12,19 +13,19 @@ import {
   updateDays, 
   updateHours,
   markAsSaved,
-  setRules
+  setRules,
+  clearRules
 } from '@/store/slices/rulesSlice';
-import { setTeachers } from '@/store/slices/teachersSlice';
-import { setSubjects } from '@/store/slices/subjectsSlice';
-import { setActivities } from '@/store/slices/activitiesSlice';
-import { setRooms, setBuildings } from '@/store/slices/roomsSlice';
-import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constraintsSlice';
-import { setStudents } from '@/store/slices/studentsSlice';
+import { setTeachers, clearTeachers } from '@/store/slices/teachersSlice';
+import { setSubjects, clearSubjects } from '@/store/slices/subjectsSlice';
+import { setActivities, clearActivities } from '@/store/slices/activitiesSlice';
+import { setRooms, setBuildings, clearRooms } from '@/store/slices/roomsSlice';
+import { setTimeConstraints, setSpaceConstraints, clearConstraints } from '@/store/slices/constraintsSlice';
+import { setStudents, clearStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile } from '@/lib/fetParser';
 import type { Day, Hour } from '@/types';
 
-// Default days of the week
 const DEFAULT_DAYS: Day[] = [
   { name: 'Monday', longName: 'Monday' },
   { name: 'Tuesday', longName: 'Tuesday' },
@@ -33,7 +34,6 @@ const DEFAULT_DAYS: Day[] = [
   { name: 'Friday', longName: 'Friday' },
 ];
 
-// Default hours
 const DEFAULT_HOURS: Hour[] = [
   { name: '08:00', longName: '08:00 - 09:00' },
   { name: '09:00', longName: '09:00 - 10:00' },
@@ -45,7 +45,6 @@ const DEFAULT_HOURS: Hour[] = [
   { name: '15:00', longName: '15:00 - 16:00' },
 ];
 
-// Helper to serialize dates
 function serializeDates<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) return obj.toISOString() as unknown as T;
@@ -72,6 +71,8 @@ export function Settings() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (rules) {
@@ -93,7 +94,6 @@ export function Settings() {
     dispatch(updateDays(days));
     dispatch(updateHours(hours));
     
-    // Save to IndexedDB with ISO string dates
     await db.rules.put({
       ...rules,
       institutionName,
@@ -105,6 +105,35 @@ export function Settings() {
     });
     
     dispatch(markAsSaved());
+  };
+
+  const handleResetAllData = async () => {
+    setResetting(true);
+    try {
+      // Clear all data from IndexedDB
+      await db.clearAllData();
+      
+      // Clear Redux state
+      dispatch(clearRules());
+      dispatch(clearTeachers());
+      dispatch(clearSubjects());
+      dispatch(clearActivities());
+      dispatch(clearRooms());
+      dispatch(clearConstraints());
+      dispatch(clearStudents());
+      
+      // Reset local state
+      setInstitutionName('');
+      setDays(DEFAULT_DAYS);
+      setHours(DEFAULT_HOURS);
+      setImportError(null);
+      setImportSuccess(null);
+      setShowResetConfirm(false);
+    } catch (error) {
+      console.error('Reset error:', error);
+    } finally {
+      setResetting(false);
+    }
   };
 
   const handleImportClick = () => {
@@ -123,10 +152,8 @@ export function Settings() {
       const content = await file.text();
       const data = parseFETFile(content);
       
-      // Clear all existing data
       await db.clearAllData();
       
-      // Create rules with ISO string dates
       const rulesId = uuidv4();
       const newRules = {
         id: rulesId,
@@ -143,7 +170,6 @@ export function Settings() {
       };
       await db.rules.add(newRules);
       
-      // Import all entities
       if (data.teachers.length > 0) await db.teachers.bulkAdd(data.teachers);
       if (data.subjects.length > 0) await db.subjects.bulkAdd(data.subjects);
       if (data.activityTags.length > 0) await db.activityTags.bulkAdd(data.activityTags);
@@ -156,7 +182,6 @@ export function Settings() {
       if (data.timeConstraints.length > 0) await db.timeConstraints.bulkAdd(data.timeConstraints);
       if (data.spaceConstraints.length > 0) await db.spaceConstraints.bulkAdd(data.spaceConstraints);
       
-      // Update Redux state with serialized rules
       dispatch(setRules(serializeDates(newRules)));
       dispatch(setTeachers(data.teachers));
       dispatch(setSubjects(data.subjects));
@@ -173,7 +198,6 @@ export function Settings() {
       
       setImportSuccess(`Successfully imported: ${data.teachers.length} teachers, ${data.subjects.length} subjects, ${data.activities.length} activities, ${data.rooms.length} rooms`);
       
-      // Reset file input
       if (fileInputRef.current) fileInputRef.current.value = '';
       
     } catch (error) {
@@ -228,64 +252,65 @@ export function Settings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Settings</h1>
-          <p className="text-gray-500 dark:text-gray-400">Configure your timetable parameters</p>
-        </div>
-        <div className="flex gap-2">
-          {!rules && (
-            <Button onClick={handleCreateNew}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create New
-            </Button>
-          )}
-          {rules && (
-            <Button onClick={handleSave} disabled={!modified && institutionName === rules.institutionName}>
-              <Save className="mr-2 h-4 w-4" />
-              Save Changes
-            </Button>
-          )}
-        </div>
-      </div>
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        accept=".fet,.xml" 
+        onChange={handleFileChange} 
+        className="hidden" 
+        aria-label="Import FET file"
+      />
+
+      <PageHeader
+        title="Settings"
+        description="Configure your timetable parameters"
+        icon={<SettingsIcon className="h-6 w-6" aria-hidden="true" />}
+        actions={
+          <div className="flex gap-2">
+            {!rules && (
+              <Button onClick={handleCreateNew} className="gap-2 gradient-primary hover-lift">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Create New
+              </Button>
+            )}
+            {rules && (
+              <Button onClick={handleSave} disabled={!modified && institutionName === rules.institutionName} className="gap-2 hover-lift">
+                <Save className="h-4 w-4" aria-hidden="true" />
+                Save Changes
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* Import Section */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <Card className="animate-slide-up">
         <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-gray-100">Import FET File</CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">
-            Import a .fet file from the desktop FET application
-          </CardDescription>
+          <CardTitle>Import FET File</CardTitle>
+          <CardDescription>Import a .fet file from the desktop FET application</CardDescription>
         </CardHeader>
         <CardContent>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".fet,.xml"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <Button onClick={handleImportClick} variant="outline" disabled={importing}>
-            <FileUp className="mr-2 h-4 w-4" />
+          <Button onClick={handleImportClick} variant="outline" disabled={importing} className="gap-2 hover-lift">
+            <FileUp className="h-4 w-4" aria-hidden="true" />
             {importing ? 'Importing...' : 'Choose FET File'}
           </Button>
           
           {importError && (
-            <div className="mt-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3 animate-slide-up" role="alert">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <p className="text-sm font-medium text-red-800 dark:text-red-200">Import Failed</p>
-                <p className="text-sm text-red-600 dark:text-red-300">{importError}</p>
+                <p className="text-sm font-medium text-destructive">Import Failed</p>
+                <p className="text-sm text-destructive/80">{importError}</p>
               </div>
             </div>
           )}
           
           {importSuccess && (
-            <div className="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+            <div className="mt-4 p-4 rounded-lg bg-success/10 border border-success/20 flex items-start gap-3 animate-slide-up" role="status">
+              <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <p className="text-sm font-medium text-green-800 dark:text-green-200">Import Successful</p>
-                <p className="text-sm text-green-600 dark:text-green-300">{importSuccess}</p>
+                <p className="text-sm font-medium text-success">Import Successful</p>
+                <p className="text-sm text-success/80">{importSuccess}</p>
               </div>
             </div>
           )}
@@ -295,43 +320,49 @@ export function Settings() {
       {rules && (
         <>
           {/* Institution Settings */}
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="animate-slide-up" style={{ animationDelay: '50ms' }}>
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-gray-100">Institution</CardTitle>
-              <CardDescription className="text-gray-500 dark:text-gray-400">
-                Basic information about your institution
-              </CardDescription>
+              <CardTitle>Institution</CardTitle>
+              <CardDescription>Basic information about your institution</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="institutionName" className="text-gray-700 dark:text-gray-300">Institution Name</Label>
+                <Label htmlFor="institutionName">Institution Name</Label>
                 <Input
                   id="institutionName"
                   value={institutionName}
                   onChange={(e) => setInstitutionName(e.target.value)}
                   placeholder="Enter institution name"
-                  className="max-w-md bg-white dark:bg-gray-900"
+                  className="max-w-md"
+                  aria-describedby="institutionName-desc"
                 />
+                <p id="institutionName-desc" className="text-xs text-muted-foreground">
+                  This name will appear in exported timetables
+                </p>
               </div>
             </CardContent>
           </Card>
 
           {/* Days of the Week */}
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-gray-900 dark:text-gray-100">Days of the Week</CardTitle>
-                  <CardDescription className="text-gray-500 dark:text-gray-400">
-                    Configure working days ({days.length} days)
-                  </CardDescription>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Calendar className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <CardTitle>Days of the Week</CardTitle>
+                    <CardDescription>Configure working days ({days.length} days)</CardDescription>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={resetToDefaults}>
-                    Reset to Defaults
+                    <RotateCcw className="h-4 w-4 mr-1" aria-hidden="true" />
+                    Reset Defaults
                   </Button>
-                  <Button size="sm" onClick={addDay}>
-                    <Plus className="h-4 w-4 mr-1" />
+                  <Button size="sm" onClick={addDay} className="gap-1">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
                     Add Day
                   </Button>
                 </div>
@@ -341,19 +372,21 @@ export function Settings() {
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {days.map((day, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Input
-                      value={day.name}
-                      onChange={(e) => updateDay(index, e.target.value)}
-                      className="bg-white dark:bg-gray-900"
+                    <Label htmlFor={`day-${index}`} className="sr-only">Day {index + 1}</Label>
+                    <Input 
+                      id={`day-${index}`}
+                      value={day.name} 
+                      onChange={(e) => updateDay(index, e.target.value)} 
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeDay(index)}
-                      disabled={days.length <= 1}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => removeDay(index)} 
+                      disabled={days.length <= 1} 
                       className="shrink-0"
+                      aria-label={`Remove ${day.name}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 ))}
@@ -362,17 +395,20 @@ export function Settings() {
           </Card>
 
           {/* Hours of the Day */}
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="animate-slide-up" style={{ animationDelay: '150ms' }}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-gray-900 dark:text-gray-100">Hours of the Day</CardTitle>
-                  <CardDescription className="text-gray-500 dark:text-gray-400">
-                    Configure time slots ({hours.length} hours)
-                  </CardDescription>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <CardTitle>Hours of the Day</CardTitle>
+                    <CardDescription>Configure time slots ({hours.length} hours)</CardDescription>
+                  </div>
                 </div>
-                <Button size="sm" onClick={addHour}>
-                  <Plus className="h-4 w-4 mr-1" />
+                <Button size="sm" onClick={addHour} className="gap-1">
+                  <Plus className="h-4 w-4" aria-hidden="true" />
                   Add Hour
                 </Button>
               </div>
@@ -381,19 +417,21 @@ export function Settings() {
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
                 {hours.map((hour, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Input
-                      value={hour.name}
-                      onChange={(e) => updateHourName(index, e.target.value)}
-                      className="bg-white dark:bg-gray-900"
+                    <Label htmlFor={`hour-${index}`} className="sr-only">Hour {index + 1}</Label>
+                    <Input 
+                      id={`hour-${index}`}
+                      value={hour.name} 
+                      onChange={(e) => updateHourName(index, e.target.value)} 
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeHour(index)}
-                      disabled={hours.length <= 1}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => removeHour(index)} 
+                      disabled={hours.length <= 1} 
                       className="shrink-0"
+                      aria-label={`Remove ${hour.name}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 ))}
@@ -402,52 +440,105 @@ export function Settings() {
           </Card>
 
           {/* Info */}
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
+            <StatCard title="Days per Week" value={days.length} icon={<Calendar className="h-5 w-5" aria-hidden="true" />} />
+            <StatCard title="Hours per Day" value={hours.length} icon={<Clock className="h-5 w-5" aria-hidden="true" />} />
+            <StatCard title="Total Slots/Week" value={days.length * hours.length} icon={<Calendar className="h-5 w-5" aria-hidden="true" />} />
+            <StatCard title="Status" value={modified ? 'Modified' : 'Saved'} icon={<SettingsIcon className="h-5 w-5" aria-hidden="true" />} />
+          </div>
+
+          {/* Reset Data Section */}
+          <Card className="animate-slide-up border-destructive/30" style={{ animationDelay: '200ms' }}>
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-gray-100">Current Configuration</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden="true" />
+                </div>
+                <div>
+                  <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                  <CardDescription>Irreversible actions that affect all your data</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Days per Week</dt>
-                  <dd className="text-2xl font-bold text-gray-900 dark:text-gray-100">{days.length}</dd>
+              {!showResetConfirm ? (
+                <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/20 bg-destructive/5">
+                  <div>
+                    <p className="font-medium text-foreground">Reset All Data</p>
+                    <p className="text-sm text-muted-foreground">
+                      Delete all teachers, subjects, activities, rooms, constraints, and generated timetables
+                    </p>
+                  </div>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setShowResetConfirm(true)}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Reset Data
+                  </Button>
                 </div>
-                <div>
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Hours per Day</dt>
-                  <dd className="text-2xl font-bold text-gray-900 dark:text-gray-100">{hours.length}</dd>
+              ) : (
+                <div className="p-4 rounded-lg border-2 border-destructive bg-destructive/10 animate-slide-up" role="alertdialog" aria-labelledby="reset-title" aria-describedby="reset-desc">
+                  <p id="reset-title" className="font-medium text-destructive mb-2">Are you absolutely sure?</p>
+                  <p id="reset-desc" className="text-sm text-muted-foreground mb-4">
+                    This action cannot be undone. This will permanently delete all your data including teachers, 
+                    subjects, activities, rooms, constraints, and any generated timetables.
+                  </p>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowResetConfirm(false)}
+                      disabled={resetting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleResetAllData}
+                      disabled={resetting}
+                      className="gap-2"
+                    >
+                      {resetting ? (
+                        <>
+                          <RotateCcw className="h-4 w-4 animate-spin" aria-hidden="true" />
+                          Resetting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          Yes, Delete Everything
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Total Slots/Week</dt>
-                  <dd className="text-2xl font-bold text-gray-900 dark:text-gray-100">{days.length * hours.length}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Status</dt>
-                  <dd className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {modified ? 'Modified (unsaved)' : 'Saved'}
-                  </dd>
-                </div>
-              </dl>
+              )}
             </CardContent>
           </Card>
         </>
       )}
 
       {!rules && (
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardContent className="py-12 text-center">
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              No timetable configuration found. Create a new one or import from a FET file.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Button onClick={handleCreateNew}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create New
-              </Button>
-              <Button variant="outline" onClick={handleImportClick}>
-                <FileUp className="mr-2 h-4 w-4" />
-                Import FET File
-              </Button>
-            </div>
+        <Card className="animate-slide-up">
+          <CardContent className="py-12">
+            <EmptyState
+              icon={<SettingsIcon className="h-12 w-12" aria-hidden="true" />}
+              title="No Configuration Found"
+              description="Create a new timetable configuration or import from a FET file."
+              action={
+                <div className="flex gap-4">
+                  <Button onClick={handleCreateNew} className="gap-2">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Create New
+                  </Button>
+                  <Button variant="outline" onClick={handleImportClick} className="gap-2">
+                    <FileUp className="h-4 w-4" aria-hidden="true" />
+                    Import FET File
+                  </Button>
+                </div>
+              }
+            />
           </CardContent>
         </Card>
       )}

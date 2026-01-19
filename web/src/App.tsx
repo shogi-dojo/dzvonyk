@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { Layout } from './components/Layout';
@@ -7,12 +7,10 @@ import {
   Dashboard,
   Teachers,
   Subjects,
-  ActivityTags,
   Students,
   Activities,
   Rooms,
-  TimeConstraints,
-  SpaceConstraints,
+  Constraints,
   Generate,
   Timetable,
   Settings,
@@ -28,12 +26,11 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/teachers" element={<Teachers />} />
               <Route path="/subjects" element={<Subjects />} />
-              <Route path="/activity-tags" element={<ActivityTags />} />
               <Route path="/students" element={<Students />} />
               <Route path="/activities" element={<Activities />} />
+              <Route path="/activity-tags" element={<Navigate to="/activities" replace />} />
               <Route path="/rooms" element={<Rooms />} />
-              <Route path="/time-constraints" element={<TimeConstraints />} />
-              <Route path="/space-constraints" element={<SpaceConstraints />} />
+              <Route path="/constraints" element={<Constraints />} />
               <Route path="/generate" element={<Generate />} />
               <Route path="/timetable" element={<Timetable />} />
               <Route path="/settings" element={<Settings />} />

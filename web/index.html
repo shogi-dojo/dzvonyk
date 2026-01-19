@@ -1,27 +1,74 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Primary Meta Tags -->
+    <title>FET Web - Free Educational Timetabling</title>
+    <meta name="title" content="FET Web - Free Educational Timetabling" />
+    <meta name="description" content="Create optimal school and university timetables with FET Web. Free, open-source, and privacy-focused educational scheduling software that runs entirely in your browser." />
+    <meta name="author" content="FET Web Contributors" />
+    <meta name="keywords" content="timetable, scheduling, education, school, university, FET, free, open-source" />
+    
+    <!-- Theme & Colors -->
+    <meta name="theme-color" content="#1a1510" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="msapplication-TileColor" content="#1a1510" />
+    
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="FET - Free Educational Timetabling Software for Schools and Universities" />
-    <meta name="theme-color" content="#3b82f6" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <title>FET Web - Free Timetabling Software</title>
-    <script>
-      // Apply dark mode immediately to prevent flash
-      (function() {
-        const stored = localStorage.getItem('fet-dark-mode');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const isDark = stored !== null ? stored === 'true' : prefersDark;
-        if (isDark) {
-          document.documentElement.classList.add('dark');
-        }
-      })();
-    </script>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/vite.svg" color="#f59e0b" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="FET Web - Free Educational Timetabling" />
+    <meta property="og:description" content="Create optimal school and university timetables with FET Web. Free, open-source, and privacy-focused." />
+    <meta property="og:image" content="/og-image.png" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FET Web - Free Educational Timetabling" />
+    <meta name="twitter:description" content="Create optimal school and university timetables with FET Web. Free, open-source, and privacy-focused." />
+    
+    <!-- Humans.txt -->
+    <link rel="author" href="/humans.txt" />
+    
+    <!-- Performance & Compatibility -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Preconnect to optimize font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    
+    <!-- Prevent FOUC -->
+    <style>
+      html { background-color: #1a1510; }
+      body { margin: 0; min-height: 100vh; background-color: #1a1510; }
+      #root { min-height: 100vh; }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="dark">
+    <!-- Skip link for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only">Skip to main content</a>
+    
+    <!-- App Root -->
+    <div id="root" role="application" aria-label="FET Web Timetabling Application"></div>
+    
+    <!-- NoScript Fallback -->
+    <noscript>
+      <div style="padding: 2rem; text-align: center; color: #e5e0d8; font-family: system-ui, sans-serif;">
+        <h1>FET Web - Free Educational Timetabling</h1>
+        <p>JavaScript is required to run this application.</p>
+        <p>Please enable JavaScript in your browser settings and refresh the page.</p>
+      </div>
+    </noscript>
+    
+    <!-- Main Application Script -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

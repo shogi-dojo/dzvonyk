@@ -129,8 +129,8 @@ export function ActivityTags() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Activity Tags</h1>
-          <p className="text-gray-500 dark:text-gray-400">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">Activity Tags</h1>
+          <p className="text-muted-foreground dark:text-muted-foreground">
             Manage activity tags for categorizing activities ({activityTags.length} total)
           </p>
         </div>
@@ -142,7 +142,7 @@ export function ActivityTags() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search activity tags..."
           value={searchQuery}
@@ -153,10 +153,10 @@ export function ActivityTags() {
 
       {/* Tags List */}
       {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground">Loading...</div>
       ) : filteredTags.length === 0 ? (
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardContent className="py-8 text-center text-gray-500">
+        <Card className="bg-card dark:bg-card border-border dark:border-border">
+          <CardContent className="py-8 text-center text-muted-foreground">
             {searchQuery ? 'No activity tags found matching your search.' : 'No activity tags added yet.'}
           </CardContent>
         </Card>
@@ -164,20 +164,20 @@ export function ActivityTags() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {paginatedTags.map((tag) => (
-              <Card key={tag.id} className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Card key={tag.id} className="bg-card dark:bg-card border-border dark:border-border">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <Tag className="h-5 w-5 text-purple-500" />
+                      <Tag className="h-5 w-5 text-accent" />
                       <div>
-                        <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
+                        <CardTitle className="text-lg text-foreground dark:text-foreground">
                           {tag.name}
                           {tag.code && (
-                            <span className="ml-2 text-sm text-gray-500">({tag.code})</span>
+                            <span className="ml-2 text-sm text-muted-foreground">({tag.code})</span>
                           )}
                         </CardTitle>
                         {tag.longName && tag.longName !== tag.name && (
-                          <CardDescription className="text-gray-500">{tag.longName}</CardDescription>
+                          <CardDescription className="text-muted-foreground">{tag.longName}</CardDescription>
                         )}
                       </div>
                     </div>
@@ -198,7 +198,7 @@ export function ActivityTags() {
                     </Badge>
                   </div>
                   {tag.comments && (
-                    <p className="mt-2 text-sm text-gray-500 truncate">{tag.comments}</p>
+                    <p className="mt-2 text-sm text-muted-foreground truncate">{tag.comments}</p>
                   )}
                 </CardContent>
               </Card>
@@ -212,45 +212,45 @@ export function ActivityTags() {
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-white dark:bg-gray-800">
+        <DialogContent className="bg-card dark:bg-card">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-gray-900 dark:text-gray-100">
+              <DialogTitle className="text-foreground dark:text-foreground">
                 {editingTag ? 'Edit Activity Tag' : 'Add Activity Tag'}
               </DialogTitle>
-              <DialogDescription className="text-gray-500">
+              <DialogDescription className="text-muted-foreground">
                 Activity tags help categorize and filter activities
               </DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">Name *</Label>
+                <Label htmlFor="name" className="text-foreground">Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Lab, Lecture"
                   required
-                  className="bg-white dark:bg-gray-900"
+                  className="bg-card dark:bg-background"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="longName" className="text-gray-700 dark:text-gray-300">Long Name</Label>
+                <Label htmlFor="longName" className="text-foreground">Long Name</Label>
                 <Input
                   id="longName"
                   value={formData.longName}
                   onChange={(e) => setFormData({ ...formData, longName: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
+                  className="bg-card dark:bg-background"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="code" className="text-gray-700 dark:text-gray-300">Code</Label>
+                <Label htmlFor="code" className="text-foreground">Code</Label>
                 <Input
                   id="code"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
+                  className="bg-card dark:bg-background"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -261,15 +261,15 @@ export function ActivityTags() {
                   onChange={(e) => setFormData({ ...formData, printable: e.target.checked })}
                   className="h-4 w-4"
                 />
-                <Label htmlFor="printable" className="text-gray-700 dark:text-gray-300">Printable on timetable</Label>
+                <Label htmlFor="printable" className="text-foreground">Printable on timetable</Label>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="comments" className="text-gray-700 dark:text-gray-300">Comments</Label>
+                <Label htmlFor="comments" className="text-foreground">Comments</Label>
                 <Input
                   id="comments"
                   value={formData.comments}
                   onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
+                  className="bg-card dark:bg-background"
                 />
               </div>
             </div>

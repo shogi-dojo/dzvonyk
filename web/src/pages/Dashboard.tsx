@@ -1,12 +1,14 @@
-import React, { useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useRef, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
-  Users, BookOpen, Calendar, Building2, Clock, 
-  Play, FileUp, FilePlus, FileDown, Settings, AlertCircle, CheckCircle
+  Users2, BookOpen, Calendar, Building2, Clock, Shield,
+  Play, Upload, FilePlus, Download, AlertCircle, CheckCircle2, Eye,
+  Sparkles, ArrowRight, FileText, Zap, LayoutDashboard, GraduationCap
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { setRules } from '@/store/slices/rulesSlice';
 import { setTeachers } from '@/store/slices/teachersSlice';
@@ -17,11 +19,10 @@ import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constrai
 import { setStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile, exportToFETXml } from '@/lib/fetParser';
-import type { FETFile } from '@/types';
+import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const rules = useAppSelector((state) => state.rules.current);
   const teachers = useAppSelector((state) => state.teachers.items);
   const subjects = useAppSelector((state) => state.subjects.items);
@@ -35,14 +36,29 @@ export function Dashboard() {
   const [exporting, setExporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [lastSolution, setLastSolution] = useState<TimetableSolution | null>(null);
+
+  useEffect(() => {
+    const loadLastSolution = async () => {
+      try {
+        const solutions = await db.solutions.orderBy('generatedAt').reverse().limit(1).toArray();
+        if (solutions.length > 0) {
+          setLastSolution(solutions[0]);
+        }
+      } catch (error) {
+        console.error('Error loading last solution:', error);
+      }
+    };
+    loadLastSolution();
+  }, []);
 
   const quickStats = [
-    { name: 'Teachers', value: teachers.length, icon: Users, href: '/teachers', color: 'text-blue-500' },
-    { name: 'Subjects', value: subjects.length, icon: BookOpen, href: '/subjects', color: 'text-green-500' },
-    { name: 'Activities', value: activities.length, icon: Calendar, href: '/activities', color: 'text-purple-500' },
-    { name: 'Rooms', value: rooms.length, icon: Building2, href: '/rooms', color: 'text-orange-500' },
-    { name: 'Time Constraints', value: timeConstraints.length, icon: Clock, href: '/time-constraints', color: 'text-red-500' },
-    { name: 'Space Constraints', value: spaceConstraints.length, icon: Building2, href: '/space-constraints', color: 'text-cyan-500' },
+    { name: 'Teachers', value: teachers.length, icon: Users2, href: '/teachers' },
+    { name: 'Subjects', value: subjects.length, icon: BookOpen, href: '/subjects' },
+    { name: 'Activities', value: activities.length, icon: Calendar, href: '/activities' },
+    { name: 'Rooms', value: rooms.length, icon: Building2, href: '/rooms' },
+    { name: 'Time Constraints', value: timeConstraints.length, icon: Clock, href: '/constraints' },
+    { name: 'Space Constraints', value: spaceConstraints.length, icon: Shield, href: '/constraints' },
   ];
 
   const handleImportClick = () => {
@@ -53,22 +69,16 @@ export function Dashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    console.log('File selected:', file.name, file.size, 'bytes');
     setImporting(true);
     setImportError(null);
     setImportSuccess(null);
 
     try {
       const content = await file.text();
-      console.log('File content length:', content.length);
-      
       const data = parseFETFile(content);
-      console.log('Parsed data:', data);
       
-      // Clear all existing data
       await db.clearAllData();
       
-      // Create rules
       const rulesId = uuidv4();
       const newRules = {
         id: rulesId,
@@ -85,7 +95,6 @@ export function Dashboard() {
       };
       await db.rules.add(newRules);
       
-      // Import all entities
       if (data.teachers.length > 0) await db.teachers.bulkAdd(data.teachers);
       if (data.subjects.length > 0) await db.subjects.bulkAdd(data.subjects);
       if (data.activityTags.length > 0) await db.activityTags.bulkAdd(data.activityTags);
@@ -98,7 +107,6 @@ export function Dashboard() {
       if (data.timeConstraints.length > 0) await db.timeConstraints.bulkAdd(data.timeConstraints);
       if (data.spaceConstraints.length > 0) await db.spaceConstraints.bulkAdd(data.spaceConstraints);
       
-      // Update Redux state directly
       dispatch(setRules(newRules));
       dispatch(setTeachers(data.teachers));
       dispatch(setSubjects(data.subjects));
@@ -113,11 +121,12 @@ export function Dashboard() {
       dispatch(setTimeConstraints(data.timeConstraints));
       dispatch(setSpaceConstraints(data.spaceConstraints));
       
-      setImportSuccess(`Successfully imported: ${data.teachers.length} teachers, ${data.subjects.length} subjects, ${data.activities.length} activities, ${data.timeConstraints.length} time constraints`);
+      setLastSolution(null);
+      setImportSuccess(`Successfully imported ${data.activities.length} activities`);
       
     } catch (error) {
       console.error('Import error:', error);
-      setImportError(error instanceof Error ? error.message : 'Unknown error during import');
+      setImportError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setImporting(false);
       if (fileInputRef.current) {
@@ -132,10 +141,8 @@ export function Dashboard() {
     setImportSuccess(null);
 
     try {
-      // Get activity tags from DB
       const activityTags = await db.activityTags.toArray();
       
-      // Build FET data structure
       const fetData: FETFile = {
         version: '6.5.0',
         mode: rules?.mode || 0,
@@ -156,10 +163,8 @@ export function Dashboard() {
         spaceConstraints,
       };
       
-      // Generate XML
       const xmlContent = exportToFETXml(fetData);
       
-      // Download file
       const blob = new Blob([xmlContent], { type: 'application/xml' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -170,10 +175,10 @@ export function Dashboard() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      setImportSuccess('Timetable exported successfully!');
+      setImportSuccess('Exported successfully!');
     } catch (error) {
       console.error('Export error:', error);
-      setImportError(error instanceof Error ? error.message : 'Unknown error during export');
+      setImportError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setExporting(false);
     }
@@ -181,158 +186,189 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".fet,.xml"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <input ref={fileInputRef} type="file" accept=".fet,.xml" className="hidden" onChange={handleFileChange} />
 
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          Welcome to FET Web - Free Educational Timetabling Software
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Welcome to FET Web - Free Educational Timetabling"
+        icon={<LayoutDashboard className="h-6 w-6" />}
+      />
 
       {/* Status Messages */}
       {importError && (
-        <Card className="border-red-500 bg-red-50 dark:bg-red-900/20">
-          <CardContent className="py-4 flex items-center gap-2 text-red-700 dark:text-red-300">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            <span>Error: {importError}</span>
+        <Card className="border-destructive bg-destructive/10 animate-slide-up">
+          <CardContent className="py-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+            <span className="text-destructive">{importError}</span>
           </CardContent>
         </Card>
       )}
 
       {importSuccess && (
-        <Card className="border-green-500 bg-green-50 dark:bg-green-900/20">
-          <CardContent className="py-4 flex items-center gap-2 text-green-700 dark:text-green-300">
-            <CheckCircle className="h-5 w-5 flex-shrink-0" />
-            <span>{importSuccess}</span>
+        <Card className="border-success bg-success/10 animate-slide-up">
+          <CardContent className="py-4 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+            <span className="text-success">{importSuccess}</span>
           </CardContent>
         </Card>
       )}
 
-      {/* Institution Info */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      {/* Institution Card */}
+      <Card className="overflow-hidden animate-slide-up">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
         <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-gray-100">Institution</CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">
-            {rules?.institutionName || 'No timetable loaded'}
-            {rules && ` • ${rules.nDaysPerWeek} days × ${rules.nHoursPerDay} hours`}
-          </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>{rules?.institutionName || 'No timetable loaded'}</CardTitle>
+              <CardDescription>
+                {rules ? `${rules.nDaysPerWeek} days × ${rules.nHoursPerDay} hours per day` : 'Import or create a new timetable'}
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <Button asChild>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild className="gap-2 gradient-primary hover-lift">
               <Link to="/settings">
-                <FilePlus className="mr-2 h-4 w-4" />
+                <FilePlus className="h-4 w-4" />
                 New Timetable
               </Link>
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleImportClick}
-              disabled={importing}
-            >
-              <FileUp className="mr-2 h-4 w-4" />
-              {importing ? 'Importing...' : 'Import .FET File'}
+            <Button variant="outline" onClick={handleImportClick} disabled={importing} className="gap-2 hover-lift">
+              <Upload className="h-4 w-4" />
+              {importing ? 'Importing...' : 'Import .FET'}
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleExport}
-              disabled={exporting || !rules}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              {exporting ? 'Exporting...' : 'Export .FET File'}
+            <Button variant="outline" onClick={handleExport} disabled={exporting || !rules} className="gap-2 hover-lift">
+              <Download className="h-4 w-4" />
+              {exporting ? 'Exporting...' : 'Export .FET'}
             </Button>
-            <Button variant="outline" asChild>
-              <Link to="/generate">
-                <Play className="mr-2 h-4 w-4" />
-                Generate Timetable
-              </Link>
-            </Button>
+            
+            {lastSolution ? (
+              <Button asChild className="gap-2 bg-success hover:bg-success/90 hover-lift">
+                <Link to="/timetable">
+                  <Eye className="h-4 w-4" />
+                  View Timetable
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild variant="outline" className="gap-2 hover-lift">
+                <Link to="/generate">
+                  <Play className="h-4 w-4" />
+                  Generate
+                </Link>
+              </Button>
+            )}
           </div>
+          
+          {lastSolution && (
+            <div className="mt-4 p-4 rounded-xl bg-success/10 border border-success/20 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <span className="font-medium text-success">
+                  {lastSolution.isComplete ? 'Complete' : 'Partial'} timetable generated
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {lastSolution.placements.length} activities • {new Date(lastSolution.generatedAt).toLocaleString()}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Statistics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {quickStats.map((stat) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+        {quickStats.map((stat, index) => (
           <Link key={stat.name} to={stat.href}>
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.name}</CardTitle>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {stat.value}
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard
+              title={stat.name}
+              value={stat.value}
+              icon={<stat.icon className="h-6 w-6" />}
+              delay={index * 50}
+            />
           </Link>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <Card className="animate-slide-up" style={{ animationDelay: '200ms' }}>
         <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-gray-100">Quick Actions</CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">Common tasks to set up your timetable</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Zap className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common tasks to set up your timetable</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="h-20 flex-col" asChild>
-              <Link to="/teachers">
-                <Users className="mb-2 h-6 w-6" />
-                Add Teachers
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col" asChild>
-              <Link to="/subjects">
-                <BookOpen className="mb-2 h-6 w-6" />
-                Add Subjects
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col" asChild>
-              <Link to="/students">
-                <Users className="mb-2 h-6 w-6" />
-                Add Students
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col" asChild>
-              <Link to="/activities">
-                <Calendar className="mb-2 h-6 w-6" />
-                Add Activities
-              </Link>
-            </Button>
+            {[
+              { name: 'Add Teachers', icon: Users2, href: '/teachers' },
+              { name: 'Add Subjects', icon: BookOpen, href: '/subjects' },
+              { name: 'Add Students', icon: GraduationCap, href: '/students' },
+              { name: 'Add Activities', icon: Calendar, href: '/activities' },
+            ].map((action, index) => (
+              <Button 
+                key={action.name}
+                variant="outline" 
+                className="h-24 flex-col gap-3 hover-lift group" 
+                asChild
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <Link to={action.href}>
+                  <action.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
+                  <span>{action.name}</span>
+                </Link>
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
 
       {/* Getting Started */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <Card className="animate-slide-up" style={{ animationDelay: '300ms' }}>
         <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-gray-100">Getting Started</CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">Follow these steps to create your timetable</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Getting Started</CardTitle>
+              <CardDescription>Follow these steps to create your timetable</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <ol className="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-400">
-            <li>Set up your institution's time structure (days and hours) in Settings</li>
-            <li>Add teachers who will be teaching</li>
-            <li>Add subjects/courses to be taught</li>
-            <li>Define student years, groups, and subgroups</li>
-            <li>Create activities (lessons) linking teachers, subjects, and students</li>
-            <li>Add rooms and buildings</li>
-            <li>Define constraints (time and space)</li>
-            <li>Generate the timetable</li>
-            <li>View and export the results</li>
-          </ol>
+          <div className="space-y-3">
+            {[
+              'Set up your time structure (days and hours) in Settings',
+              'Add teachers who will be teaching',
+              'Add subjects/courses to be taught',
+              'Define student years, groups, and subgroups',
+              'Create activities linking teachers, subjects, and students',
+              'Add rooms and buildings',
+              'Define constraints (time and space)',
+              'Generate the timetable',
+              'View and export your results',
+            ].map((step, index) => (
+              <div 
+                key={index} 
+                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                  {index + 1}
+                </div>
+                <span className="text-muted-foreground">{step}</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground/50 ml-auto" />
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

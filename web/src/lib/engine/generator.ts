@@ -1,6 +1,6 @@
 /**
  * FET Web - Timetable Generator
- * Implementation of the recursive swapping algorithm
+ * Implementation of the recursive swapping algorithm with enhanced constraint support
  */
 
 import type { 
@@ -59,6 +59,24 @@ export class TimetableGenerator {
   private studentsNotAvailable: Map<number, Set<number>> = new Map();
   private roomNotAvailable: Map<number, Set<number>> = new Map();
   
+  // Additional constraint data
+  private teacherMaxHoursDaily: Map<number, number> = new Map();
+  private teacherMaxDaysPerWeek: Map<number, number> = new Map();
+  private teacherMaxGapsPerDay: Map<number, number> = new Map();
+  private allTeachersMaxHoursDaily: number = -1;
+  private studentsMaxHoursDaily: Map<number, number> = new Map();
+  private minDaysBetweenActivities: { activityIndices: number[]; minDays: number; consecutiveIfSameDay: boolean }[] = [];
+  private activityPreferredStartingTime: Map<number, { day: number; hour: number; locked: boolean }> = new Map();
+  
+  // Room preferences
+  private activityPreferredRoom: Map<number, { roomIdx: number; locked: boolean }> = new Map();
+  private activityPreferredRooms: Map<number, number[]> = new Map();
+  private subjectPreferredRoom: Map<string, number> = new Map();
+  private subjectPreferredRooms: Map<string, number[]> = new Map();
+  
+  // Activity subject mapping for room preferences
+  private activityToSubject: Map<number, string> = new Map();
+  
   private permutation: number[] = [];
   
   private tabuActivities: number[] = [];
@@ -94,10 +112,8 @@ export class TimetableGenerator {
   }
 
   private findTeacherIndex(idOrName: string): number {
-    // Try by ID first
     let idx = this.teacherIdToIndex.get(idOrName);
     if (idx !== undefined) return idx;
-    // Try by name
     idx = this.teacherNameToIndex.get(idOrName);
     if (idx !== undefined) return idx;
     return -1;
@@ -141,13 +157,12 @@ export class TimetableGenerator {
     // Convert activities to internal format
     this.internalActivities = this.activities.map((a, i) => {
       this.activityIdToIndex.set(a.id, i);
+      this.activityToSubject.set(i, a.subjectId);
       
-      // Map teacher ids/names to indices
       const teacherIndices = a.teacherIds
         .map(idOrName => this.findTeacherIndex(idOrName))
         .filter(idx => idx >= 0);
       
-      // Map student set ids/names to indices
       const subgroupIndices = a.studentSetIds
         .map(idOrName => this.findSubgroupIndex(idOrName))
         .filter(idx => idx >= 0);
@@ -173,7 +188,6 @@ export class TimetableGenerator {
       this.config.tabuSize = Math.max(100, this.nInternalActivities * this.nHoursPerWeek);
     }
     
-    // Initialize timetables
     const nTeachers = Math.max(1, this.teachers.length);
     const nSubgroups = Math.max(1, this.subgroups.length);
     const nRooms = Math.max(1, this.rooms.length);
@@ -194,25 +208,26 @@ export class TimetableGenerator {
   }
 
   private parseConstraints(): void {
+    // Parse time constraints
     for (const constraint of this.timeConstraints) {
+      const c = constraint as any;
+      
       switch (constraint.type) {
         case 'BreakTimes':
-          const breakConstraint = constraint as any;
-          if (breakConstraint.times) {
-            for (const time of breakConstraint.times) {
+          if (c.times) {
+            for (const time of c.times) {
               this.breakTimes.add(timeSlot(time.day, time.hour, this.nHoursPerDay));
             }
           }
           break;
           
         case 'TeacherNotAvailableTimes':
-          const teacherConstraint = constraint as any;
-          const teacherIdx = this.findTeacherIndex(teacherConstraint.teacherId);
-          if (teacherIdx >= 0 && teacherConstraint.times) {
+          const teacherIdx = this.findTeacherIndex(c.teacherId);
+          if (teacherIdx >= 0 && c.times) {
             if (!this.teacherNotAvailable.has(teacherIdx)) {
               this.teacherNotAvailable.set(teacherIdx, new Set());
             }
-            for (const time of teacherConstraint.times) {
+            for (const time of c.times) {
               this.teacherNotAvailable.get(teacherIdx)!.add(
                 timeSlot(time.day, time.hour, this.nHoursPerDay)
               );
@@ -220,37 +235,141 @@ export class TimetableGenerator {
           }
           break;
           
+        case 'TeacherMaxHoursDaily':
+          const maxHoursTeacherIdx = this.findTeacherIndex(c.teacherId);
+          if (maxHoursTeacherIdx >= 0 && c.maxHours !== undefined) {
+            this.teacherMaxHoursDaily.set(maxHoursTeacherIdx, c.maxHours);
+          }
+          break;
+          
+        case 'TeachersMaxHoursDaily':
+          if (c.maxHours !== undefined) {
+            this.allTeachersMaxHoursDaily = c.maxHours;
+          }
+          break;
+          
+        case 'TeacherMaxDaysPerWeek':
+          const maxDaysTeacherIdx = this.findTeacherIndex(c.teacherId);
+          if (maxDaysTeacherIdx >= 0 && c.maxDays !== undefined) {
+            this.teacherMaxDaysPerWeek.set(maxDaysTeacherIdx, c.maxDays);
+          }
+          break;
+          
+        case 'TeacherMaxGapsPerDay':
+          const gapsTeacherIdx = this.findTeacherIndex(c.teacherId);
+          if (gapsTeacherIdx >= 0 && c.maxGaps !== undefined) {
+            this.teacherMaxGapsPerDay.set(gapsTeacherIdx, c.maxGaps);
+          }
+          break;
+          
         case 'StudentsSetNotAvailableTimes':
-          const studentsConstraint = constraint as any;
-          const subgroupIdx = this.findSubgroupIndex(studentsConstraint.studentsSetId);
-          if (subgroupIdx >= 0 && studentsConstraint.times) {
+          const subgroupIdx = this.findSubgroupIndex(c.studentsSetId);
+          if (subgroupIdx >= 0 && c.times) {
             if (!this.studentsNotAvailable.has(subgroupIdx)) {
               this.studentsNotAvailable.set(subgroupIdx, new Set());
             }
-            for (const time of studentsConstraint.times) {
+            for (const time of c.times) {
               this.studentsNotAvailable.get(subgroupIdx)!.add(
                 timeSlot(time.day, time.hour, this.nHoursPerDay)
               );
             }
           }
           break;
+          
+        case 'StudentsSetMaxHoursDaily':
+          const maxHoursSubgroupIdx = this.findSubgroupIndex(c.studentsSetId);
+          if (maxHoursSubgroupIdx >= 0 && c.maxHours !== undefined) {
+            this.studentsMaxHoursDaily.set(maxHoursSubgroupIdx, c.maxHours);
+          }
+          break;
+          
+        case 'MinDaysBetweenActivities':
+          if (c.activityIds && c.minDays !== undefined) {
+            const activityIndices = c.activityIds
+              .map((id: string) => this.activityIdToIndex.get(id))
+              .filter((idx: number | undefined) => idx !== undefined) as number[];
+            if (activityIndices.length > 0) {
+              this.minDaysBetweenActivities.push({
+                activityIndices,
+                minDays: c.minDays,
+                consecutiveIfSameDay: c.consecutiveIfSameDay ?? false,
+              });
+            }
+          }
+          break;
+          
+        case 'ActivityPreferredStartingTime':
+          const activityIdx = this.activityIdToIndex.get(c.activityId);
+          if (activityIdx !== undefined && c.day !== undefined && c.hour !== undefined) {
+            this.activityPreferredStartingTime.set(activityIdx, {
+              day: c.day,
+              hour: c.hour,
+              locked: c.permanentlyLocked ?? false,
+            });
+          }
+          break;
       }
     }
 
+    // Parse space constraints
     for (const constraint of this.spaceConstraints) {
-      if (constraint.type === 'RoomNotAvailableTimes') {
-        const roomConstraint = constraint as any;
-        const roomIdx = this.findRoomIndex(roomConstraint.roomId);
-        if (roomIdx >= 0 && roomConstraint.times) {
-          if (!this.roomNotAvailable.has(roomIdx)) {
-            this.roomNotAvailable.set(roomIdx, new Set());
+      const c = constraint as any;
+      
+      switch (constraint.type) {
+        case 'RoomNotAvailableTimes':
+          const roomIdx = this.findRoomIndex(c.roomId);
+          if (roomIdx >= 0 && c.times) {
+            if (!this.roomNotAvailable.has(roomIdx)) {
+              this.roomNotAvailable.set(roomIdx, new Set());
+            }
+            for (const time of c.times) {
+              this.roomNotAvailable.get(roomIdx)!.add(
+                timeSlot(time.day, time.hour, this.nHoursPerDay)
+              );
+            }
           }
-          for (const time of roomConstraint.times) {
-            this.roomNotAvailable.get(roomIdx)!.add(
-              timeSlot(time.day, time.hour, this.nHoursPerDay)
-            );
+          break;
+          
+        case 'ActivityPreferredRoom':
+          const prefRoomActivityIdx = this.activityIdToIndex.get(c.activityId);
+          const prefRoomIdx = this.findRoomIndex(c.roomId);
+          if (prefRoomActivityIdx !== undefined && prefRoomIdx >= 0) {
+            this.activityPreferredRoom.set(prefRoomActivityIdx, {
+              roomIdx: prefRoomIdx,
+              locked: c.permanentlyLocked ?? false,
+            });
           }
-        }
+          break;
+          
+        case 'ActivityPreferredRooms':
+          const prefRoomsActivityIdx = this.activityIdToIndex.get(c.activityId);
+          if (prefRoomsActivityIdx !== undefined && c.roomIds) {
+            const roomIndices = c.roomIds
+              .map((id: string) => this.findRoomIndex(id))
+              .filter((idx: number) => idx >= 0);
+            if (roomIndices.length > 0) {
+              this.activityPreferredRooms.set(prefRoomsActivityIdx, roomIndices);
+            }
+          }
+          break;
+          
+        case 'SubjectPreferredRoom':
+          const subjRoomIdx = this.findRoomIndex(c.roomId);
+          if (c.subjectId && subjRoomIdx >= 0) {
+            this.subjectPreferredRoom.set(c.subjectId, subjRoomIdx);
+          }
+          break;
+          
+        case 'SubjectPreferredRooms':
+          if (c.subjectId && c.roomIds) {
+            const subjRoomIndices = c.roomIds
+              .map((id: string) => this.findRoomIndex(id))
+              .filter((idx: number) => idx >= 0);
+            if (subjRoomIndices.length > 0) {
+              this.subjectPreferredRooms.set(c.subjectId, subjRoomIndices);
+            }
+          }
+          break;
       }
     }
   }
@@ -262,10 +381,19 @@ export class TimetableGenerator {
       score += a.subgroupIndices.length * 10;
       score += a.duration * 5;
       
+      // Locked activities first
+      if (this.activityPreferredStartingTime.get(a.index)?.locked) {
+        score += 1000;
+      }
+      
       for (const teacherIdx of a.teacherIndices) {
         const notAvailable = this.teacherNotAvailable.get(teacherIdx);
         if (notAvailable) {
           score += notAvailable.size;
+        }
+        // More constrained if teacher has max hours
+        if (this.teacherMaxHoursDaily.has(teacherIdx)) {
+          score += 20;
         }
       }
       
@@ -276,11 +404,54 @@ export class TimetableGenerator {
         }
       }
       
+      // Activities in min days constraints are more constrained
+      for (const minDays of this.minDaysBetweenActivities) {
+        if (minDays.activityIndices.includes(a.index)) {
+          score += 15 * minDays.minDays;
+        }
+      }
+      
       return { index: a.index, score };
     });
     
     difficulties.sort((a, b) => b.score - a.score);
     this.permutation = difficulties.map(d => d.index);
+  }
+
+  private getTeacherHoursOnDay(teacherIdx: number, day: number): number {
+    let hours = 0;
+    for (let h = 0; h < this.nHoursPerDay; h++) {
+      const slot = timeSlot(day, h, this.nHoursPerDay);
+      if (this.teachersTimetable[teacherIdx] && this.teachersTimetable[teacherIdx][slot] >= 0) {
+        hours++;
+      }
+    }
+    return hours;
+  }
+
+  private countTeacherDays(teacherIdx: number): number {
+    const daysWithActivities = new Set<number>();
+    for (let d = 0; d < this.nDaysPerWeek; d++) {
+      for (let h = 0; h < this.nHoursPerDay; h++) {
+        const slot = timeSlot(d, h, this.nHoursPerDay);
+        if (this.teachersTimetable[teacherIdx] && this.teachersTimetable[teacherIdx][slot] >= 0) {
+          daysWithActivities.add(d);
+          break;
+        }
+      }
+    }
+    return daysWithActivities.size;
+  }
+
+  private getStudentHoursOnDay(subgroupIdx: number, day: number): number {
+    let hours = 0;
+    for (let h = 0; h < this.nHoursPerDay; h++) {
+      const slot = timeSlot(day, h, this.nHoursPerDay);
+      if (this.subgroupsTimetable[subgroupIdx] && this.subgroupsTimetable[subgroupIdx][slot] >= 0) {
+        hours++;
+      }
+    }
+    return hours;
   }
 
   private placeActivity(activityIndex: number, slot: number): void {
@@ -341,14 +512,51 @@ export class TimetableGenerator {
     valid: boolean; 
     conflicts: number[];
     reason?: string;
+    score?: number;
   } {
     const day = dayFromSlot(slot, this.nHoursPerDay);
     const hour = hourFromSlot(slot, this.nHoursPerDay);
     const conflicts: number[] = [];
+    let score = 0; // Lower is better
     
     // Check if activity fits in the day
     if (hour + activity.duration > this.nHoursPerDay) {
       return { valid: false, conflicts: [], reason: 'Duration exceeds day' };
+    }
+    
+    // Check locked preferred starting time
+    const preferredTime = this.activityPreferredStartingTime.get(activity.index);
+    if (preferredTime?.locked) {
+      if (day !== preferredTime.day || hour !== preferredTime.hour) {
+        return { valid: false, conflicts: [], reason: 'Locked starting time mismatch' };
+      }
+    }
+    
+    // Check min days between activities
+    for (const minDaysConstraint of this.minDaysBetweenActivities) {
+      if (minDaysConstraint.activityIndices.includes(activity.index)) {
+        for (const otherActIdx of minDaysConstraint.activityIndices) {
+          if (otherActIdx !== activity.index && this.times[otherActIdx] >= 0) {
+            const otherDay = dayFromSlot(this.times[otherActIdx], this.nHoursPerDay);
+            const dayDiff = Math.abs(day - otherDay);
+            if (dayDiff < minDaysConstraint.minDays && dayDiff > 0) {
+              return { valid: false, conflicts: [], reason: 'Min days between activities violation' };
+            }
+            // Same day handling
+            if (dayDiff === 0 && minDaysConstraint.consecutiveIfSameDay) {
+              const otherHour = hourFromSlot(this.times[otherActIdx], this.nHoursPerDay);
+              const otherActivity = this.internalActivities[otherActIdx];
+              // Check if they would be consecutive
+              const thisEnd = hour + activity.duration;
+              const otherEnd = otherHour + otherActivity.duration;
+              if (!(thisEnd === otherHour || otherEnd === hour)) {
+                // Not consecutive
+                return { valid: false, conflicts: [], reason: 'Same day activities not consecutive' };
+              }
+            }
+          }
+        }
+      }
     }
     
     // Check all time slots the activity would occupy
@@ -360,7 +568,7 @@ export class TimetableGenerator {
         return { valid: false, conflicts: [], reason: 'Break time' };
       }
       
-      // Check teacher availability and conflicts
+      // Check teacher availability and constraints
       for (const teacherIdx of activity.teacherIndices) {
         // Check not available times
         const notAvailable = this.teacherNotAvailable.get(teacherIdx);
@@ -397,7 +605,46 @@ export class TimetableGenerator {
       }
     }
     
-    return { valid: true, conflicts };
+    // Soft constraint checks (for scoring, not rejection)
+    // Prefer slots that maintain teacher max hours daily
+    for (const teacherIdx of activity.teacherIndices) {
+      const currentHours = this.getTeacherHoursOnDay(teacherIdx, day);
+      const maxHours = this.teacherMaxHoursDaily.get(teacherIdx) ?? this.allTeachersMaxHoursDaily;
+      if (maxHours > 0 && currentHours + activity.duration > maxHours) {
+        score += 50; // Penalize but don't reject
+      }
+      
+      // Check max days per week
+      const maxDays = this.teacherMaxDaysPerWeek.get(teacherIdx);
+      if (maxDays !== undefined) {
+        const currentDays = this.countTeacherDays(teacherIdx);
+        const hasActivityOnDay = this.getTeacherHoursOnDay(teacherIdx, day) > 0;
+        if (!hasActivityOnDay && currentDays >= maxDays) {
+          score += 100; // Heavy penalty for exceeding max days
+        }
+      }
+    }
+    
+    // Prefer slots that maintain student max hours daily
+    for (const subgroupIdx of activity.subgroupIndices) {
+      const currentHours = this.getStudentHoursOnDay(subgroupIdx, day);
+      const maxHours = this.studentsMaxHoursDaily.get(subgroupIdx);
+      if (maxHours !== undefined && currentHours + activity.duration > maxHours) {
+        score += 50;
+      }
+    }
+    
+    // Prefer earlier hours in the day (more natural schedule)
+    score += hour;
+    
+    // Prefer starting at the preferred time (if not locked)
+    if (preferredTime && !preferredTime.locked) {
+      if (day === preferredTime.day && hour === preferredTime.hour) {
+        score -= 30; // Bonus for matching preference
+      }
+    }
+    
+    return { valid: true, conflicts, score };
   }
 
   private findBestSlot(activityIndex: number): {
@@ -405,7 +652,7 @@ export class TimetableGenerator {
     conflicts: number[];
   } | null {
     const activity = this.internalActivities[activityIndex];
-    const slotData: { slot: number; conflictCount: number; conflicts: number[] }[] = [];
+    const slotData: { slot: number; conflictCount: number; conflicts: number[]; score: number }[] = [];
     
     for (let day = 0; day < this.nDaysPerWeek; day++) {
       for (let hour = 0; hour <= this.nHoursPerDay - activity.duration; hour++) {
@@ -427,7 +674,8 @@ export class TimetableGenerator {
           slotData.push({ 
             slot, 
             conflictCount: result.conflicts.length, 
-            conflicts: result.conflicts 
+            conflicts: result.conflicts,
+            score: result.score ?? 0
           });
         }
       }
@@ -437,8 +685,13 @@ export class TimetableGenerator {
       return null;
     }
     
-    // Sort by number of conflicts (prefer slots with fewer conflicts)
-    slotData.sort((a, b) => a.conflictCount - b.conflictCount);
+    // Sort by: number of conflicts first, then by score
+    slotData.sort((a, b) => {
+      if (a.conflictCount !== b.conflictCount) {
+        return a.conflictCount - b.conflictCount;
+      }
+      return a.score - b.score;
+    });
     
     return { slot: slotData[0].slot, conflicts: slotData[0].conflicts };
   }
@@ -508,6 +761,107 @@ export class TimetableGenerator {
     this.tabuIndex = (this.tabuIndex + 1) % this.config.tabuSize;
     
     return false;
+  }
+
+  private allocateRooms(): RoomAllocation[] {
+    const roomAllocations: RoomAllocation[] = [];
+    
+    if (this.rooms.length === 0) {
+      return roomAllocations;
+    }
+    
+    // Allocate rooms for each placed activity
+    for (const activity of this.internalActivities) {
+      if (this.times[activity.index] < 0) {
+        continue; // Activity not placed
+      }
+      
+      const slot = this.times[activity.index];
+      const day = dayFromSlot(slot, this.nHoursPerDay);
+      const hour = hourFromSlot(slot, this.nHoursPerDay);
+      
+      // Check for preferred room (locked)
+      const preferredRoom = this.activityPreferredRoom.get(activity.index);
+      if (preferredRoom?.locked) {
+        const roomIdx = preferredRoom.roomIdx;
+        let available = true;
+        for (let h = hour; h < hour + activity.duration; h++) {
+          const s = timeSlot(day, h, this.nHoursPerDay);
+          if (this.roomsTimetable[roomIdx][s] >= 0 || this.roomNotAvailable.get(roomIdx)?.has(s)) {
+            available = false;
+            break;
+          }
+        }
+        if (available) {
+          this.roomAllocations[activity.index] = roomIdx;
+          for (let h = hour; h < hour + activity.duration; h++) {
+            const s = timeSlot(day, h, this.nHoursPerDay);
+            this.roomsTimetable[roomIdx][s] = activity.index;
+          }
+          roomAllocations.push({
+            activityIndex: activity.index,
+            roomIndex: roomIdx,
+          });
+          continue;
+        }
+      }
+      
+      // Get list of candidate rooms
+      let candidateRooms: number[] = [];
+      
+      // Check activity preferred rooms
+      const prefRooms = this.activityPreferredRooms.get(activity.index);
+      if (prefRooms && prefRooms.length > 0) {
+        candidateRooms = prefRooms;
+      } else if (preferredRoom) {
+        candidateRooms = [preferredRoom.roomIdx];
+      } else {
+        // Check subject preferred rooms
+        const subject = this.activityToSubject.get(activity.index);
+        if (subject) {
+          const subjRoomIdx = this.subjectPreferredRoom.get(subject);
+          if (subjRoomIdx !== undefined) {
+            candidateRooms = [subjRoomIdx];
+          } else {
+            const subjRooms = this.subjectPreferredRooms.get(subject);
+            if (subjRooms && subjRooms.length > 0) {
+              candidateRooms = subjRooms;
+            }
+          }
+        }
+      }
+      
+      // If no preferences, use all rooms
+      if (candidateRooms.length === 0) {
+        candidateRooms = Array.from({ length: this.rooms.length }, (_, i) => i);
+      }
+      
+      // Find an available room
+      for (const roomIdx of candidateRooms) {
+        let available = true;
+        for (let h = hour; h < hour + activity.duration; h++) {
+          const s = timeSlot(day, h, this.nHoursPerDay);
+          if (this.roomsTimetable[roomIdx][s] >= 0 || this.roomNotAvailable.get(roomIdx)?.has(s)) {
+            available = false;
+            break;
+          }
+        }
+        if (available) {
+          this.roomAllocations[activity.index] = roomIdx;
+          for (let h = hour; h < hour + activity.duration; h++) {
+            const s = timeSlot(day, h, this.nHoursPerDay);
+            this.roomsTimetable[roomIdx][s] = activity.index;
+          }
+          roomAllocations.push({
+            activityIndex: activity.index,
+            roomIndex: roomIdx,
+          });
+          break;
+        }
+      }
+    }
+    
+    return roomAllocations;
   }
 
   async generate(callback?: GenerationCallback): Promise<GenerationResult> {
@@ -586,6 +940,9 @@ export class TimetableGenerator {
         await new Promise(resolve => setTimeout(resolve, 0));
       }
       
+      // Allocate rooms after time allocation
+      const roomAllocations = this.allocateRooms();
+      
       const timeAllocations: TimeAllocation[] = this.internalActivities
         .filter(a => this.times[a.index] >= 0)
         .map(a => ({
@@ -593,8 +950,6 @@ export class TimetableGenerator {
           day: dayFromSlot(this.times[a.index], this.nHoursPerDay),
           hour: hourFromSlot(this.times[a.index], this.nHoursPerDay),
         }));
-      
-      const roomAllocations: RoomAllocation[] = [];
       
       const isComplete = this.placedActivities === this.nInternalActivities;
       

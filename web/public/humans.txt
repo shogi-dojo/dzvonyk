@@ -1,0 +1,51 @@
+/* TEAM */
+
+Original FET Author: Liviu Lalescu
+    Location: Romania
+    Project: FET - Free Educational Timetabling
+    License: GNU Affero General Public License v3.0+
+
+FET Web Contributors: Open Source Community
+    Framework: React with TypeScript
+    State: Redux Toolkit
+    Storage: Dexie.js (IndexedDB)
+    Styling: Tailwind CSS
+    Icons: Lucide React
+
+/* THANKS */
+
+All contributors to the original FET software
+Open source community members
+Educational institutions using FET worldwide
+Users who provide feedback and bug reports
+
+/* SITE */
+
+Standards: HTML5, CSS3, ES2022+
+Platform: Modern Web Browsers
+Components: React 19, Vite, TypeScript 5
+Software: Based on FET (Free Educational Timetabling)
+IDE: Various open-source editors
+
+/* PURPOSE */
+
+FET Web brings the power of automatic timetable generation
+to the web browser. It is designed to help schools, colleges,
+and universities create optimal schedules while respecting
+complex constraints.
+
+Features:
+- Teacher, subject, and student management
+- Room and building configuration  
+- Flexible constraint system
+- Automatic timetable generation
+- Multiple view options (by teacher, student, room)
+- Import/export compatibility with FET desktop
+
+/* PRINCIPLES */
+
+- Privacy First: All data stays on your device
+- Accessibility: WCAG 2.1 AA compliance
+- Performance: Optimized for large datasets
+- Open Source: Free as in freedom
+- No Lock-in: Standard data formats

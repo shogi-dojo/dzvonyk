@@ -1,6 +1,6 @@
 /**
  * Pagination Component for listing pages
- * Provides page navigation with customizable page size
+ * Dense, power-user focused design
  */
 
 import React from 'react';
@@ -32,25 +32,21 @@ export function Pagination({
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
-  // Generate page numbers to show
   const getPageNumbers = (): (number | 'ellipsis')[] => {
     const pages: (number | 'ellipsis')[] = [];
     const showPages = 5;
     
     if (totalPages <= showPages + 2) {
-      // Show all pages
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
       
       if (currentPage > 3) {
         pages.push('ellipsis');
       }
       
-      // Show pages around current
       const start = Math.max(2, currentPage - 1);
       const end = Math.min(totalPages - 1, currentPage + 1);
       
@@ -62,7 +58,6 @@ export function Pagination({
         pages.push('ellipsis');
       }
       
-      // Always show last page
       if (totalPages > 1) {
         pages.push(totalPages);
       }
@@ -76,15 +71,15 @@ export function Pagination({
   }
 
   return (
-    <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-4', className)}>
+    <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-3 text-sm', className)}>
       {/* Items per page selector */}
       {onPageSizeChange && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <span>Show</span>
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="h-8 px-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="h-7 px-2 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
             {pageSizeOptions.map((size) => (
               <option key={size} value={size}>
@@ -92,52 +87,48 @@ export function Pagination({
               </option>
             ))}
           </select>
-          <span>per page</span>
         </div>
       )}
 
       {/* Page info */}
-      <div className="text-sm text-gray-600 dark:text-gray-400">
-        Showing {startItem} to {endItem} of {totalItems} items
+      <div className="text-muted-foreground">
+        {startItem}–{endItem} of {totalItems}
       </div>
 
       {/* Page navigation */}
-      <div className="flex items-center gap-1">
-        {/* First page */}
+      <div className="flex items-center gap-0.5">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-7 w-7"
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
         >
-          <ChevronsLeft className="h-4 w-4" />
+          <ChevronsLeft className="h-3.5 w-3.5" />
         </Button>
 
-        {/* Previous page */}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-7 w-7"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3.5 w-3.5" />
         </Button>
 
-        {/* Page numbers */}
         {getPageNumbers().map((page, i) =>
           page === 'ellipsis' ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-gray-400">
-              ...
+            <span key={`ellipsis-${i}`} className="px-1.5 text-muted-foreground">
+              …
             </span>
           ) : (
             <Button
               key={page}
-              variant={page === currentPage ? 'default' : 'outline'}
-              size="icon"
+              variant={page === currentPage ? 'default' : 'ghost'}
+              size="sm"
               className={cn(
-                'h-8 w-8',
+                'h-7 w-7 p-0',
                 page === currentPage && 'pointer-events-none'
               )}
               onClick={() => onPageChange(page)}
@@ -147,26 +138,24 @@ export function Pagination({
           )
         )}
 
-        {/* Next page */}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-7 w-7"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5" />
         </Button>
 
-        {/* Last page */}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-7 w-7"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
         >
-          <ChevronsRight className="h-4 w-4" />
+          <ChevronsRight className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>
@@ -184,20 +173,17 @@ export function usePagination<T>(
   const totalItems = items.length;
   const totalPages = Math.ceil(totalItems / pageSize);
 
-  // Reset to first page when page size changes
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setCurrentPage(1);
   };
 
-  // Ensure current page is valid
   React.useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
 
-  // Get items for current page
   const paginatedItems = React.useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return items.slice(start, start + pageSize);

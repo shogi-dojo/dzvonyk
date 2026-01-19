@@ -13,6 +13,7 @@ import activitiesReducer from './slices/activitiesSlice';
 import roomsReducer from './slices/roomsSlice';
 import constraintsReducer from './slices/constraintsSlice';
 import generationReducer from './slices/generationSlice';
+import activityTagsReducer from './slices/activityTagsSlice';
 import { fetApi } from './api';
 
 export const store = configureStore({
@@ -26,6 +27,7 @@ export const store = configureStore({
     rooms: roomsReducer,
     constraints: constraintsReducer,
     generation: generationReducer,
+    activityTags: activityTagsReducer,
     [fetApi.reducerPath]: fetApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

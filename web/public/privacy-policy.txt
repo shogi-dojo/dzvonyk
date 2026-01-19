@@ -1,0 +1,85 @@
+================================================================================
+                        FET WEB - PRIVACY POLICY
+================================================================================
+
+Last Updated: 2024
+
+1. INTRODUCTION
+-------------------------------------------------------------------------------
+FET Web ("we", "our", or "us") is committed to protecting your privacy. This
+Privacy Policy explains how we handle your information when you use our
+educational timetabling web application.
+
+2. DATA COLLECTION & STORAGE
+-------------------------------------------------------------------------------
+FET Web operates as a client-side application. All data processing occurs
+locally in your web browser using IndexedDB storage.
+
+We DO NOT:
+- Collect personal information
+- Store data on remote servers
+- Use tracking cookies
+- Share data with third parties
+- Perform analytics on your usage
+
+We DO:
+- Store timetable data locally in your browser
+- Allow you to import/export your own data files
+- Process all computations on your device
+
+3. LOCAL DATA STORAGE
+-------------------------------------------------------------------------------
+Your timetable data, including:
+- Teachers, subjects, and student groups
+- Activities and scheduling constraints
+- Room configurations
+- Generated timetables
+
+...is stored exclusively in your browser's IndexedDB. This data:
+- Never leaves your device unless you explicitly export it
+- Can be cleared at any time using browser settings or the app's reset feature
+- Is not accessible to us or any third party
+
+4. DATA EXPORT
+-------------------------------------------------------------------------------
+When you export data (e.g., downloading timetables), files are generated
+locally and saved directly to your device. No data transmission occurs.
+
+5. THIRD-PARTY SERVICES
+-------------------------------------------------------------------------------
+FET Web may use content delivery networks (CDNs) to serve static assets.
+These services may log access requests per their own privacy policies.
+
+6. COOKIES
+-------------------------------------------------------------------------------
+FET Web does not use cookies for tracking or advertising purposes.
+Essential browser storage (IndexedDB, localStorage) is used solely for
+application functionality.
+
+7. CHILDREN'S PRIVACY
+-------------------------------------------------------------------------------
+FET Web is designed for educational institutions and administrators.
+We do not knowingly collect information from children under 13.
+
+8. YOUR RIGHTS
+-------------------------------------------------------------------------------
+You have complete control over your data:
+- View: All data is accessible through the application interface
+- Export: Download your data at any time
+- Delete: Clear all data using the Reset function or browser settings
+- Portability: Export and import data in standard formats
+
+9. CHANGES TO THIS POLICY
+-------------------------------------------------------------------------------
+We may update this Privacy Policy periodically. Changes will be reflected
+in the "Last Updated" date above.
+
+10. CONTACT
+-------------------------------------------------------------------------------
+FET Web is open-source software based on FET (Free Educational Timetabling).
+For questions about this privacy policy, please visit the project repository.
+
+================================================================================
+                     This software respects your privacy.
+                     Your data stays on YOUR device.
+================================================================================

@@ -1,0 +1,89 @@
+================================================================================
+                       FET WEB - TERMS AND CONDITIONS
+================================================================================
+
+Last Updated: 2024
+
+1. ACCEPTANCE OF TERMS
+-------------------------------------------------------------------------------
+By accessing and using FET Web, you accept and agree to be bound by these
+Terms and Conditions. If you do not agree, please do not use this application.
+
+2. DESCRIPTION OF SERVICE
+-------------------------------------------------------------------------------
+FET Web is a free, open-source educational timetabling application that runs
+entirely in your web browser. It is based on FET (Free Educational Timetabling)
+and is provided under the GNU Affero General Public License (AGPL).
+
+3. LICENSE
+-------------------------------------------------------------------------------
+FET Web is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+for more details.
+
+4. USER RESPONSIBILITIES
+-------------------------------------------------------------------------------
+You are responsible for:
+- Verifying the accuracy of generated timetables
+- Backing up your data regularly (export feature)
+- Using the application in compliance with applicable laws
+- Ensuring generated schedules meet your institution's requirements
+
+5. NO WARRANTY
+-------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+6. LIMITATION OF LIABILITY
+-------------------------------------------------------------------------------
+To the maximum extent permitted by law, we shall not be liable for:
+- Any indirect, incidental, special, or consequential damages
+- Loss of data, profits, or business opportunities
+- Scheduling conflicts or errors in generated timetables
+- Any damages resulting from your use or inability to use the service
+
+7. DATA OWNERSHIP
+-------------------------------------------------------------------------------
+You retain full ownership of all data you input into FET Web. All data is
+stored locally on your device. We make no claim to your timetable data,
+teacher information, or any other input you provide.
+
+8. ACCEPTABLE USE
+-------------------------------------------------------------------------------
+You agree not to:
+- Use the application for any unlawful purpose
+- Attempt to reverse engineer the application maliciously
+- Interfere with the application's functionality
+- Misrepresent the source of the software
+
+9. MODIFICATIONS
+-------------------------------------------------------------------------------
+We reserve the right to modify or discontinue the application at any time
+without notice. We will not be liable to you or any third party for any
+modification, suspension, or discontinuance of the service.
+
+10. GOVERNING LAW
+-------------------------------------------------------------------------------
+These terms shall be governed by and construed in accordance with applicable
+open-source software licensing principles and your local jurisdiction.
+
+11. CONTACT
+-------------------------------------------------------------------------------
+FET Web is an open-source project. For questions or feedback, please visit
+the project repository or consult the original FET documentation.
+
+================================================================================
+               Thank you for using FET Web for educational scheduling.
+================================================================================

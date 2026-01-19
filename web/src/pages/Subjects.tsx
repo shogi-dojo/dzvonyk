@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Pagination, usePagination } from '@/components/ui/pagination';
+import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { loadSubjects, addSubject, updateSubject, deleteSubject } from '@/store/slices/subjectsSlice';
 import type { Subject } from '@/types';
@@ -36,7 +37,6 @@ export function Subjects() {
     dispatch(loadSubjects());
   }, [dispatch]);
 
-  // Filter subjects by search query
   const filteredSubjects = useMemo(() => {
     if (!searchQuery) return subjects;
     const query = searchQuery.toLowerCase();
@@ -48,14 +48,12 @@ export function Subjects() {
     );
   }, [subjects, searchQuery]);
 
-  // Use pagination hook
   const {
     paginatedItems: paginatedSubjects,
     paginationProps,
     setCurrentPage,
   } = usePagination(filteredSubjects, { initialPageSize: 12 });
 
-  // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, setCurrentPage]);
@@ -79,13 +77,11 @@ export function Subjects() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (editingSubject) {
       dispatch(updateSubject({ ...editingSubject, ...formData }));
     } else {
       dispatch(addSubject({ id: uuidv4(), ...formData }));
     }
-    
     setIsDialogOpen(false);
   };
 
@@ -97,22 +93,21 @@ export function Subjects() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Subjects</h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Manage subjects/courses for your timetable ({subjects.length} total)
-          </p>
-        </div>
-        <Button onClick={openNewDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Subject
-        </Button>
-      </div>
+      <PageHeader
+        title="Subjects"
+        description={`Manage subjects/courses for your timetable (${subjects.length} total)`}
+        icon={<BookOpen className="h-6 w-6" />}
+        actions={
+          <Button onClick={openNewDialog} className="gap-2 gradient-primary hover-lift">
+            <Plus className="h-4 w-4" />
+            Add Subject
+          </Button>
+        }
+      />
 
       {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <div className="relative max-w-sm animate-slide-up">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search subjects..."
           value={searchQuery}
@@ -123,39 +118,51 @@ export function Subjects() {
 
       {/* Subjects List */}
       {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">Loading...</div>
       ) : filteredSubjects.length === 0 ? (
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardContent className="py-8 text-center text-gray-500">
-            {searchQuery ? 'No subjects found matching your search.' : 'No subjects added yet. Click "Add Subject" to get started.'}
+        <Card className="animate-slide-up">
+          <CardContent className="py-12">
+            <EmptyState
+              icon={<BookOpen className="h-12 w-12" />}
+              title={searchQuery ? 'No Subjects Found' : 'No Subjects Yet'}
+              description={searchQuery ? 'No subjects match your search.' : 'Get started by adding your first subject.'}
+              action={!searchQuery && (
+                <Button onClick={openNewDialog} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Subject
+                </Button>
+              )}
+            />
           </CardContent>
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {paginatedSubjects.map((subject) => (
-              <Card key={subject.id} className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 stagger-children">
+            {paginatedSubjects.map((subject, index) => (
+              <Card key={subject.id} className="hover-lift" style={{ animationDelay: `${index * 30}ms` }}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-green-500" />
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <BookOpen className="h-4 w-4 text-success" />
+                      </div>
                       <div>
-                        <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
+                        <CardTitle className="text-base">
                           {subject.name}
                           {subject.code && (
-                            <span className="ml-2 text-sm text-gray-500">({subject.code})</span>
+                            <span className="ml-2 text-sm text-muted-foreground">({subject.code})</span>
                           )}
                         </CardTitle>
                         {subject.longName && subject.longName !== subject.name && (
-                          <CardDescription className="text-gray-500">{subject.longName}</CardDescription>
+                          <CardDescription>{subject.longName}</CardDescription>
                         )}
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(subject)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(subject)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(subject.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(subject.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -163,78 +170,68 @@ export function Subjects() {
                 </CardHeader>
                 <CardContent>
                   {subject.comments && (
-                    <p className="text-sm text-gray-500 truncate">{subject.comments}</p>
+                    <p className="text-sm text-muted-foreground truncate">{subject.comments}</p>
                   )}
                 </CardContent>
               </Card>
             ))}
           </div>
-
-          {/* Pagination */}
           <Pagination {...paginationProps} />
         </>
       )}
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-white dark:bg-gray-800">
+        <DialogContent>
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-gray-900 dark:text-gray-100">
-                {editingSubject ? 'Edit Subject' : 'Add Subject'}
-              </DialogTitle>
-              <DialogDescription className="text-gray-500">
+              <DialogTitle>{editingSubject ? 'Edit Subject' : 'Add Subject'}</DialogTitle>
+              <DialogDescription>
                 {editingSubject ? 'Update the subject details.' : 'Enter the details for the new subject.'}
               </DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">Name *</Label>
+                <Label htmlFor="name">Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Mathematics"
                   required
-                  className="bg-white dark:bg-gray-900"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="longName" className="text-gray-700 dark:text-gray-300">Long Name</Label>
+                <Label htmlFor="longName">Long Name</Label>
                 <Input
                   id="longName"
                   value={formData.longName}
                   onChange={(e) => setFormData({ ...formData, longName: e.target.value })}
                   placeholder="e.g., Advanced Mathematics"
-                  className="bg-white dark:bg-gray-900"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="code" className="text-gray-700 dark:text-gray-300">Code</Label>
+                <Label htmlFor="code">Code</Label>
                 <Input
                   id="code"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   placeholder="e.g., MATH"
-                  className="bg-white dark:bg-gray-900"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="comments" className="text-gray-700 dark:text-gray-300">Comments</Label>
+                <Label htmlFor="comments">Comments</Label>
                 <Input
                   id="comments"
                   value={formData.comments}
                   onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
                 />
               </div>
             </div>
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button type="submit">{editingSubject ? 'Update' : 'Add'}</Button>
             </DialogFooter>
           </form>

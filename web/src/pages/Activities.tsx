@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Search, Calendar, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Calendar, Check, X, Tag, ChevronDown, ChevronRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,17 +15,34 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Pagination, usePagination } from '@/components/ui/pagination';
+import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { loadActivities, addActivity, updateActivity, deleteActivity } from '@/store/slices/activitiesSlice';
-import type { Activity } from '@/types';
+import { loadActivityTags, addActivityTag, updateActivityTag, deleteActivityTag } from '@/store/slices/activityTagsSlice';
+import type { Activity, ActivityTag } from '@/types';
 
 export function Activities() {
   const dispatch = useAppDispatch();
   const { items: activities, loading } = useAppSelector((state) => state.activities);
   const teachers = useAppSelector((state) => state.teachers.items);
   const subjects = useAppSelector((state) => state.subjects.items);
+  const activityTags = useAppSelector((state) => state.activityTags?.items || []);
   const { years, groups } = useAppSelector((state) => state.students);
   
+  // Activity Tags section state
+  const [tagsExpanded, setTagsExpanded] = useState(true);
+  const [tagSearchQuery, setTagSearchQuery] = useState('');
+  const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [editingTag, setEditingTag] = useState<ActivityTag | null>(null);
+  const [tagFormData, setTagFormData] = useState({
+    name: '',
+    longName: '',
+    code: '',
+    printable: true,
+    comments: '',
+  });
+  
+  // Activities section state
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -33,6 +50,7 @@ export function Activities() {
     subjectId: '',
     teacherIds: [] as string[],
     studentSetIds: [] as string[],
+    activityTagIds: [] as string[],
     duration: 1,
     nTotalStudents: 0,
     active: true,
@@ -40,9 +58,20 @@ export function Activities() {
 
   useEffect(() => {
     dispatch(loadActivities());
+    dispatch(loadActivityTags());
   }, [dispatch]);
 
-  // Filter activities by search
+  const filteredTags = useMemo(() => {
+    if (!tagSearchQuery) return activityTags;
+    const query = tagSearchQuery.toLowerCase();
+    return activityTags.filter(
+      (t) =>
+        t.name.toLowerCase().includes(query) ||
+        t.longName?.toLowerCase().includes(query) ||
+        t.code?.toLowerCase().includes(query)
+    );
+  }, [activityTags, tagSearchQuery]);
+
   const filteredActivities = useMemo(() => {
     if (!searchQuery) return activities;
     const query = searchQuery.toLowerCase();
@@ -50,23 +79,21 @@ export function Activities() {
       (a) =>
         a.subjectId.toLowerCase().includes(query) ||
         a.teacherIds.some(t => t.toLowerCase().includes(query)) ||
-        a.studentSetIds.some(s => s.toLowerCase().includes(query))
+        a.studentSetIds.some(s => s.toLowerCase().includes(query)) ||
+        a.activityTagIds.some(t => t.toLowerCase().includes(query))
     );
   }, [activities, searchQuery]);
 
-  // Use pagination hook
   const {
     paginatedItems: paginatedActivities,
     paginationProps,
     setCurrentPage,
   } = usePagination(filteredActivities, { initialPageSize: 10 });
 
-  // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, setCurrentPage]);
 
-  // Student options (years + groups)
   const studentOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
     years.forEach(y => opts.push({ value: y.name, label: `${y.name} (Year)` }));
@@ -74,16 +101,46 @@ export function Activities() {
     return opts;
   }, [years, groups]);
 
+  // Activity Tag Functions
+  const openNewTagDialog = () => {
+    setEditingTag(null);
+    setTagFormData({ name: '', longName: '', code: '', printable: true, comments: '' });
+    setIsTagDialogOpen(true);
+  };
+
+  const openEditTagDialog = (tag: ActivityTag) => {
+    setEditingTag(tag);
+    setTagFormData({
+      name: tag.name,
+      longName: tag.longName || '',
+      code: tag.code || '',
+      printable: tag.printable,
+      comments: tag.comments || '',
+    });
+    setIsTagDialogOpen(true);
+  };
+
+  const handleTagSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingTag) {
+      dispatch(updateActivityTag({ ...editingTag, ...tagFormData }));
+    } else {
+      dispatch(addActivityTag({ id: uuidv4(), ...tagFormData }));
+    }
+    setIsTagDialogOpen(false);
+    setEditingTag(null);
+  };
+
+  const handleTagDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this activity tag?')) {
+      dispatch(deleteActivityTag(id));
+    }
+  };
+
+  // Activity Functions
   const openNewDialog = () => {
     setEditingActivity(null);
-    setFormData({
-      subjectId: '',
-      teacherIds: [],
-      studentSetIds: [],
-      duration: 1,
-      nTotalStudents: 0,
-      active: true,
-    });
+    setFormData({ subjectId: '', teacherIds: [], studentSetIds: [], activityTagIds: [], duration: 1, nTotalStudents: 0, active: true });
     setIsDialogOpen(true);
   };
 
@@ -93,6 +150,7 @@ export function Activities() {
       subjectId: activity.subjectId,
       teacherIds: [...activity.teacherIds],
       studentSetIds: [...activity.studentSetIds],
+      activityTagIds: [...(activity.activityTagIds || [])],
       duration: activity.duration,
       nTotalStudents: activity.nTotalStudents,
       active: activity.active,
@@ -100,26 +158,22 @@ export function Activities() {
     setIsDialogOpen(true);
   };
 
+  const toggleActivityTag = (tagName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      activityTagIds: prev.activityTagIds.includes(tagName)
+        ? prev.activityTagIds.filter(t => t !== tagName)
+        : [...prev.activityTagIds, tagName]
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (editingActivity) {
-      dispatch(updateActivity({
-        ...editingActivity,
-        ...formData,
-        totalDuration: formData.duration,
-      }));
+      dispatch(updateActivity({ ...editingActivity, ...formData, totalDuration: formData.duration }));
     } else {
-      dispatch(addActivity({
-        id: uuidv4(),
-        activityGroupId: 0,
-        ...formData,
-        activityTagIds: [],
-        totalDuration: formData.duration,
-        computeNTotalStudents: true,
-      }));
+      dispatch(addActivity({ id: uuidv4(), activityGroupId: 0, ...formData, totalDuration: formData.duration, computeNTotalStudents: true }));
     }
-    
     setIsDialogOpen(false);
   };
 
@@ -135,71 +189,126 @@ export function Activities() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Activities</h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Manage activities (lessons) - {activities.length} total, {activities.filter(a => a.active).length} active
-          </p>
-        </div>
-        <Button onClick={openNewDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Activity
-        </Button>
-      </div>
+      <PageHeader
+        title="Activities"
+        description={`Manage activities (lessons) - ${activities.length} total, ${activities.filter(a => a.active).length} active`}
+        icon={<Calendar className="h-6 w-6" />}
+        actions={
+          <Button onClick={openNewDialog} className="gap-2 gradient-primary hover-lift">
+            <Plus className="h-4 w-4" />
+            Add Activity
+          </Button>
+        }
+      />
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="Search activities..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      {/* Activity Tags Section */}
+      <Card className="animate-slide-up">
+        <CardHeader className="cursor-pointer select-none" onClick={() => setTagsExpanded(!tagsExpanded)}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Tag className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Activity Tags</CardTitle>
+                <CardDescription>{activityTags.length} tag{activityTags.length !== 1 ? 's' : ''} defined</CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openNewTagDialog(); }}>
+                <Plus className="mr-1 h-4 w-4" />
+                Add Tag
+              </Button>
+              {tagsExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+            </div>
+          </div>
+        </CardHeader>
+        
+        {tagsExpanded && (
+          <CardContent className="pt-0">
+            {activityTags.length > 5 && (
+              <div className="relative max-w-sm mb-4">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Search tags..." value={tagSearchQuery} onChange={(e) => setTagSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
+              </div>
+            )}
+            
+            {filteredTags.length === 0 ? (
+              <p className="text-muted-foreground text-sm py-4 text-center">
+                {tagSearchQuery ? 'No tags match your search.' : 'No activity tags defined yet. Click "Add Tag" to create one.'}
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {filteredTags.map((tag) => (
+                  <div key={tag.id} className="group flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors">
+                    <Tag className="h-3.5 w-3.5 text-accent" />
+                    <span className="text-sm font-medium text-foreground">{tag.name}</span>
+                    {tag.code && <span className="text-xs text-muted-foreground">({tag.code})</span>}
+                    <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditTagDialog(tag)}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleTagDelete(tag.id)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Search Activities */}
+      <div className="relative max-w-sm animate-slide-up" style={{ animationDelay: '50ms' }}>
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Search activities..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
       </div>
 
       {/* Activities List */}
       {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">Loading...</div>
       ) : filteredActivities.length === 0 ? (
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardContent className="py-8 text-center text-gray-500">
-            {searchQuery ? 'No activities found matching your search.' : 'No activities added yet.'}
+        <Card className="animate-slide-up">
+          <CardContent className="py-12">
+            <EmptyState
+              icon={<Calendar className="h-12 w-12" />}
+              title={searchQuery ? 'No Activities Found' : 'No Activities Yet'}
+              description={searchQuery ? 'No activities match your search.' : 'Get started by adding your first activity.'}
+              action={!searchQuery && (
+                <Button onClick={openNewDialog} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Activity
+                </Button>
+              )}
+            />
           </CardContent>
         </Card>
       ) : (
         <>
-          <div className="space-y-3">
-            {paginatedActivities.map((activity) => {
+          <div className="space-y-3 stagger-children">
+            {paginatedActivities.map((activity, index) => {
               const subject = subjects.find(s => s.name === activity.subjectId || s.id === activity.subjectId);
               return (
-                <Card 
-                  key={activity.id} 
-                  className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${!activity.active ? 'opacity-60' : ''}`}
-                >
+                <Card key={activity.id} className={`hover-lift ${!activity.active ? 'opacity-60' : ''}`} style={{ animationDelay: `${index * 30}ms` }}>
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <Calendar className={`h-5 w-5 ${activity.active ? 'text-purple-500' : 'text-gray-400'}`} />
+                        <div className={`p-2 rounded-lg ${activity.active ? 'bg-primary/10' : 'bg-muted'}`}>
+                          <Calendar className={`h-5 w-5 ${activity.active ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </div>
                         <div>
-                          <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
-                            {subject?.name || activity.subjectId}
-                          </CardTitle>
-                          <CardDescription className="text-gray-500">
+                          <CardTitle className="text-lg">{subject?.name || activity.subjectId}</CardTitle>
+                          <CardDescription>
                             Duration: {activity.duration} hour{activity.duration > 1 ? 's' : ''}
                             {activity.teacherIds.length > 0 && ` • Teacher: ${activity.teacherIds.join(', ')}`}
                           </CardDescription>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => toggleActive(activity)}
-                          title={activity.active ? 'Deactivate' : 'Activate'}
-                        >
-                          {activity.active ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-gray-400" />}
+                        <Button variant="ghost" size="icon" onClick={() => toggleActive(activity)} title={activity.active ? 'Deactivate' : 'Activate'}>
+                          {activity.active ? <Check className="h-4 w-4 text-success" /> : <X className="h-4 w-4 text-muted-foreground" />}
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(activity)}>
                           <Pencil className="h-4 w-4" />
@@ -213,48 +322,78 @@ export function Activities() {
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
                       {activity.studentSetIds.map(s => (
-                        <Badge key={s} variant="outline" className="text-gray-600 dark:text-gray-400">{s}</Badge>
+                        <Badge key={s} variant="outline">{s}</Badge>
                       ))}
                       {activity.activityTagIds.map(t => (
-                        <Badge key={t} variant="secondary">{t}</Badge>
+                        <Badge key={t} variant="secondary" className="flex items-center gap-1">
+                          <Tag className="h-3 w-3" />
+                          {t}
+                        </Badge>
                       ))}
-                      {!activity.active && (
-                        <Badge variant="destructive">Inactive</Badge>
-                      )}
+                      {!activity.active && <Badge variant="destructive">Inactive</Badge>}
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
-
-          {/* Pagination */}
           <Pagination {...paginationProps} />
         </>
       )}
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg bg-white dark:bg-gray-800">
-          <form onSubmit={handleSubmit}>
+      {/* Add/Edit Activity Tag Dialog */}
+      <Dialog open={isTagDialogOpen} onOpenChange={setIsTagDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleTagSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-gray-900 dark:text-gray-100">
-                {editingActivity ? 'Edit Activity' : 'Add Activity'}
-              </DialogTitle>
-              <DialogDescription className="text-gray-500">
-                {editingActivity ? 'Update activity details' : 'Create a new activity (lesson)'}
-              </DialogDescription>
+              <DialogTitle>{editingTag ? 'Edit Activity Tag' : 'Add Activity Tag'}</DialogTitle>
+              <DialogDescription>Activity tags help categorize and filter activities</DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label className="text-gray-700 dark:text-gray-300">Subject *</Label>
-                <select
-                  required
-                  value={formData.subjectId}
-                  onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
-                  className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-gray-900 dark:text-gray-100"
-                >
+                <Label htmlFor="tagName">Name *</Label>
+                <Input id="tagName" value={tagFormData.name} onChange={(e) => setTagFormData({ ...tagFormData, name: e.target.value })} placeholder="e.g., Lab, Lecture" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tagLongName">Long Name</Label>
+                <Input id="tagLongName" value={tagFormData.longName} onChange={(e) => setTagFormData({ ...tagFormData, longName: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tagCode">Code</Label>
+                <Input id="tagCode" value={tagFormData.code} onChange={(e) => setTagFormData({ ...tagFormData, code: e.target.value })} />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="tagPrintable" checked={tagFormData.printable} onChange={(e) => setTagFormData({ ...tagFormData, printable: e.target.checked })} className="h-4 w-4" />
+                <Label htmlFor="tagPrintable">Printable on timetable</Label>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tagComments">Comments</Label>
+                <Input id="tagComments" value={tagFormData.comments} onChange={(e) => setTagFormData({ ...tagFormData, comments: e.target.value })} />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsTagDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">{editingTag ? 'Update' : 'Add'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Activity Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>{editingActivity ? 'Edit Activity' : 'Add Activity'}</DialogTitle>
+              <DialogDescription>{editingActivity ? 'Update activity details' : 'Create a new activity (lesson)'}</DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Subject *</Label>
+                <select required value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                   <option value="">Select subject</option>
                   {subjects.map((s) => (
                     <option key={s.id} value={s.name}>{s.name}{s.code ? ` (${s.code})` : ''}</option>
@@ -263,12 +402,8 @@ export function Activities() {
               </div>
               
               <div className="grid gap-2">
-                <Label className="text-gray-700 dark:text-gray-300">Teacher</Label>
-                <select
-                  value={formData.teacherIds[0] || ''}
-                  onChange={(e) => setFormData({ ...formData, teacherIds: e.target.value ? [e.target.value] : [] })}
-                  className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-gray-900 dark:text-gray-100"
-                >
+                <Label>Teacher</Label>
+                <select value={formData.teacherIds[0] || ''} onChange={(e) => setFormData({ ...formData, teacherIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                   <option value="">Select teacher</option>
                   {teachers.map((t) => (
                     <option key={t.id} value={t.name}>{t.name}{t.code ? ` (${t.code})` : ''}</option>
@@ -277,60 +412,50 @@ export function Activities() {
               </div>
               
               <div className="grid gap-2">
-                <Label className="text-gray-700 dark:text-gray-300">Students</Label>
-                <select
-                  value={formData.studentSetIds[0] || ''}
-                  onChange={(e) => setFormData({ ...formData, studentSetIds: e.target.value ? [e.target.value] : [] })}
-                  className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-gray-900 dark:text-gray-100"
-                >
+                <Label>Students</Label>
+                <select value={formData.studentSetIds[0] || ''} onChange={(e) => setFormData({ ...formData, studentSetIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                   <option value="">Select students</option>
                   {studentOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
+
+              {activityTags.length > 0 && (
+                <div className="grid gap-2">
+                  <Label>Activity Tags</Label>
+                  <div className="flex flex-wrap gap-2 p-3 rounded-md border border-border bg-card">
+                    {activityTags.map((tag) => (
+                      <Badge key={tag.id} variant={formData.activityTagIds.includes(tag.name) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleActivityTag(tag.name)}>
+                        <Tag className="h-3 w-3 mr-1" />
+                        {tag.name}
+                        {formData.activityTagIds.includes(tag.name) && <X className="h-3 w-3 ml-1" />}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Click tags to add/remove</p>
+                </div>
+              )}
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Duration (hours) *</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
-                    required
-                    className="bg-white dark:bg-gray-900"
-                  />
+                  <Label>Duration (hours) *</Label>
+                  <Input type="number" min="1" max="10" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Total Students</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.nTotalStudents}
-                    onChange={(e) => setFormData({ ...formData, nTotalStudents: parseInt(e.target.value) || 0 })}
-                    className="bg-white dark:bg-gray-900"
-                  />
+                  <Label>Total Students</Label>
+                  <Input type="number" min="0" value={formData.nTotalStudents} onChange={(e) => setFormData({ ...formData, nTotalStudents: parseInt(e.target.value) || 0 })} />
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="active"
-                  checked={formData.active}
-                  onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="active" className="text-gray-700 dark:text-gray-300">Active</Label>
+                <input type="checkbox" id="active" checked={formData.active} onChange={(e) => setFormData({ ...formData, active: e.target.checked })} className="h-4 w-4" />
+                <Label htmlFor="active">Active</Label>
               </div>
             </div>
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button type="submit">{editingActivity ? 'Update' : 'Add'}</Button>
             </DialogFooter>
           </form>

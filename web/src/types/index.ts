@@ -203,7 +203,11 @@ export type ConstraintType =
   | 'TeacherHomeRoom'
   | 'TeacherHomeRooms'
   | 'SubjectPreferredRoom'
-  | 'SubjectPreferredRooms';
+  | 'SubjectPreferredRooms'
+  | 'SubjectActivityTagPreferredRoom'
+  | 'SubjectActivityTagPreferredRooms'
+  | 'ActivityTagPreferredRoom'
+  | 'ActivityTagPreferredRooms';
 
 export interface BaseConstraint {
   id: string;

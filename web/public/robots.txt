@@ -1,0 +1,17 @@
+# FET Web - Robots.txt
+# https://www.robotstxt.org/
+
+# Allow all crawlers access to all content
+User-agent: *
+Allow: /
+
+# Static resources
+Allow: /privacy-policy.txt
+Allow: /terms-conditions.txt
+Allow: /humans.txt
+
+# No specific restrictions since this is a client-side application
+# All data is stored locally and never transmitted to servers
+
+# Sitemap (if applicable)
+# Sitemap: https://your-domain.com/sitemap.xml

@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Pagination, usePagination } from '@/components/ui/pagination';
+import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { loadRooms, addRoom, updateRoom, deleteRoom, addBuilding, updateBuilding, deleteBuilding } from '@/store/slices/roomsSlice';
 import type { Room, Building } from '@/types';
@@ -26,13 +27,11 @@ export function Rooms() {
   const { rooms, buildings, loading } = useAppSelector((state) => state.rooms);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('room');
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   
-  // Room form data
   const [roomFormData, setRoomFormData] = useState({
     name: '',
     longName: '',
@@ -43,7 +42,6 @@ export function Rooms() {
     comments: '',
   });
   
-  // Building form data
   const [buildingFormData, setBuildingFormData] = useState({
     name: '',
     longName: '',
@@ -55,26 +53,35 @@ export function Rooms() {
     dispatch(loadRooms());
   }, [dispatch]);
 
-  // Filter rooms by search
+  const findBuildingId = (idOrName?: string): string => {
+    if (!idOrName) return '';
+    const byId = buildings.find(b => b.id === idOrName);
+    if (byId) return byId.id;
+    const byName = buildings.find(b => b.name === idOrName);
+    if (byName) return byName.id;
+    return '';
+  };
+
+  const getBuildingName = (buildingId?: string): string => {
+    if (!buildingId) return '';
+    const building = buildings.find(b => b.id === buildingId || b.name === buildingId);
+    return building?.name || buildingId;
+  };
+
   const filteredRooms = useMemo(() => {
     if (!searchQuery) return rooms;
     const query = searchQuery.toLowerCase();
     return rooms.filter(
-      (r) => 
-        r.name.toLowerCase().includes(query) ||
-        r.longName?.toLowerCase().includes(query) ||
-        r.code?.toLowerCase().includes(query)
+      (r) => r.name.toLowerCase().includes(query) || r.longName?.toLowerCase().includes(query) || r.code?.toLowerCase().includes(query)
     );
   }, [rooms, searchQuery]);
 
-  // Use pagination hook
   const {
     paginatedItems: paginatedRooms,
     paginationProps,
     setCurrentPage,
   } = usePagination(filteredRooms, { initialPageSize: 12 });
 
-  // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, setCurrentPage]);
@@ -87,7 +94,7 @@ export function Rooms() {
       longName: room?.longName || '',
       code: room?.code || '',
       capacity: room?.capacity || 30,
-      buildingId: room?.buildingId || '',
+      buildingId: room ? findBuildingId(room.buildingId) : '',
       isVirtual: room?.isVirtual || false,
       comments: room?.comments || '',
     });
@@ -111,10 +118,7 @@ export function Rooms() {
     if (editingRoom) {
       dispatch(updateRoom({ ...editingRoom, ...roomFormData }));
     } else {
-      dispatch(addRoom({
-        id: uuidv4(),
-        ...roomFormData,
-      }));
+      dispatch(addRoom({ id: uuidv4(), ...roomFormData }));
     }
     setIsDialogOpen(false);
   };
@@ -124,10 +128,7 @@ export function Rooms() {
     if (editingBuilding) {
       dispatch(updateBuilding({ ...editingBuilding, ...buildingFormData }));
     } else {
-      dispatch(addBuilding({
-        id: uuidv4(),
-        ...buildingFormData,
-      }));
+      dispatch(addBuilding({ id: uuidv4(), ...buildingFormData }));
     }
     setIsDialogOpen(false);
   };
@@ -142,78 +143,49 @@ export function Rooms() {
     dispatch(deleteBuilding(building.id));
   };
 
-  const getBuildingName = (buildingId?: string): string => {
-    if (!buildingId) return '';
-    const building = buildings.find(b => b.id === buildingId || b.name === buildingId);
-    return building?.name || buildingId;
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Rooms</h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Manage rooms and buildings ({rooms.length} total)
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => openBuildingDialog()}>
-            <Building2 className="mr-2 h-4 w-4" />
-            Add Building
-          </Button>
-          <Button onClick={() => openRoomDialog()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Room
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Rooms"
+        description={`Manage rooms and buildings (${rooms.length} total)`}
+        icon={<Building2 className="h-6 w-6" />}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => openBuildingDialog()} className="gap-2 hover-lift">
+              <Building2 className="h-4 w-4" />
+              Add Building
+            </Button>
+            <Button onClick={() => openRoomDialog()} className="gap-2 gradient-primary hover-lift">
+              <Plus className="h-4 w-4" />
+              Add Room
+            </Button>
+          </div>
+        }
+      />
 
       {/* Statistics */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Rooms</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{rooms.length}</div>
-            <p className="text-sm text-gray-500">
-              Capacity: {rooms.reduce((sum, r) => sum + r.capacity, 0)} students
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Buildings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{buildings.length}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 stagger-children">
+        <StatCard title="Total Rooms" value={rooms.length} icon={<DoorOpen className="h-5 w-5" />} />
+        <StatCard title="Buildings" value={buildings.length} icon={<Building2 className="h-5 w-5" />} />
       </div>
 
       {/* Buildings section */}
       {buildings.length > 0 && (
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="animate-slide-up">
           <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-gray-100">Buildings</CardTitle>
+            <CardTitle>Buildings</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {buildings.map(building => (
-                <div
-                  key={building.id}
-                  className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2"
-                >
-                  <Building2 className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-800 dark:text-gray-200">{building.name}</span>
-                  <Badge variant="outline" className="text-gray-500">
-                    {rooms.filter(r => r.buildingId === building.id || r.buildingId === building.name).length} rooms
-                  </Badge>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openBuildingDialog(building)}>
+                <div key={building.id} className="group flex items-center gap-2 bg-muted rounded-lg px-3 py-2 hover:bg-muted/80 transition-colors">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-foreground">{building.name}</span>
+                  <Badge variant="outline">{rooms.filter(r => r.buildingId === building.id || r.buildingId === building.name).length} rooms</Badge>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openBuildingDialog(building)}>
                     <Pencil className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteBuilding(building)}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => handleDeleteBuilding(building)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -224,49 +196,56 @@ export function Rooms() {
       )}
 
       {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="Search rooms..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      <div className="relative max-w-sm animate-slide-up">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Search rooms..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
       </div>
 
       {/* Rooms List */}
       {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">Loading...</div>
       ) : filteredRooms.length === 0 ? (
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardContent className="py-8 text-center text-gray-500">
-            {searchQuery ? 'No rooms found matching your search.' : 'No rooms added yet.'}
+        <Card className="animate-slide-up">
+          <CardContent className="py-12">
+            <EmptyState
+              icon={<DoorOpen className="h-12 w-12" />}
+              title={searchQuery ? 'No Rooms Found' : 'No Rooms Yet'}
+              description={searchQuery ? 'No rooms match your search.' : 'Get started by adding your first room.'}
+              action={!searchQuery && (
+                <Button onClick={() => openRoomDialog()} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Room
+                </Button>
+              )}
+            />
           </CardContent>
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {paginatedRooms.map((room) => (
-              <Card key={room.id} className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+            {paginatedRooms.map((room, index) => (
+              <Card key={room.id} className="hover-lift" style={{ animationDelay: `${index * 30}ms` }}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <DoorOpen className="h-5 w-5 text-green-500" />
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <DoorOpen className="h-4 w-4 text-success" />
+                      </div>
                       <div>
-                        <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
+                        <CardTitle className="text-base">
                           {room.name}
-                          {room.code && <span className="ml-2 text-sm text-gray-500">({room.code})</span>}
+                          {room.code && <span className="ml-2 text-sm text-muted-foreground">({room.code})</span>}
                         </CardTitle>
                         {room.longName && room.longName !== room.name && (
-                          <CardDescription className="text-gray-500">{room.longName}</CardDescription>
+                          <CardDescription>{room.longName}</CardDescription>
                         )}
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openRoomDialog(room)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRoomDialog(room)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteRoom(room)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRoom(room)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -274,97 +253,50 @@ export function Rooms() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-gray-600 dark:text-gray-400">
-                      Capacity: {room.capacity}
-                    </Badge>
-                    {room.buildingId && (
-                      <Badge variant="secondary">
-                        {getBuildingName(room.buildingId)}
-                      </Badge>
-                    )}
-                    {room.isVirtual && (
-                      <Badge className="bg-blue-500">Virtual</Badge>
-                    )}
+                    <Badge variant="outline">Capacity: {room.capacity}</Badge>
+                    {room.buildingId && <Badge variant="secondary">{getBuildingName(room.buildingId)}</Badge>}
+                    {room.isVirtual && <Badge className="bg-primary">Virtual</Badge>}
                   </div>
-                  {room.comments && (
-                    <p className="mt-2 text-sm text-gray-500">{room.comments}</p>
-                  )}
+                  {room.comments && <p className="mt-2 text-sm text-muted-foreground">{room.comments}</p>}
                 </CardContent>
               </Card>
             ))}
           </div>
-
-          {/* Pagination */}
           <Pagination {...paginationProps} />
         </>
       )}
 
       {/* Room Dialog */}
       <Dialog open={isDialogOpen && dialogMode === 'room'} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-white dark:bg-gray-800">
+        <DialogContent>
           <form onSubmit={handleRoomSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-gray-900 dark:text-gray-100">
-                {editingRoom ? 'Edit Room' : 'Add Room'}
-              </DialogTitle>
-              <DialogDescription className="text-gray-500">
-                Enter the details for the room.
-              </DialogDescription>
+              <DialogTitle>{editingRoom ? 'Edit Room' : 'Add Room'}</DialogTitle>
+              <DialogDescription>Enter the details for the room.</DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">Name *</Label>
-                <Input
-                  id="name"
-                  value={roomFormData.name}
-                  onChange={(e) => setRoomFormData({ ...roomFormData, name: e.target.value })}
-                  placeholder="e.g., Room 101"
-                  required
-                  className="bg-white dark:bg-gray-900"
-                />
+                <Label htmlFor="name">Name *</Label>
+                <Input id="name" value={roomFormData.name} onChange={(e) => setRoomFormData({ ...roomFormData, name: e.target.value })} placeholder="e.g., Room 101" required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="longName" className="text-gray-700 dark:text-gray-300">Long Name</Label>
-                <Input
-                  id="longName"
-                  value={roomFormData.longName}
-                  onChange={(e) => setRoomFormData({ ...roomFormData, longName: e.target.value })}
-                  placeholder="e.g., Science Lab 101"
-                  className="bg-white dark:bg-gray-900"
-                />
+                <Label htmlFor="longName">Long Name</Label>
+                <Input id="longName" value={roomFormData.longName} onChange={(e) => setRoomFormData({ ...roomFormData, longName: e.target.value })} placeholder="e.g., Science Lab 101" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="code" className="text-gray-700 dark:text-gray-300">Code</Label>
-                  <Input
-                    id="code"
-                    value={roomFormData.code}
-                    onChange={(e) => setRoomFormData({ ...roomFormData, code: e.target.value })}
-                    placeholder="e.g., R101"
-                    className="bg-white dark:bg-gray-900"
-                  />
+                  <Label htmlFor="code">Code</Label>
+                  <Input id="code" value={roomFormData.code} onChange={(e) => setRoomFormData({ ...roomFormData, code: e.target.value })} placeholder="e.g., R101" />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="capacity" className="text-gray-700 dark:text-gray-300">Capacity</Label>
-                  <Input
-                    id="capacity"
-                    type="number"
-                    min="1"
-                    value={roomFormData.capacity}
-                    onChange={(e) => setRoomFormData({ ...roomFormData, capacity: parseInt(e.target.value) || 30 })}
-                    className="bg-white dark:bg-gray-900"
-                  />
+                  <Label htmlFor="capacity">Capacity</Label>
+                  <Input id="capacity" type="number" min="1" value={roomFormData.capacity} onChange={(e) => setRoomFormData({ ...roomFormData, capacity: parseInt(e.target.value) || 30 })} />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="building" className="text-gray-700 dark:text-gray-300">Building</Label>
-                <select
-                  id="building"
-                  value={roomFormData.buildingId}
-                  onChange={(e) => setRoomFormData({ ...roomFormData, buildingId: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
-                >
+                <Label htmlFor="building">Building</Label>
+                <select id="building" value={roomFormData.buildingId} onChange={(e) => setRoomFormData({ ...roomFormData, buildingId: e.target.value })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                   <option value="">No building</option>
                   {buildings.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
@@ -372,30 +304,17 @@ export function Rooms() {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isVirtual"
-                  checked={roomFormData.isVirtual}
-                  onChange={(e) => setRoomFormData({ ...roomFormData, isVirtual: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="isVirtual" className="text-gray-700 dark:text-gray-300">Virtual room</Label>
+                <input type="checkbox" id="isVirtual" checked={roomFormData.isVirtual} onChange={(e) => setRoomFormData({ ...roomFormData, isVirtual: e.target.checked })} className="h-4 w-4" />
+                <Label htmlFor="isVirtual">Virtual room</Label>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="comments" className="text-gray-700 dark:text-gray-300">Comments</Label>
-                <Input
-                  id="comments"
-                  value={roomFormData.comments}
-                  onChange={(e) => setRoomFormData({ ...roomFormData, comments: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
-                />
+                <Label htmlFor="comments">Comments</Label>
+                <Input id="comments" value={roomFormData.comments} onChange={(e) => setRoomFormData({ ...roomFormData, comments: e.target.value })} />
               </div>
             </div>
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button type="submit">{editingRoom ? 'Update' : 'Add'}</Button>
             </DialogFooter>
           </form>
@@ -404,62 +323,34 @@ export function Rooms() {
 
       {/* Building Dialog */}
       <Dialog open={isDialogOpen && dialogMode === 'building'} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-white dark:bg-gray-800">
+        <DialogContent>
           <form onSubmit={handleBuildingSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-gray-900 dark:text-gray-100">
-                {editingBuilding ? 'Edit Building' : 'Add Building'}
-              </DialogTitle>
-              <DialogDescription className="text-gray-500">
-                Buildings help organize rooms by location.
-              </DialogDescription>
+              <DialogTitle>{editingBuilding ? 'Edit Building' : 'Add Building'}</DialogTitle>
+              <DialogDescription>Buildings help organize rooms by location.</DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="bName" className="text-gray-700 dark:text-gray-300">Name *</Label>
-                <Input
-                  id="bName"
-                  value={buildingFormData.name}
-                  onChange={(e) => setBuildingFormData({ ...buildingFormData, name: e.target.value })}
-                  placeholder="e.g., Main Building"
-                  required
-                  className="bg-white dark:bg-gray-900"
-                />
+                <Label htmlFor="bName">Name *</Label>
+                <Input id="bName" value={buildingFormData.name} onChange={(e) => setBuildingFormData({ ...buildingFormData, name: e.target.value })} placeholder="e.g., Main Building" required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bLongName" className="text-gray-700 dark:text-gray-300">Long Name</Label>
-                <Input
-                  id="bLongName"
-                  value={buildingFormData.longName}
-                  onChange={(e) => setBuildingFormData({ ...buildingFormData, longName: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
-                />
+                <Label htmlFor="bLongName">Long Name</Label>
+                <Input id="bLongName" value={buildingFormData.longName} onChange={(e) => setBuildingFormData({ ...buildingFormData, longName: e.target.value })} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bCode" className="text-gray-700 dark:text-gray-300">Code</Label>
-                <Input
-                  id="bCode"
-                  value={buildingFormData.code}
-                  onChange={(e) => setBuildingFormData({ ...buildingFormData, code: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
-                />
+                <Label htmlFor="bCode">Code</Label>
+                <Input id="bCode" value={buildingFormData.code} onChange={(e) => setBuildingFormData({ ...buildingFormData, code: e.target.value })} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bComments" className="text-gray-700 dark:text-gray-300">Comments</Label>
-                <Input
-                  id="bComments"
-                  value={buildingFormData.comments}
-                  onChange={(e) => setBuildingFormData({ ...buildingFormData, comments: e.target.value })}
-                  className="bg-white dark:bg-gray-900"
-                />
+                <Label htmlFor="bComments">Comments</Label>
+                <Input id="bComments" value={buildingFormData.comments} onChange={(e) => setBuildingFormData({ ...buildingFormData, comments: e.target.value })} />
               </div>
             </div>
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button type="submit">{editingBuilding ? 'Update' : 'Add'}</Button>
             </DialogFooter>
           </form>
