@@ -53,6 +53,7 @@ export function Students() {
     code: '',
     numberOfStudents: 0,
     comments: '',
+    shift: 0 as 0 | 1 | 2,
   });
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export function Students() {
       code: item?.code || '',
       numberOfStudents: item?.numberOfStudents || 0,
       comments: item?.comments || '',
+      shift: (item && 'shift' in item ? (item as StudentsGroup).shift ?? 0 : 0) as 0 | 1 | 2,
     });
     setIsDialogOpen(true);
   };
@@ -94,17 +96,20 @@ export function Students() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const { shift, ...baseFormData } = formData;
+    const groupShift = shift === 0 ? undefined : shift;
+
     if (dialogMode === 'year') {
       if (editingItem) {
-        dispatch(updateYear({ ...(editingItem as StudentsYear), ...formData }));
+        dispatch(updateYear({ ...(editingItem as StudentsYear), ...baseFormData }));
       } else {
-        dispatch(addYear({ id: uuidv4(), ...formData, type: STUDENTS_YEAR, groups: [], divisions: [], separator: ' ' }));
+        dispatch(addYear({ id: uuidv4(), ...baseFormData, type: STUDENTS_YEAR, groups: [], divisions: [], separator: ' ' }));
       }
     } else if (dialogMode === 'group') {
       if (editingItem) {
-        dispatch(updateGroup({ ...(editingItem as StudentsGroup), ...formData }));
+        dispatch(updateGroup({ ...(editingItem as StudentsGroup), ...baseFormData, shift: groupShift }));
       } else {
-        const newGroup: StudentsGroup = { id: uuidv4(), ...formData, type: STUDENTS_GROUP, subgroups: [] };
+        const newGroup: StudentsGroup = { id: uuidv4(), ...baseFormData, type: STUDENTS_GROUP, subgroups: [], shift: groupShift };
         dispatch(addGroup(newGroup));
         const parentYear = years.find(y => y.id === parentId);
         if (parentYear) {
@@ -113,9 +118,9 @@ export function Students() {
       }
     } else if (dialogMode === 'subgroup') {
       if (editingItem) {
-        dispatch(updateSubgroup({ ...(editingItem as StudentsSubgroup), ...formData }));
+        dispatch(updateSubgroup({ ...(editingItem as StudentsSubgroup), ...baseFormData }));
       } else {
-        const newSubgroup: StudentsSubgroup = { id: uuidv4(), ...formData, type: STUDENTS_SUBGROUP };
+        const newSubgroup: StudentsSubgroup = { id: uuidv4(), ...baseFormData, type: STUDENTS_SUBGROUP };
         dispatch(addSubgroup(newSubgroup));
         const parentGroup = groups.find(g => g.id === parentId);
         if (parentGroup) {
@@ -322,6 +327,21 @@ export function Students() {
                 <Label htmlFor="numberOfStudents">{t('students.dialog.numberOfStudents')}</Label>
                 <Input id="numberOfStudents" type="number" min="0" value={formData.numberOfStudents} onChange={(e) => setFormData({ ...formData, numberOfStudents: parseInt(e.target.value) || 0 })} />
               </div>
+              {dialogMode === 'group' && (
+                <div className="grid gap-2">
+                  <Label htmlFor="shift">{t('students.dialog.shift')}</Label>
+                  <select
+                    id="shift"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={formData.shift}
+                    onChange={(e) => setFormData({ ...formData, shift: (parseInt(e.target.value) || 0) as 0 | 1 | 2 })}
+                  >
+                    <option value={0}>{t('students.dialog.shiftNone')}</option>
+                    <option value={1}>{t('students.dialog.shift1')}</option>
+                    <option value={2}>{t('students.dialog.shift2')}</option>
+                  </select>
+                </div>
+              )}
               <div className="grid gap-2">
                 <Label htmlFor="comments">{t('common.comments')}</Label>
                 <Input id="comments" value={formData.comments} onChange={(e) => setFormData({ ...formData, comments: e.target.value })} />

@@ -212,7 +212,11 @@
       "namePlaceholderYear": "e.g., Year 1",
       "namePlaceholderGroup": "e.g., Class A",
       "namePlaceholderSubgroup": "e.g., Lab 1",
-      "numberOfStudents": "Number of Students"
+      "numberOfStudents": "Number of Students",
+      "shift": "Shift",
+      "shiftNone": "Unassigned",
+      "shift1": "Shift 1",
+      "shift2": "Shift 2"
     }
   },
   "activities": {
@@ -262,7 +266,15 @@
       "tagsHint": "Click tags to add/remove",
       "duration": "Duration (hours)",
       "totalStudents": "Total Students",
-      "active": "Active"
+      "active": "Active",
+      "shiftOverride": "Shift (override)",
+      "shiftOverrideNone": "Same as class",
+      "shift1": "Shift 1",
+      "shift2": "Shift 2",
+      "weekParity": "Week",
+      "weekParityBoth": "Every week",
+      "weekParityNumerator": "Numerator",
+      "weekParityDenominator": "Denominator"
     },
     "studentLabelYear": "{{name}} (Year)",
     "studentLabelGroup": "{{name}} (Group)"
@@ -889,6 +901,16 @@
       "description": "Check against Ukrainian MoH order №2205 (2020) sanitary regulation",
       "toggleLabel": "Enforce sanitary limits",
       "toggleHelp": "Warn when a class exceeds the maximum weekly load defined in Annex 8 (MoH №2205). Warnings do not block generation."
+    },
+    "shifts": {
+      "title": "Shifts",
+      "description": "Two-shift schooling: hour ranges for shift 1 and shift 2",
+      "enableLabel": "Enable two shifts",
+      "enableHelp": "Define hour ranges per shift. A class may be assigned a shift; a lesson may override it (e.g., online during shift 1).",
+      "shift1Title": "Shift 1",
+      "shift2Title": "Shift 2",
+      "firstHour": "First hour (index)",
+      "lastHour": "Last hour (index)"
     },
     "days": {
       "title": "Days of the Week",

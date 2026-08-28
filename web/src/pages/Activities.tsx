@@ -56,6 +56,8 @@ export function Activities() {
     duration: 1,
     nTotalStudents: 0,
     active: true,
+    shiftOverride: 0 as 0 | 1 | 2,
+    weekParity: 'both' as 'both' | 'numerator' | 'denominator',
   });
 
   useEffect(() => {
@@ -142,7 +144,7 @@ export function Activities() {
   // Activity Functions
   const openNewDialog = () => {
     setEditingActivity(null);
-    setFormData({ subjectId: '', teacherIds: [], studentSetIds: [], activityTagIds: [], duration: 1, nTotalStudents: 0, active: true });
+    setFormData({ subjectId: '', teacherIds: [], studentSetIds: [], activityTagIds: [], duration: 1, nTotalStudents: 0, active: true, shiftOverride: 0, weekParity: 'both' });
     setIsDialogOpen(true);
   };
 
@@ -156,6 +158,8 @@ export function Activities() {
       duration: activity.duration,
       nTotalStudents: activity.nTotalStudents,
       active: activity.active,
+      shiftOverride: (activity.shiftOverride ?? 0) as 0 | 1 | 2,
+      weekParity: activity.weekParity ?? 'both',
     });
     setIsDialogOpen(true);
   };
@@ -171,10 +175,17 @@ export function Activities() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const { shiftOverride, weekParity, ...rest } = formData;
+    const payload = {
+      ...rest,
+      shiftOverride: shiftOverride === 0 ? undefined : shiftOverride,
+      weekParity: weekParity === 'both' ? undefined : weekParity,
+      totalDuration: formData.duration,
+    };
     if (editingActivity) {
-      dispatch(updateActivity({ ...editingActivity, ...formData, totalDuration: formData.duration }));
+      dispatch(updateActivity({ ...editingActivity, ...payload }));
     } else {
-      dispatch(addActivity({ id: uuidv4(), activityGroupId: 0, ...formData, totalDuration: formData.duration, computeNTotalStudents: true }));
+      dispatch(addActivity({ id: uuidv4(), activityGroupId: 0, ...payload, computeNTotalStudents: true }));
     }
     setIsDialogOpen(false);
   };
@@ -447,6 +458,33 @@ export function Activities() {
                 <div className="grid gap-2">
                   <Label>{t('activities.dialog.totalStudents')}</Label>
                   <Input type="number" min="0" value={formData.nTotalStudents} onChange={(e) => setFormData({ ...formData, nTotalStudents: parseInt(e.target.value) || 0 })} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>{t('activities.dialog.shiftOverride')}</Label>
+                  <select
+                    value={formData.shiftOverride}
+                    onChange={(e) => setFormData({ ...formData, shiftOverride: (parseInt(e.target.value) || 0) as 0 | 1 | 2 })}
+                    className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground"
+                  >
+                    <option value={0}>{t('activities.dialog.shiftOverrideNone')}</option>
+                    <option value={1}>{t('activities.dialog.shift1')}</option>
+                    <option value={2}>{t('activities.dialog.shift2')}</option>
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>{t('activities.dialog.weekParity')}</Label>
+                  <select
+                    value={formData.weekParity}
+                    onChange={(e) => setFormData({ ...formData, weekParity: e.target.value as 'both' | 'numerator' | 'denominator' })}
+                    className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground"
+                  >
+                    <option value="both">{t('activities.dialog.weekParityBoth')}</option>
+                    <option value="numerator">{t('activities.dialog.weekParityNumerator')}</option>
+                    <option value="denominator">{t('activities.dialog.weekParityDenominator')}</option>
+                  </select>
                 </div>
               </div>
 

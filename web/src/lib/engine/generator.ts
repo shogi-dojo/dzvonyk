@@ -3,9 +3,9 @@
  * Implementation of the recursive swapping algorithm with enhanced constraint support
  */
 
-import type { 
+import type {
   Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
-  TimetableRules, StudentsSubgroup
+  TimetableRules, StudentsSubgroup, StudentsGroup
 } from '../../types';
 import type {
   InternalActivity, TimeAllocation, RoomAllocation, ConflictInfo,
@@ -28,9 +28,19 @@ export class TimetableGenerator {
   private activities: Activity[];
   private teachers: Teacher[];
   private subgroups: StudentsSubgroup[];
+  private studentsGroups: StudentsGroup[];
   private rooms: Room[];
   private timeConstraints: TimeConstraint[];
   private spaceConstraints: SpaceConstraint[];
+
+  private subgroupShift: Map<number, 1 | 2> = new Map();
+  private shift1Range: { firstHour: number; lastHour: number } | null = null;
+  private shift2Range: { firstHour: number; lastHour: number } | null = null;
+
+  // Biweekly co-occupancy. `timetableSecondary[table][idx][slot]` holds a
+  // second activity index when a numerator+denominator pair share a slot.
+  private teachersTimetableSecondary: number[][] = [];
+  private subgroupsTimetableSecondary: number[][] = [];
   
   private nDaysPerWeek: number = 0;
   private nHoursPerDay: number = 0;
@@ -99,16 +109,18 @@ export class TimetableGenerator {
     rooms: Room[],
     timeConstraints: TimeConstraint[],
     spaceConstraints: SpaceConstraint[],
-    config?: Partial<GenerationConfig>
+    config?: Partial<GenerationConfig>,
+    studentsGroups: StudentsGroup[] = []
   ) {
     this.rules = rules;
     this.activities = activities.filter(a => a.active);
     this.teachers = teachers;
     this.subgroups = subgroups || [];
+    this.studentsGroups = studentsGroups || [];
     this.rooms = rooms;
     this.timeConstraints = timeConstraints.filter(c => c.active);
     this.spaceConstraints = spaceConstraints.filter(c => c.active);
-    
+
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.rng = new RandomGenerator();
   }
@@ -169,6 +181,10 @@ export class TimetableGenerator {
         .map(idOrName => this.findSubgroupIndex(idOrName))
         .filter(idx => idx >= 0);
       
+      const parity: 0 | 1 | 2 =
+        a.weekParity === 'numerator' ? 1 :
+        a.weekParity === 'denominator' ? 2 : 0;
+
       return {
         id: a.id,
         index: i,
@@ -178,6 +194,8 @@ export class TimetableGenerator {
         subgroupIndices,
         duration: a.duration,
         active: a.active,
+        shiftOverride: a.shiftOverride,
+        weekParity: parity,
       };
     });
     
@@ -197,16 +215,51 @@ export class TimetableGenerator {
     this.teachersTimetable = createMatrix2D(nTeachers, this.nHoursPerWeek, -1);
     this.subgroupsTimetable = createMatrix2D(nSubgroups, this.nHoursPerWeek, -1);
     this.roomsTimetable = createMatrix2D(nRooms, this.nHoursPerWeek, -1);
-    
+    this.teachersTimetableSecondary = createMatrix2D(nTeachers, this.nHoursPerWeek, -1);
+    this.subgroupsTimetableSecondary = createMatrix2D(nSubgroups, this.nHoursPerWeek, -1);
+
     this.times = new Array(this.nInternalActivities).fill(-1);
     this.roomAllocations = new Array(this.nInternalActivities).fill(-1);
-    
+
     this.tabuActivities = new Array(this.config.tabuSize).fill(-1);
     this.tabuTimes = new Array(this.config.tabuSize).fill(-1);
     this.tabuIndex = 0;
-    
+
+    // Precompute per-subgroup shift (from parent group). Group→subgroups uses
+    // the group.subgroups id list; if a subgroup isn't in any group, no shift.
+    this.subgroupShift.clear();
+    for (const g of this.studentsGroups) {
+      if (!g.shift) continue;
+      for (const sgId of g.subgroups) {
+        const sgIdx = this.subgroupIdToIndex.get(sgId);
+        if (sgIdx !== undefined) this.subgroupShift.set(sgIdx, g.shift);
+      }
+    }
+    this.shift1Range = this.rules.shifts?.shift1 ?? null;
+    this.shift2Range = this.rules.shifts?.shift2 ?? null;
+
     this.parseConstraints();
     this.sortActivitiesByDifficulty();
+  }
+
+  // Which shift is `hour` inside, if any? Returns 1, 2, or 0 (neither/both).
+  private shiftForHour(hour: number): 0 | 1 | 2 {
+    if (this.shift1Range && hour >= this.shift1Range.firstHour && hour <= this.shift1Range.lastHour) return 1;
+    if (this.shift2Range && hour >= this.shift2Range.firstHour && hour <= this.shift2Range.lastHour) return 2;
+    return 0;
+  }
+
+  // The shift this activity is *intended* to run in for this subgroup:
+  // activity's override wins; otherwise the subgroup's group's shift.
+  private activityShift(activity: InternalActivity, subgroupIdx: number): 1 | 2 | undefined {
+    if (activity.shiftOverride) return activity.shiftOverride;
+    return this.subgroupShift.get(subgroupIdx);
+  }
+
+  // Two activities can share a slot iff one is numerator (1) and the other
+  // is denominator (2). Anything involving parity 0 (every week) conflicts.
+  private parityCompatible(a: 0 | 1 | 2, b: 0 | 1 | 2): boolean {
+    return (a === 1 && b === 2) || (a === 2 && b === 1);
   }
 
   private parseConstraints(): void {
@@ -503,13 +556,21 @@ export class TimetableGenerator {
       
       for (const teacherIdx of activity.teacherIndices) {
         if (teacherIdx < this.teachersTimetable.length) {
-          this.teachersTimetable[teacherIdx][s] = activityIndex;
+          if (this.teachersTimetable[teacherIdx][s] < 0) {
+            this.teachersTimetable[teacherIdx][s] = activityIndex;
+          } else {
+            this.teachersTimetableSecondary[teacherIdx][s] = activityIndex;
+          }
         }
       }
-      
+
       for (const subgroupIdx of activity.subgroupIndices) {
         if (subgroupIdx < this.subgroupsTimetable.length) {
-          this.subgroupsTimetable[subgroupIdx][s] = activityIndex;
+          if (this.subgroupsTimetable[subgroupIdx][s] < 0) {
+            this.subgroupsTimetable[subgroupIdx][s] = activityIndex;
+          } else {
+            this.subgroupsTimetableSecondary[subgroupIdx][s] = activityIndex;
+          }
         }
       }
     }
@@ -530,16 +591,22 @@ export class TimetableGenerator {
       const s = timeSlot(day, h, this.nHoursPerDay);
       
       for (const teacherIdx of activity.teacherIndices) {
-        if (teacherIdx < this.teachersTimetable.length && 
-            this.teachersTimetable[teacherIdx][s] === activityIndex) {
-          this.teachersTimetable[teacherIdx][s] = -1;
+        if (teacherIdx >= this.teachersTimetable.length) continue;
+        if (this.teachersTimetable[teacherIdx][s] === activityIndex) {
+          this.teachersTimetable[teacherIdx][s] = this.teachersTimetableSecondary[teacherIdx][s];
+          this.teachersTimetableSecondary[teacherIdx][s] = -1;
+        } else if (this.teachersTimetableSecondary[teacherIdx][s] === activityIndex) {
+          this.teachersTimetableSecondary[teacherIdx][s] = -1;
         }
       }
-      
+
       for (const subgroupIdx of activity.subgroupIndices) {
-        if (subgroupIdx < this.subgroupsTimetable.length &&
-            this.subgroupsTimetable[subgroupIdx][s] === activityIndex) {
-          this.subgroupsTimetable[subgroupIdx][s] = -1;
+        if (subgroupIdx >= this.subgroupsTimetable.length) continue;
+        if (this.subgroupsTimetable[subgroupIdx][s] === activityIndex) {
+          this.subgroupsTimetable[subgroupIdx][s] = this.subgroupsTimetableSecondary[subgroupIdx][s];
+          this.subgroupsTimetableSecondary[subgroupIdx][s] = -1;
+        } else if (this.subgroupsTimetableSecondary[subgroupIdx][s] === activityIndex) {
+          this.subgroupsTimetableSecondary[subgroupIdx][s] = -1;
         }
       }
     }
@@ -613,29 +680,32 @@ export class TimetableGenerator {
           return { valid: false, conflicts: [], reason: 'Teacher not available' };
         }
         
-        // Check for conflicts with other activities
+        // Check for conflicts with other activities. Biweekly (numerator vs
+        // denominator) activities may share the same slot.
         if (teacherIdx < this.teachersTimetable.length) {
           const existingActivity = this.teachersTimetable[teacherIdx][s];
           if (existingActivity >= 0 && existingActivity !== activity.index) {
-            if (!conflicts.includes(existingActivity)) {
-              conflicts.push(existingActivity);
+            const other = this.internalActivities[existingActivity];
+            if (!this.parityCompatible(activity.weekParity, other.weekParity)) {
+              if (!conflicts.includes(existingActivity)) conflicts.push(existingActivity);
             }
           }
         }
       }
-      
+
       // Check student availability and conflicts
       for (const subgroupIdx of activity.subgroupIndices) {
         const notAvailable = this.studentsNotAvailable.get(subgroupIdx);
         if (notAvailable?.has(s)) {
           return { valid: false, conflicts: [], reason: 'Students not available' };
         }
-        
+
         if (subgroupIdx < this.subgroupsTimetable.length) {
           const existingActivity = this.subgroupsTimetable[subgroupIdx][s];
           if (existingActivity >= 0 && existingActivity !== activity.index) {
-            if (!conflicts.includes(existingActivity)) {
-              conflicts.push(existingActivity);
+            const other = this.internalActivities[existingActivity];
+            if (!this.parityCompatible(activity.weekParity, other.weekParity)) {
+              if (!conflicts.includes(existingActivity)) conflicts.push(existingActivity);
             }
           }
         }
@@ -704,6 +774,21 @@ export class TimetableGenerator {
       }
     }
     
+    // Two-shift preference. For every subgroup this activity touches, work
+    // out its intended shift (activity override or group default). If the
+    // slot's hour falls outside that shift's window, penalise heavily but
+    // don't forbid — an "online lesson in the opposite shift" must still be
+    // placeable when the завуч explicitly overrides it.
+    if (this.shift1Range || this.shift2Range) {
+      const slotShift = this.shiftForHour(hour);
+      for (const subgroupIdx of activity.subgroupIndices) {
+        const wanted = this.activityShift(activity, subgroupIdx);
+        if (wanted && slotShift !== 0 && slotShift !== wanted) {
+          score += 200;
+        }
+      }
+    }
+
     // Prefer earlier hours in the day (more natural schedule)
     score += hour;
     

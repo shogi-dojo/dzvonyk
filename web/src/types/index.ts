@@ -69,6 +69,10 @@ export interface StudentsSubgroup extends StudentsSet {
 export interface StudentsGroup extends StudentsSet {
   type: typeof STUDENTS_GROUP;
   subgroups: string[]; // subgroup IDs
+  // Ukrainian schools often run two shifts (зміни). If set, this class attends
+  // only the hours in rules.shifts[shift].{firstHour, lastHour}. Individual
+  // activities may override via Activity.shiftOverride.
+  shift?: 1 | 2;
 }
 
 export interface StudentsYear extends StudentsSet {
@@ -115,6 +119,12 @@ export interface Activity {
   computeNTotalStudents: boolean;
   nTotalStudents: number;
   comments?: string;
+  // Override the group's shift for this specific lesson (e.g. an online lesson
+  // held in the opposite shift's window). Undefined = follow group.shift.
+  shiftOverride?: 1 | 2;
+  // Biweekly rotation. Two activities with opposite parity may share a slot.
+  // Undefined or 'both' = every week (default).
+  weekParity?: 'both' | 'numerator' | 'denominator';
 }
 
 // ============ TIME STRUCTURE ============
@@ -333,6 +343,13 @@ export interface TimetableRules {
   // For terms mode
   nTerms?: number;
   nDaysPerTerm?: number;
+
+  // Two-shift configuration. Hours are inclusive indices into hoursOfTheDay.
+  // If undefined, no shift enforcement is applied.
+  shifts?: {
+    shift1: { firstHour: number; lastHour: number };
+    shift2: { firstHour: number; lastHour: number };
+  };
   
   modified: boolean;
   createdAt: string | Date;

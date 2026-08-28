@@ -171,6 +171,7 @@ export function Generate() {
         activities,
         teachers,
         subgroups: subgroups || [],
+        studentsGroups,
         rooms,
         timeConstraints,
         spaceConstraints,

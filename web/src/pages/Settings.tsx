@@ -8,11 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
-import { 
-  createNewRules, 
-  updateInstitutionName, 
-  updateDays, 
+import {
+  createNewRules,
+  updateInstitutionName,
+  updateDays,
   updateHours,
+  updateShifts,
   markAsSaved,
   setRules,
   clearRules
@@ -77,12 +78,26 @@ export function Settings() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [sanitaryMode, setSanitaryModeState] = useSanitaryMode();
+  const [shiftsEnabled, setShiftsEnabled] = useState(false);
+  const [shift1First, setShift1First] = useState(0);
+  const [shift1Last, setShift1Last] = useState(4);
+  const [shift2First, setShift2First] = useState(5);
+  const [shift2Last, setShift2Last] = useState(8);
 
   useEffect(() => {
     if (rules) {
       setInstitutionName(rules.institutionName);
       setDays(rules.daysOfTheWeek.length > 0 ? rules.daysOfTheWeek : DEFAULT_DAYS);
       setHours(rules.hoursOfTheDay.length > 0 ? rules.hoursOfTheDay : DEFAULT_HOURS);
+      if (rules.shifts) {
+        setShiftsEnabled(true);
+        setShift1First(rules.shifts.shift1.firstHour);
+        setShift1Last(rules.shifts.shift1.lastHour);
+        setShift2First(rules.shifts.shift2.firstHour);
+        setShift2Last(rules.shifts.shift2.lastHour);
+      } else {
+        setShiftsEnabled(false);
+      }
     }
   }, [rules]);
 
@@ -94,10 +109,18 @@ export function Settings() {
   const handleSave = async () => {
     if (!rules) return;
     
+    const shiftsPayload = shiftsEnabled
+      ? {
+          shift1: { firstHour: shift1First, lastHour: shift1Last },
+          shift2: { firstHour: shift2First, lastHour: shift2Last },
+        }
+      : undefined;
+
     dispatch(updateInstitutionName(institutionName));
     dispatch(updateDays(days));
     dispatch(updateHours(hours));
-    
+    dispatch(updateShifts(shiftsPayload));
+
     await db.rules.put({
       ...rules,
       institutionName,
@@ -105,6 +128,7 @@ export function Settings() {
       hoursOfTheDay: hours,
       nDaysPerWeek: days.length,
       nHoursPerDay: hours.length,
+      shifts: shiftsPayload,
       updatedAt: new Date().toISOString(),
     });
     
@@ -378,6 +402,65 @@ export function Settings() {
                   <p className="text-sm text-muted-foreground">{t('settings.sanitary.toggleHelp')}</p>
                 </div>
               </label>
+            </CardContent>
+          </Card>
+
+          {/* Shifts (двозмінне навчання) */}
+          <Card className="animate-slide-up" style={{ animationDelay: '85ms' }}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
+                </div>
+                <div>
+                  <CardTitle>{t('settings.shifts.title')}</CardTitle>
+                  <CardDescription>{t('settings.shifts.description')}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-primary"
+                  checked={shiftsEnabled}
+                  onChange={(e) => setShiftsEnabled(e.target.checked)}
+                />
+                <div>
+                  <p className="font-medium text-foreground">{t('settings.shifts.enableLabel')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.shifts.enableHelp')}</p>
+                </div>
+              </label>
+              {shiftsEnabled && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2 p-3 border rounded-lg">
+                    <p className="font-medium">{t('settings.shifts.shift1Title')}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="grid gap-1">
+                        <Label>{t('settings.shifts.firstHour')}</Label>
+                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift1First} onChange={(e) => setShift1First(parseInt(e.target.value) || 0)} />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label>{t('settings.shifts.lastHour')}</Label>
+                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift1Last} onChange={(e) => setShift1Last(parseInt(e.target.value) || 0)} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 p-3 border rounded-lg">
+                    <p className="font-medium">{t('settings.shifts.shift2Title')}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="grid gap-1">
+                        <Label>{t('settings.shifts.firstHour')}</Label>
+                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift2First} onChange={(e) => setShift2First(parseInt(e.target.value) || 0)} />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label>{t('settings.shifts.lastHour')}</Label>
+                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift2Last} onChange={(e) => setShift2Last(parseInt(e.target.value) || 0)} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
