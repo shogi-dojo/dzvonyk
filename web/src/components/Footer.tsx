@@ -1,18 +1,13 @@
 import React from 'react';
-import { Calendar, FileText, Shield, Code2, Languages } from 'lucide-react';
+import { Calendar, FileText, Shield, Code2 } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
 // SPDX-License-Identifier: AGPL-3.0-or-later
 const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
 
 export function Footer() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
-
-  const changeLang = (lng: 'uk' | 'en') => {
-    void i18n.changeLanguage(lng);
-  };
-  const current = i18n.resolvedLanguage === 'en' ? 'en' : 'uk';
 
   return (
     <footer
@@ -34,26 +29,6 @@ export function Footer() {
               {t('footer.aboutTech')}
             </p>
 
-            {/* Language toggle */}
-            <div className="flex items-center gap-2 pt-2" role="group" aria-label={t('footer.language')}>
-              <Languages className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              <button
-                type="button"
-                onClick={() => changeLang('uk')}
-                aria-pressed={current === 'uk'}
-                className={`text-xs px-2 py-1 rounded transition-colors ${current === 'uk' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-primary'}`}
-              >
-                {t('lang.uk')}
-              </button>
-              <button
-                type="button"
-                onClick={() => changeLang('en')}
-                aria-pressed={current === 'en'}
-                className={`text-xs px-2 py-1 rounded transition-colors ${current === 'en' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-primary'}`}
-              >
-                {t('lang.en')}
-              </button>
-            </div>
           </div>
 
           {/* Links Section */}
