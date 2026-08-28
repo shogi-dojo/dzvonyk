@@ -1,5 +1,8 @@
 import React from 'react';
-import { Calendar, FileText, Shield, Users } from 'lucide-react';
+import { Calendar, FileText, Shield, Code2 } from 'lucide-react';
+
+// SPDX-License-Identifier: AGPL-3.0-or-later
+const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -16,16 +19,12 @@ export function Footer() {
           <div className="space-y-4 md:col-span-2">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" aria-hidden="true" />
-              <span className="font-semibold text-foreground">FET Web</span>
+              <span className="font-semibold text-foreground">Дзвоник</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Free Educational Timetabling for the web.
+              Безкоштовний офлайн-планувальник шкільного розкладу для завуча.
               <br/>
-              Create optimal schedules 
-              for schools, colleges, and universities with advanced constraint 
-              handling.
-              <br/>
-              All data stays on your device.
+              Побудовано на рушії FET; усі дані залишаються на вашому пристрої.
             </p>
           </div>          
           
@@ -49,14 +48,26 @@ export function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/terms-conditions.txt" 
+                  <a
+                    href="/terms-conditions.txt"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                   >
                     <FileText className="h-3.5 w-3.5" aria-hidden="true" />
                     Terms &amp; Conditions
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={SOURCE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    title="AGPL §13 — вихідний код цієї версії"
+                  >
+                    <Code2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Вихідний код
                   </a>
                 </li>
               </ul>
@@ -67,7 +78,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-8 pt-6 border-t border-border">
           <p className="text-center text-sm text-muted-foreground">
-            &copy; {currentYear} FET Web. Based on{' '}
+            &copy; {currentYear} Дзвоник. Based on{' '}
             <a 
               href="https://lalescu.ro/liviu/fet/" 
               target="_blank" 
