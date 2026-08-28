@@ -15,6 +15,7 @@ import {
 } from '@/store/slices/generationSlice';
 import type { WorkerInMessage, WorkerOutMessage } from '@/lib/engine/generator.worker';
 import type { GenerationResult } from '@/lib/engine/types';
+import { runPreflight, type PreflightResult } from '@/lib/validation/preflight';
 import { db } from '@/db';
 import type { TimetableSolution } from '@/types';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ export function Generate() {
   const activities = useAppSelector((state) => state.activities.items);
   const teachers = useAppSelector((state) => state.teachers.items);
   const subgroups = useAppSelector((state) => state.students.subgroups);
+  const studentsGroups = useAppSelector((state) => state.students.groups);
   const { rooms } = useAppSelector((state) => state.rooms);
   const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
   const spaceConstraints = useAppSelector((state) => state.constraints.spaceConstraints);
@@ -34,6 +36,7 @@ export function Generate() {
   const [currentPlaced, setCurrentPlaced] = useState(0);
   const [currentTotal, setCurrentTotal] = useState(0);
   const [generationTimestamp, setGenerationTimestamp] = useState<Date | null>(null);
+  const [preflight, setPreflight] = useState<PreflightResult | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
@@ -101,6 +104,14 @@ export function Generate() {
     if (!rules) { alert('Please set up the timetable rules first in Settings.'); return; }
     const activeActivities = activities.filter((a) => a.active);
     if (activeActivities.length === 0) { alert('Please add some activities before generating.'); return; }
+
+    const pf = runPreflight({
+      rules, activities, teachers, rooms,
+      studentsGroups, studentsSubgroups: subgroups || [],
+      timeConstraints, spaceConstraints,
+    });
+    setPreflight(pf);
+    if (!pf.ok) return;
 
     setCurrentPlaced(0);
     setCurrentTotal(activeActivities.length);
@@ -178,6 +189,7 @@ export function Generate() {
     setCurrentTotal(0);
     setLastSolution(null);
     setGenerationTimestamp(null);
+    setPreflight(null);
     dispatch(resetGeneration());
   };
 
@@ -233,6 +245,55 @@ export function Generate() {
                 <Link to="/timetable"><Eye className="h-4 w-4" />View Timetable</Link>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Preflight results */}
+      {preflight && (preflight.blocking.length > 0 || preflight.warnings.length > 0) && (
+        <Card className={cn("border-2 animate-slide-up", preflight.blocking.length > 0 ? "border-destructive/50 bg-destructive/5" : "border-warning/50 bg-warning/5")}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className={cn("p-2 rounded-lg", preflight.blocking.length > 0 ? "bg-destructive/20" : "bg-warning/20")}>
+                {preflight.blocking.length > 0
+                  ? <XCircle className="h-5 w-5 text-destructive" />
+                  : <AlertTriangle className="h-5 w-5 text-warning" />}
+              </div>
+              <div>
+                <CardTitle>
+                  {preflight.blocking.length > 0
+                    ? 'Генерацію заблоковано'
+                    : 'Попередження перед генерацією'}
+                </CardTitle>
+                <CardDescription>
+                  {preflight.blocking.length > 0
+                    ? 'Виправте перелічене нижче, щоб продовжити.'
+                    : 'Розклад може згенеруватись частково.'}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {preflight.blocking.length > 0 && (
+              <ul className="space-y-2 text-sm">
+                {preflight.blocking.map((issue, i) => (
+                  <li key={i} className="flex items-start gap-2 text-destructive">
+                    <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{issue.message}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {preflight.warnings.length > 0 && (
+              <ul className="space-y-2 text-sm">
+                {preflight.warnings.map((issue, i) => (
+                  <li key={i} className="flex items-start gap-2 text-warning">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{issue.message}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       )}
