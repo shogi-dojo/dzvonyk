@@ -62,9 +62,11 @@ export class TimetableGenerator {
   // Additional constraint data
   private teacherMaxHoursDaily: Map<number, number> = new Map();
   private teacherMaxDaysPerWeek: Map<number, number> = new Map();
+  private teacherMinDaysPerWeek: Map<number, number> = new Map();
   private teacherMaxGapsPerDay: Map<number, number> = new Map();
   private allTeachersMaxHoursDaily: number = -1;
   private studentsMaxHoursDaily: Map<number, number> = new Map();
+  private studentsMaxGapsPerDay: Map<number, number> = new Map();
   private minDaysBetweenActivities: { activityIndices: number[]; minDays: number; consecutiveIfSameDay: boolean }[] = [];
   private activityPreferredStartingTime: Map<number, { day: number; hour: number; locked: boolean }> = new Map();
   
@@ -261,6 +263,20 @@ export class TimetableGenerator {
             this.teacherMaxGapsPerDay.set(gapsTeacherIdx, c.maxGaps);
           }
           break;
+
+        case 'TeacherMinDaysPerWeek':
+          const minDaysTeacherIdx = this.findTeacherIndex(c.teacherId);
+          if (minDaysTeacherIdx >= 0 && c.minDays !== undefined) {
+            this.teacherMinDaysPerWeek.set(minDaysTeacherIdx, c.minDays);
+          }
+          break;
+
+        case 'StudentsSetMaxGapsPerDay':
+          const gapsSubgroupIdx = this.findSubgroupIndex(c.studentsSetId);
+          if (gapsSubgroupIdx >= 0 && c.maxGaps !== undefined) {
+            this.studentsMaxGapsPerDay.set(gapsSubgroupIdx, c.maxGaps);
+          }
+          break;
           
         case 'StudentsSetNotAvailableTimes':
           const subgroupIdx = this.findSubgroupIndex(c.studentsSetId);
@@ -443,6 +459,27 @@ export class TimetableGenerator {
     return daysWithActivities.size;
   }
 
+  private countStudentGapsOnDay(subgroupIdx: number, day: number): number {
+    const row = this.subgroupsTimetable[subgroupIdx];
+    if (!row) return 0;
+    let first = -1;
+    let last = -1;
+    for (let h = 0; h < this.nHoursPerDay; h++) {
+      const slot = timeSlot(day, h, this.nHoursPerDay);
+      if (row[slot] >= 0) {
+        if (first < 0) first = h;
+        last = h;
+      }
+    }
+    if (first < 0 || last <= first) return 0;
+    let occupied = 0;
+    for (let h = first; h <= last; h++) {
+      const slot = timeSlot(day, h, this.nHoursPerDay);
+      if (row[slot] >= 0) occupied++;
+    }
+    return (last - first + 1) - occupied;
+  }
+
   private getStudentHoursOnDay(subgroupIdx: number, day: number): number {
     let hours = 0;
     for (let h = 0; h < this.nHoursPerDay; h++) {
@@ -623,6 +660,20 @@ export class TimetableGenerator {
           score += 100; // Heavy penalty for exceeding max days
         }
       }
+
+      // Bonus for spreading work across ≥ minDays distinct days.
+      // Placing on a fresh day when we're still below the floor is cheaper
+      // than piling onto an already-used day.
+      const minDays = this.teacherMinDaysPerWeek.get(teacherIdx);
+      if (minDays !== undefined) {
+        const currentDays = this.countTeacherDays(teacherIdx);
+        const hasActivityOnDay = this.getTeacherHoursOnDay(teacherIdx, day) > 0;
+        if (currentDays < minDays && !hasActivityOnDay) {
+          score -= 40;
+        } else if (currentDays < minDays && hasActivityOnDay) {
+          score += 40;
+        }
+      }
     }
     
     // Prefer slots that maintain student max hours daily
@@ -631,6 +682,25 @@ export class TimetableGenerator {
       const maxHours = this.studentsMaxHoursDaily.get(subgroupIdx);
       if (maxHours !== undefined && currentHours + activity.duration > maxHours) {
         score += 50;
+      }
+
+      // Penalise slots that would introduce a "вікно" beyond the class cap.
+      // We simulate by tentatively marking the slot in the row, counting gaps,
+      // then restoring. Cheaper than a fresh evaluator pass and matches how
+      // the other soft checks look at prospective placement.
+      const maxGaps = this.studentsMaxGapsPerDay.get(subgroupIdx);
+      if (maxGaps !== undefined) {
+        const row = this.subgroupsTimetable[subgroupIdx];
+        if (row) {
+          const marks: number[] = [];
+          for (let h = hour; h < hour + activity.duration; h++) {
+            const s = timeSlot(day, h, this.nHoursPerDay);
+            if (row[s] < 0) { row[s] = activity.index; marks.push(s); }
+          }
+          const gaps = this.countStudentGapsOnDay(subgroupIdx, day);
+          for (const s of marks) row[s] = -1;
+          if (gaps > maxGaps) score += 60 * (gaps - maxGaps);
+        }
       }
     }
     

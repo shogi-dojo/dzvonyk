@@ -212,6 +212,18 @@ export const TeacherMaxDaysPerWeekConstraintSchema = BaseConstraintSchema.extend
   maxDays: z.number().min(1).max(7),
 });
 
+export const TeacherMinDaysPerWeekConstraintSchema = BaseConstraintSchema.extend({
+  type: z.literal('TeacherMinDaysPerWeek'),
+  teacherId: z.string().min(1),
+  minDays: z.number().min(1).max(7),
+});
+
+export const StudentsSetMaxGapsPerDayConstraintSchema = BaseConstraintSchema.extend({
+  type: z.literal('StudentsSetMaxGapsPerDay'),
+  studentsSetId: z.string().min(1),
+  maxGaps: z.number().min(0).max(20),
+});
+
 // ============ RULES SCHEMA ============
 
 export const TimetableRulesSchema = z.object({

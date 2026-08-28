@@ -235,6 +235,18 @@ export interface TeacherMaxDaysPerWeekConstraint extends BaseConstraint {
   maxDays: number;
 }
 
+export interface TeacherMinDaysPerWeekConstraint extends BaseConstraint {
+  type: 'TeacherMinDaysPerWeek';
+  teacherId: string;
+  minDays: number;
+}
+
+export interface StudentsSetMaxGapsPerDayConstraint extends BaseConstraint {
+  type: 'StudentsSetMaxGapsPerDay';
+  studentsSetId: string;
+  maxGaps: number;
+}
+
 export interface StudentsSetNotAvailableTimesConstraint extends BaseConstraint {
   type: 'StudentsSetNotAvailableTimes';
   studentsSetId: string;
@@ -287,6 +299,8 @@ export type TimeConstraint =
   | BreakTimesConstraint
   | TeacherNotAvailableTimesConstraint
   | TeacherMaxDaysPerWeekConstraint
+  | TeacherMinDaysPerWeekConstraint
+  | StudentsSetMaxGapsPerDayConstraint
   | StudentsSetNotAvailableTimesConstraint
   | ActivityPreferredStartingTimeConstraint
   | MinDaysBetweenActivitiesConstraint;

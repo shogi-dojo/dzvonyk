@@ -28,9 +28,11 @@ const TIME_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
   'BreakTimes': { category: 'basic', fields: ['times'] },
   'TeacherNotAvailableTimes': { category: 'teacher', fields: ['teacher', 'times'] },
   'TeacherMaxDaysPerWeek': { category: 'teacher', fields: ['teacher', 'maxDays'] },
+  'TeacherMinDaysPerWeek': { category: 'teacher', fields: ['teacher', 'minDays'] },
   'TeacherMaxHoursDaily': { category: 'teacher', fields: ['teacher', 'maxHours'] },
   'StudentsSetNotAvailableTimes': { category: 'students', fields: ['studentsSet', 'times'] },
   'StudentsSetMaxHoursDaily': { category: 'students', fields: ['studentsSet', 'maxHours'] },
+  'StudentsSetMaxGapsPerDay': { category: 'students', fields: ['studentsSet', 'maxGaps'] },
   'MinDaysBetweenActivities': { category: 'activity', fields: ['activities', 'minDays'] },
   'ActivityPreferredStartingTime': { category: 'activity', fields: ['activity', 'day', 'hour'] },
 };
@@ -71,7 +73,9 @@ export function Constraints() {
   const [studentsSetId, setStudentsSetId] = useState('');
   const [selectedActivityId, setSelectedActivityId] = useState('');
   const [maxDays, setMaxDays] = useState('5');
+  const [minDays, setMinDays] = useState('3');
   const [maxHours, setMaxHours] = useState('8');
+  const [maxGaps, setMaxGaps] = useState('1');
   const [selectedDay, setSelectedDay] = useState(0);
   const [selectedHour, setSelectedHour] = useState(0);
   const [selectedTimes, setSelectedTimes] = useState<TimeSlot[]>([]);
@@ -115,7 +119,8 @@ export function Constraints() {
 
   const resetForm = () => {
     setWeight('100'); setActive(true); setTeacherId(''); setStudentsSetId(''); setSelectedActivityId('');
-    setMaxDays('5'); setMaxHours('8'); setSelectedDay(0); setSelectedHour(0); setSelectedTimes([]);
+    setMaxDays('5'); setMinDays('3'); setMaxHours('8'); setMaxGaps('1');
+    setSelectedDay(0); setSelectedHour(0); setSelectedTimes([]);
     setRoomId(''); setSubjectId('');
   };
 
@@ -135,7 +140,9 @@ export function Constraints() {
     const any = c as any;
     setTeacherId(any.teacherId || ''); setStudentsSetId(any.studentsSetId || '');
     setSelectedActivityId(any.activityId || ''); setMaxDays(String(any.maxDays || 5));
-    setMaxHours(String(any.maxHours || 8)); setSelectedDay(any.day || 0); setSelectedHour(any.hour || 0);
+    setMinDays(String(any.minDays || 3));
+    setMaxHours(String(any.maxHours || 8)); setMaxGaps(String(any.maxGaps ?? 1));
+    setSelectedDay(any.day || 0); setSelectedHour(any.hour || 0);
     setSelectedTimes(any.times || []); setDialogOpen(true);
   };
 
@@ -156,9 +163,11 @@ export function Constraints() {
       case 'BreakTimes': constraint = { ...base, type: 'BreakTimes', times: selectedTimes } as any; break;
       case 'TeacherNotAvailableTimes': constraint = { ...base, type: 'TeacherNotAvailableTimes', teacherId, times: selectedTimes } as any; break;
       case 'TeacherMaxDaysPerWeek': constraint = { ...base, type: 'TeacherMaxDaysPerWeek', teacherId, maxDays: parseInt(maxDays) } as any; break;
+      case 'TeacherMinDaysPerWeek': constraint = { ...base, type: 'TeacherMinDaysPerWeek', teacherId, minDays: parseInt(minDays) } as any; break;
       case 'TeacherMaxHoursDaily': constraint = { ...base, type: 'TeacherMaxHoursDaily', teacherId, maxHours: parseInt(maxHours) } as any; break;
       case 'StudentsSetNotAvailableTimes': constraint = { ...base, type: 'StudentsSetNotAvailableTimes', studentsSetId, times: selectedTimes } as any; break;
       case 'StudentsSetMaxHoursDaily': constraint = { ...base, type: 'StudentsSetMaxHoursDaily', studentsSetId, maxHours: parseInt(maxHours) } as any; break;
+      case 'StudentsSetMaxGapsPerDay': constraint = { ...base, type: 'StudentsSetMaxGapsPerDay', studentsSetId, maxGaps: parseInt(maxGaps) } as any; break;
       case 'MinDaysBetweenActivities': constraint = { ...base, type: 'MinDaysBetweenActivities', activityIds: [selectedActivityId], minDays: parseInt(maxDays) } as any; break;
       case 'ActivityPreferredStartingTime': constraint = { ...base, type: 'ActivityPreferredStartingTime', activityId: selectedActivityId, day: selectedDay, hour: selectedHour } as any; break;
       default: constraint = { ...base, type: selectedTimeType } as any;
@@ -199,9 +208,11 @@ export function Constraints() {
       case 'BasicCompulsoryTime': return t('constraints.descriptions.basicTime');
       case 'TeacherNotAvailableTimes': return t('constraints.descriptions.teacherSlots', { teacher: getTeacherName(any.teacherId), count: any.times?.length || 0 });
       case 'TeacherMaxDaysPerWeek': return t('constraints.descriptions.teacherMaxDays', { teacher: getTeacherName(any.teacherId), count: any.maxDays });
+      case 'TeacherMinDaysPerWeek': return t('constraints.descriptions.teacherMinDays', { teacher: getTeacherName(any.teacherId), count: any.minDays });
       case 'TeacherMaxHoursDaily': return t('constraints.descriptions.teacherMaxHours', { teacher: getTeacherName(any.teacherId), count: any.maxHours });
       case 'StudentsSetNotAvailableTimes': return t('constraints.descriptions.studentsSlots', { students: any.studentsSetId, count: any.times?.length || 0 });
       case 'StudentsSetMaxHoursDaily': return t('constraints.descriptions.studentsMaxHours', { students: any.studentsSetId, count: any.maxHours });
+      case 'StudentsSetMaxGapsPerDay': return t('constraints.descriptions.studentsMaxGaps', { students: any.studentsSetId, count: any.maxGaps });
       case 'ActivityPreferredStartingTime': return t('constraints.descriptions.activityAt', { day: any.day + 1, hour: any.hour + 1 });
       default: return '';
     }
@@ -441,6 +452,20 @@ export function Constraints() {
                 <div className="grid gap-2">
                   <Label>{t('constraints.dialog.maxHours')}</Label>
                   <Input type="number" min="1" max="12" value={maxHours} onChange={(e) => setMaxHours(e.target.value)} />
+                </div>
+              )}
+
+              {fields.includes('minDays') && (
+                <div className="grid gap-2">
+                  <Label>{t('constraints.dialog.minDays')}</Label>
+                  <Input type="number" min="1" max="7" value={minDays} onChange={(e) => setMinDays(e.target.value)} />
+                </div>
+              )}
+
+              {fields.includes('maxGaps') && (
+                <div className="grid gap-2">
+                  <Label>{t('constraints.dialog.maxGaps')}</Label>
+                  <Input type="number" min="0" max="20" value={maxGaps} onChange={(e) => setMaxGaps(e.target.value)} />
                 </div>
               )}
 
