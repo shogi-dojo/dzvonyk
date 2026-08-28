@@ -1,6 +1,6 @@
 # Дзвоник
 
-**Дзвоник** (`dzvonyk` — Ukrainian for *school bell*) is a free, offline-capable
+**Дзвоник** (`dzvonyk` — Ukrainian for *school bell*) is an offline-capable
 timetabling tool for Ukrainian schools. It targets the завуч (deputy head) who
 needs to produce a working sitka hodyn (сітка годин) without expensive
 proprietary software.

@@ -1,0 +1,114 @@
+{
+  "app": {
+    "name": "Dzvonyk",
+    "tagline": "Offline school timetable planner",
+    "skipToContent": "Skip to main content",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "home": "Home"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "dashboardDesc": "Overview & stats",
+    "teachers": "Teachers",
+    "teachersDesc": "Manage teachers",
+    "subjects": "Subjects",
+    "subjectsDesc": "Course subjects",
+    "students": "Students",
+    "studentsDesc": "Classes & subgroups",
+    "activities": "Lessons",
+    "activitiesDesc": "Lessons & classes",
+    "rooms": "Rooms",
+    "roomsDesc": "Venues & spaces",
+    "constraints": "Constraints",
+    "constraintsDesc": "Rules & limits",
+    "generate": "Generate",
+    "generateDesc": "Create timetable",
+    "timetable": "Timetable",
+    "timetableDesc": "View schedule",
+    "settings": "Settings",
+    "settingsDesc": "Configuration"
+  },
+  "footer": {
+    "aboutLead": "Offline school timetable planner for the vice-principal.",
+    "aboutTech": "Built on the FET engine; all data stays on your device.",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions",
+    "sourceCode": "Source code",
+    "sourceCodeTitle": "AGPL §13 — source of this version",
+    "copyright": "© {{year}} Dzvonyk. Based on <1>{{fet}}</1> by Liviu Lalescu. Licensed under <2>{{license}}</2>.",
+    "language": "Language"
+  },
+  "lang": {
+    "uk": "Українська",
+    "en": "English"
+  },
+  "generate": {
+    "title": "Generate Timetable",
+    "description": "Create an optimal schedule based on your constraints",
+    "status": {
+      "running": "Running",
+      "paused": "Paused",
+      "complete": "Complete",
+      "partial": "Partial",
+      "ready": "Ready"
+    },
+    "controls": {
+      "title": "Generation Controls",
+      "description": "Start, pause, or stop the generation process",
+      "start": "Start Generation",
+      "regenerate": "Regenerate",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "reset": "Reset"
+    },
+    "precheck": {
+      "title": "Pre-Generation Check",
+      "description": "Verify your data before generating",
+      "rules": "Rules",
+      "rulesNotSet": "Not set",
+      "rulesValue": "{{days}}d × {{hours}}h",
+      "activities": "Activities",
+      "activitiesValue": "{{count}} active",
+      "teachers": "Teachers",
+      "teachersValue": "{{count}} defined",
+      "constraints": "Constraints",
+      "constraintsValue": "{{count}} total"
+    },
+    "preflight": {
+      "blockedTitle": "Generation blocked",
+      "blockedDesc": "Fix the items below to continue.",
+      "warningsTitle": "Warnings before generation",
+      "warningsDesc": "The schedule may only be partial."
+    },
+    "progress": "Progress",
+    "stats": {
+      "placed": "Activities Placed",
+      "maxPlaced": "Max Placed",
+      "issues": "Issues"
+    },
+    "lastRun": "Last generation: {{when}}",
+    "issues": "Issues ({{count}})",
+    "andMore": "…and more",
+    "lastSolution": {
+      "success": "Timetable Generated Successfully",
+      "partial": "Partial Timetable Generated",
+      "placed": "{{count}} activities placed • {{when}}",
+      "view": "View Timetable"
+    },
+    "tips": {
+      "title": "Tips for Success",
+      "1": "Ensure you have basic compulsory time and space constraints",
+      "2": "If generation fails, try reducing constraint weights below 100%",
+      "3": "Activities with more teachers/students are scheduled first",
+      "4": "Check that your time structure can accommodate all activities",
+      "5": "Partial solutions can still be viewed in the Timetable page"
+    },
+    "errors": {
+      "needRules": "Please set up the timetable rules first in Settings.",
+      "needActivities": "Please add some activities before generating."
+    }
+  }
+}

@@ -23,7 +23,7 @@ export default defineConfig({
       manifest: {
         name: 'Дзвоник — шкільний розклад',
         short_name: 'Дзвоник',
-        description: 'Безкоштовний офлайн-планувальник шкільного розкладу для завуча. AGPL-3.0.',
+        description: 'Офлайн-планувальник шкільного розкладу для завуча. AGPL-3.0.',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
         display: 'standalone',

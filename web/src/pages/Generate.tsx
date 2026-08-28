@@ -4,6 +4,7 @@ import {
   XCircle, Clock, Eye, Zap, Activity, Target, Shield
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,7 @@ import type { TimetableSolution } from '@/types';
 import { cn } from '@/lib/utils';
 
 export function Generate() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const generation = useAppSelector((state) => state.generation);
   const rules = useAppSelector((state) => state.rules.current);
@@ -101,9 +103,9 @@ export function Generate() {
   };
 
   const handleStart = async () => {
-    if (!rules) { alert('Please set up the timetable rules first in Settings.'); return; }
+    if (!rules) { alert(t('generate.errors.needRules')); return; }
     const activeActivities = activities.filter((a) => a.active);
-    if (activeActivities.length === 0) { alert('Please add some activities before generating.'); return; }
+    if (activeActivities.length === 0) { alert(t('generate.errors.needActivities')); return; }
 
     const pf = runPreflight({
       rules, activities, teachers, rooms,
@@ -202,23 +204,23 @@ export function Generate() {
 
   const getStatusBadge = () => {
     if (generation.isRunning) {
-      return generation.isPaused 
-        ? <Badge variant="secondary" className="animate-pulse">Paused</Badge>
-        : <Badge className="bg-primary animate-pulse">Running</Badge>;
+      return generation.isPaused
+        ? <Badge variant="secondary" className="animate-pulse">{t('generate.status.paused')}</Badge>
+        : <Badge className="bg-primary animate-pulse">{t('generate.status.running')}</Badge>;
     }
     if (lastSolution) {
-      return lastSolution.isComplete 
-        ? <Badge className="bg-success">Complete</Badge>
-        : <Badge className="bg-warning">Partial</Badge>;
+      return lastSolution.isComplete
+        ? <Badge className="bg-success">{t('generate.status.complete')}</Badge>
+        : <Badge className="bg-warning">{t('generate.status.partial')}</Badge>;
     }
-    return <Badge variant="outline">Ready</Badge>;
+    return <Badge variant="outline">{t('generate.status.ready')}</Badge>;
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Generate Timetable"
-        description="Create an optimal schedule based on your constraints"
+        title={t('generate.title')}
+        description={t('generate.description')}
         icon={<Zap className="h-6 w-6" />}
         actions={getStatusBadge()}
       />
@@ -234,15 +236,18 @@ export function Generate() {
                 </div>
                 <div>
                   <p className={cn("font-semibold text-lg", lastSolution.isComplete ? "text-success" : "text-warning")}>
-                    {lastSolution.isComplete ? 'Timetable Generated Successfully' : 'Partial Timetable Generated'}
+                    {lastSolution.isComplete ? t('generate.lastSolution.success') : t('generate.lastSolution.partial')}
                   </p>
                   <p className="text-muted-foreground">
-                    {lastSolution.placements.length} activities placed • {generationTimestamp ? formatTimestamp(generationTimestamp) : formatTimestamp(new Date(lastSolution.generatedAt))}
+                    {t('generate.lastSolution.placed', {
+                      count: lastSolution.placements.length,
+                      when: generationTimestamp ? formatTimestamp(generationTimestamp) : formatTimestamp(new Date(lastSolution.generatedAt)),
+                    })}
                   </p>
                 </div>
               </div>
               <Button asChild className="gap-2 bg-success hover:bg-success/90">
-                <Link to="/timetable"><Eye className="h-4 w-4" />View Timetable</Link>
+                <Link to="/timetable"><Eye className="h-4 w-4" />{t('generate.lastSolution.view')}</Link>
               </Button>
             </div>
           </CardContent>
@@ -262,13 +267,13 @@ export function Generate() {
               <div>
                 <CardTitle>
                   {preflight.blocking.length > 0
-                    ? 'Генерацію заблоковано'
-                    : 'Попередження перед генерацією'}
+                    ? t('generate.preflight.blockedTitle')
+                    : t('generate.preflight.warningsTitle')}
                 </CardTitle>
                 <CardDescription>
                   {preflight.blocking.length > 0
-                    ? 'Виправте перелічене нижче, щоб продовжити.'
-                    : 'Розклад може згенеруватись частково.'}
+                    ? t('generate.preflight.blockedDesc')
+                    : t('generate.preflight.warningsDesc')}
                 </CardDescription>
               </div>
             </div>
@@ -303,16 +308,16 @@ export function Generate() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10"><Target className="h-5 w-5 text-primary" /></div>
-            <div><CardTitle>Pre-Generation Check</CardTitle><CardDescription>Verify your data before generating</CardDescription></div>
+            <div><CardTitle>{t('generate.precheck.title')}</CardTitle><CardDescription>{t('generate.precheck.description')}</CardDescription></div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'Rules', value: rules ? `${rules.nDaysPerWeek}d × ${rules.nHoursPerDay}h` : 'Not set', ok: !!rules, icon: Shield },
-              { label: 'Activities', value: `${activeActivitiesCount} active`, ok: activeActivitiesCount > 0, icon: Activity },
-              { label: 'Teachers', value: `${teachers.length} defined`, ok: teachers.length > 0, icon: Activity },
-              { label: 'Constraints', value: `${timeConstraints.length + spaceConstraints.length} total`, ok: timeConstraints.length > 0, icon: Shield },
+              { label: t('generate.precheck.rules'), value: rules ? t('generate.precheck.rulesValue', { days: rules.nDaysPerWeek, hours: rules.nHoursPerDay }) : t('generate.precheck.rulesNotSet'), ok: !!rules, icon: Shield },
+              { label: t('generate.precheck.activities'), value: t('generate.precheck.activitiesValue', { count: activeActivitiesCount }), ok: activeActivitiesCount > 0, icon: Activity },
+              { label: t('generate.precheck.teachers'), value: t('generate.precheck.teachersValue', { count: teachers.length }), ok: teachers.length > 0, icon: Activity },
+              { label: t('generate.precheck.constraints'), value: t('generate.precheck.constraintsValue', { count: timeConstraints.length + spaceConstraints.length }), ok: timeConstraints.length > 0, icon: Shield },
             ].map((check, idx) => (
               <div key={idx} className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card transition-colors hover:bg-muted/50">
                 {check.ok ? <CheckCircle2 className="h-5 w-5 text-success" /> : <XCircle className="h-5 w-5 text-destructive" />}
@@ -331,7 +336,7 @@ export function Generate() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10"><Zap className="h-5 w-5 text-primary" /></div>
-            <div><CardTitle>Generation Controls</CardTitle><CardDescription>Start, pause, or stop the generation process</CardDescription></div>
+            <div><CardTitle>{t('generate.controls.title')}</CardTitle><CardDescription>{t('generate.controls.description')}</CardDescription></div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -339,25 +344,25 @@ export function Generate() {
           <div className="flex flex-wrap gap-3">
             {!generation.isRunning ? (
               <Button onClick={handleStart} className="gap-2 gradient-primary hover-lift">
-                <Play className="h-4 w-4" />{lastSolution ? 'Regenerate' : 'Start Generation'}
+                <Play className="h-4 w-4" />{lastSolution ? t('generate.controls.regenerate') : t('generate.controls.start')}
               </Button>
             ) : generation.isPaused ? (
-              <Button onClick={handleResume} className="gap-2"><Play className="h-4 w-4" />Resume</Button>
+              <Button onClick={handleResume} className="gap-2"><Play className="h-4 w-4" />{t('generate.controls.resume')}</Button>
             ) : (
-              <Button onClick={handlePause} variant="secondary" className="gap-2"><Pause className="h-4 w-4" />Pause</Button>
+              <Button onClick={handlePause} variant="secondary" className="gap-2"><Pause className="h-4 w-4" />{t('generate.controls.pause')}</Button>
             )}
             {generation.isRunning && (
-              <Button onClick={handleStop} variant="destructive" className="gap-2"><Square className="h-4 w-4" />Stop</Button>
+              <Button onClick={handleStop} variant="destructive" className="gap-2"><Square className="h-4 w-4" />{t('generate.controls.stop')}</Button>
             )}
             {!generation.isRunning && lastSolution && (
-              <Button onClick={handleReset} variant="outline" className="gap-2"><RotateCcw className="h-4 w-4" />Reset</Button>
+              <Button onClick={handleReset} variant="outline" className="gap-2"><RotateCcw className="h-4 w-4" />{t('generate.controls.reset')}</Button>
             )}
           </div>
 
           {/* Progress Bar */}
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Progress</span>
+              <span className="text-muted-foreground">{t('generate.progress')}</span>
               <span className="font-medium text-foreground">{progressPercentage}%</span>
             </div>
             <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
@@ -370,16 +375,16 @@ export function Generate() {
 
           {/* Statistics */}
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard title="Activities Placed" value={`${displayPlaced} / ${displayTotal}`} icon={<Activity className="h-5 w-5" />} />
-            <StatCard title="Max Placed" value={Math.max(generation.maxPlacedActivities, lastSolution?.placements.length || 0)} icon={<Target className="h-5 w-5" />} />
-            <StatCard title="Issues" value={generation.conflicts.length || lastSolution?.conflicts.length || 0} icon={<AlertTriangle className="h-5 w-5" />} />
+            <StatCard title={t('generate.stats.placed')} value={`${displayPlaced} / ${displayTotal}`} icon={<Activity className="h-5 w-5" />} />
+            <StatCard title={t('generate.stats.maxPlaced')} value={Math.max(generation.maxPlacedActivities, lastSolution?.placements.length || 0)} icon={<Target className="h-5 w-5" />} />
+            <StatCard title={t('generate.stats.issues')} value={generation.conflicts.length || lastSolution?.conflicts.length || 0} icon={<AlertTriangle className="h-5 w-5" />} />
           </div>
 
           {/* Timestamp */}
           {(generationTimestamp || lastSolution) && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Last generation: {formatTimestamp(generationTimestamp || new Date(lastSolution!.generatedAt))}</span>
+              <span>{t('generate.lastRun', { when: formatTimestamp(generationTimestamp || new Date(lastSolution!.generatedAt)) })}</span>
             </div>
           )}
 
@@ -387,14 +392,14 @@ export function Generate() {
           {(generation.conflicts.length > 0 || (lastSolution?.conflicts.length || 0) > 0) && (
             <div className="rounded-xl border border-destructive/50 p-4 bg-destructive/5">
               <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />Issues ({generation.conflicts.length || lastSolution?.conflicts.length || 0})
+                <AlertTriangle className="h-4 w-4" />{t('generate.issues', { count: generation.conflicts.length || lastSolution?.conflicts.length || 0 })}
               </h4>
               <ul className="text-sm text-destructive/80 space-y-1 max-h-40 overflow-y-auto">
                 {(generation.conflicts.length > 0 ? generation.conflicts : lastSolution?.conflicts || []).slice(0, 10).map((conflict, i) => (
                   <li key={i} className="flex items-start gap-2"><span className="text-destructive">•</span>{conflict}</li>
                 ))}
                 {((generation.conflicts.length || lastSolution?.conflicts.length || 0) > 10) && (
-                  <li className="font-medium">...and more</li>
+                  <li className="font-medium">{t('generate.andMore')}</li>
                 )}
               </ul>
             </div>
@@ -407,18 +412,12 @@ export function Generate() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10"><Target className="h-5 w-5 text-primary" /></div>
-            <div><CardTitle>Tips for Success</CardTitle></div>
+            <div><CardTitle>{t('generate.tips.title')}</CardTitle></div>
           </div>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2">
-            {[
-              'Ensure you have basic compulsory time and space constraints',
-              'If generation fails, try reducing constraint weights below 100%',
-              'Activities with more teachers/students are scheduled first',
-              'Check that your time structure can accommodate all activities',
-              'Partial solutions can still be viewed in the Timetable page',
-            ].map((tip, i) => (
+            {[1, 2, 3, 4, 5].map((n) => t(`generate.tips.${n}`)).map((tip, i) => (
               <li key={i} className="flex items-start gap-3 text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />{tip}
               </li>
