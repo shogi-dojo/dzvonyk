@@ -2,6 +2,11 @@
 node_modules/
 .vite/
 
+# Playwright
+/web/test-results/
+/web/playwright-report/
+/web/playwright/.cache/
+
 # Firebase
 .firebase/
 firebase-debug.log
