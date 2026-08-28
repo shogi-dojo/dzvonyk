@@ -13,7 +13,8 @@ import {
   startGeneration, pauseGeneration, resumeGeneration, stopGeneration,
   updateProgress, generationComplete, generationFailed, resetGeneration, addConflict,
 } from '@/store/slices/generationSlice';
-import { TimetableGenerator } from '@/lib/engine/generator';
+import type { WorkerInMessage, WorkerOutMessage } from '@/lib/engine/generator.worker';
+import type { GenerationResult } from '@/lib/engine/types';
 import { db } from '@/db';
 import type { TimetableSolution } from '@/types';
 import { cn } from '@/lib/utils';
@@ -33,8 +34,14 @@ export function Generate() {
   const [currentPlaced, setCurrentPlaced] = useState(0);
   const [currentTotal, setCurrentTotal] = useState(0);
   const [generationTimestamp, setGenerationTimestamp] = useState<Date | null>(null);
-  const generatorRef = useRef<TimetableGenerator | null>(null);
-  const stopFlagRef = useRef<boolean>(false);
+  const workerRef = useRef<Worker | null>(null);
+
+  useEffect(() => {
+    return () => {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const loadLastSolution = async () => {
@@ -61,12 +68,40 @@ export function Generate() {
     }
   }, [generation.isRunning, generation.placedActivities, generation.totalActivities, lastSolution]);
 
+  const finishGeneration = async (result: GenerationResult) => {
+    if (!rules) return;
+    const timestamp = new Date();
+    setGenerationTimestamp(timestamp);
+    setCurrentPlaced(result.placedActivities);
+    setCurrentTotal(result.totalActivities);
+
+    for (const conflict of result.conflicts) dispatch(addConflict(conflict.reason));
+
+    const newSolution: TimetableSolution = {
+      id: crypto.randomUUID(),
+      rulesId: rules.id,
+      placements: result.timeAllocations.map((ta) => ({
+        activityId: activities[ta.activityIndex]?.id || '',
+        day: ta.day,
+        hour: ta.hour,
+      })),
+      conflicts: result.conflicts.map((c) => c.reason),
+      isComplete: result.success,
+      generatedAt: timestamp,
+    };
+
+    await db.solutions.add(newSolution);
+    setLastSolution(newSolution);
+
+    if (result.success) dispatch(generationComplete());
+    else dispatch(generationFailed(`Placed ${result.placedActivities} of ${result.totalActivities} activities`));
+  };
+
   const handleStart = async () => {
     if (!rules) { alert('Please set up the timetable rules first in Settings.'); return; }
-    const activeActivities = activities.filter(a => a.active);
+    const activeActivities = activities.filter((a) => a.active);
     if (activeActivities.length === 0) { alert('Please add some activities before generating.'); return; }
 
-    stopFlagRef.current = false;
     setCurrentPlaced(0);
     setCurrentTotal(activeActivities.length);
     setLastSolution(null);
@@ -74,51 +109,77 @@ export function Generate() {
     dispatch(startGeneration(activeActivities.length));
     dispatch(resetGeneration());
 
-    generatorRef.current = new TimetableGenerator(rules, activities, teachers, subgroups || [], rooms, timeConstraints, spaceConstraints);
+    // Fresh worker per run — cheaper than clearing state and avoids leaked handlers.
+    workerRef.current?.terminate();
+    const worker = new Worker(
+      new URL('../lib/engine/generator.worker.ts', import.meta.url),
+      { type: 'module' },
+    );
+    workerRef.current = worker;
 
-    try {
-      const result = await generatorRef.current.generate({
-        onProgress: (placed, total) => {
-          setCurrentPlaced(placed);
-          setCurrentTotal(total);
-          dispatch(updateProgress({ placedActivities: placed }));
-        },
-        shouldStop: () => stopFlagRef.current,
-      });
+    worker.onmessage = (event: MessageEvent<WorkerOutMessage>) => {
+      const msg = event.data;
+      switch (msg.type) {
+        case 'progress':
+          setCurrentPlaced(msg.placed);
+          setCurrentTotal(msg.total);
+          dispatch(updateProgress({ placedActivities: msg.placed }));
+          break;
+        case 'conflict':
+          dispatch(addConflict(msg.conflict.reason));
+          break;
+        case 'done':
+          finishGeneration(msg.result);
+          worker.terminate();
+          if (workerRef.current === worker) workerRef.current = null;
+          break;
+        case 'error':
+          console.error('Worker error:', msg.message);
+          dispatch(generationFailed(msg.message));
+          worker.terminate();
+          if (workerRef.current === worker) workerRef.current = null;
+          break;
+      }
+    };
 
-      const timestamp = new Date();
-      setGenerationTimestamp(timestamp);
-      setCurrentPlaced(result.placedActivities);
-      setCurrentTotal(result.totalActivities);
+    worker.onerror = (event) => {
+      console.error('Worker crashed:', event);
+      dispatch(generationFailed(event.message ?? 'worker crashed'));
+      worker.terminate();
+      if (workerRef.current === worker) workerRef.current = null;
+    };
 
-      for (const conflict of result.conflicts) dispatch(addConflict(conflict.reason));
-
-      const newSolution: TimetableSolution = {
-        id: crypto.randomUUID(),
-        rulesId: rules.id,
-        placements: result.timeAllocations.map(ta => ({
-          activityId: activities[ta.activityIndex]?.id || '', day: ta.day, hour: ta.hour,
-        })),
-        conflicts: result.conflicts.map(c => c.reason),
-        isComplete: result.success,
-        generatedAt: timestamp,
-      };
-
-      await db.solutions.add(newSolution);
-      setLastSolution(newSolution);
-
-      if (result.success) dispatch(generationComplete());
-      else dispatch(generationFailed(`Placed ${result.placedActivities} of ${result.totalActivities} activities`));
-    } catch (error) {
-      console.error('Generation error:', error);
-      dispatch(generationFailed(String(error)));
-    }
+    const startMsg: WorkerInMessage = {
+      type: 'start',
+      payload: {
+        rules,
+        activities,
+        teachers,
+        subgroups: subgroups || [],
+        rooms,
+        timeConstraints,
+        spaceConstraints,
+      },
+    };
+    worker.postMessage(startMsg);
   };
 
   const handlePause = () => dispatch(pauseGeneration());
   const handleResume = () => dispatch(resumeGeneration());
-  const handleStop = () => { stopFlagRef.current = true; generatorRef.current?.stop(); dispatch(stopGeneration()); };
-  const handleReset = () => { stopFlagRef.current = true; setCurrentPlaced(0); setCurrentTotal(0); setLastSolution(null); setGenerationTimestamp(null); dispatch(resetGeneration()); };
+  const handleStop = () => {
+    const stopMsg: WorkerInMessage = { type: 'stop' };
+    workerRef.current?.postMessage(stopMsg);
+    dispatch(stopGeneration());
+  };
+  const handleReset = () => {
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    setCurrentPlaced(0);
+    setCurrentTotal(0);
+    setLastSolution(null);
+    setGenerationTimestamp(null);
+    dispatch(resetGeneration());
+  };
 
   const activeActivitiesCount = activities.filter(a => a.active).length;
   const displayTotal = currentTotal || lastSolution?.placements.length || activeActivitiesCount;
