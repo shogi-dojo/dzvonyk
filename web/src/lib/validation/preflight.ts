@@ -7,15 +7,14 @@
 // tell the завуч in plain Ukrainian *which entity* is the problem — instead
 // of letting the solver spin for minutes and give up with no explanation.
 //
-// This intentionally does NOT include regulatory limits (гранично допустиме
-// навантаження, per-grade lesson caps) — those belong to Phase 4 (Санітарний
-// регламент preset) and must come from the current МОЗ №2205 (2020) text, not
-// hardcoded here.
+// Optional Phase 4 layer (МОЗ №2205, 2020) is applied when input.sanitaryMode
+// is true — see sanitary.ts. Those checks are warnings only, not blockers.
 
 import type {
   Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
   TimetableRules, StudentsGroup, StudentsSubgroup,
 } from '../../types';
+import { runSanitaryChecks } from './sanitary';
 
 export type IssueSeverity = 'blocking' | 'warning';
 
@@ -41,6 +40,9 @@ export interface PreflightInput {
   studentsSubgroups: StudentsSubgroup[];
   timeConstraints: TimeConstraint[];
   spaceConstraints: SpaceConstraint[];
+  // Phase 4: when true, also apply МОЗ №2205 (2020) weekly-load limits as
+  // warnings. Opt-in via the "Дотримуватись санітарних норм" toggle in Settings.
+  sanitaryMode?: boolean;
 }
 
 // Threshold at which "close to capacity" becomes a warning even without
@@ -285,6 +287,13 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     }
   }
   void studentsSubgroups; // reserved for future subgroup-pairing checks
+
+  // ---- Phase 4: Санітарний регламент (opt-in) ----
+  if (input.sanitaryMode) {
+    warnings.push(...runSanitaryChecks({
+      rules, activities: active, studentsGroups, studentsSubgroups,
+    }));
+  }
 
   return { blocking, warnings, ok: blocking.length === 0 };
 }

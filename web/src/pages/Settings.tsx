@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import { setTimeConstraints, setSpaceConstraints, clearConstraints } from '@/sto
 import { setStudents, clearStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile } from '@/lib/fetParser';
+import { useSanitaryMode } from '@/lib/sanitaryMode';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -75,6 +76,7 @@ export function Settings() {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [sanitaryMode, setSanitaryModeState] = useSanitaryMode();
 
   useEffect(() => {
     if (rules) {
@@ -347,6 +349,35 @@ export function Settings() {
                   {t('settings.institution.nameHelp')}
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Sanitary regulation preset */}
+          <Card className="animate-slide-up" style={{ animationDelay: '75ms' }}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
+                </div>
+                <div>
+                  <CardTitle>{t('settings.sanitary.title')}</CardTitle>
+                  <CardDescription>{t('settings.sanitary.description')}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-primary"
+                  checked={sanitaryMode}
+                  onChange={(e) => setSanitaryModeState(e.target.checked)}
+                />
+                <div>
+                  <p className="font-medium text-foreground">{t('settings.sanitary.toggleLabel')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.sanitary.toggleHelp')}</p>
+                </div>
+              </label>
             </CardContent>
           </Card>
 

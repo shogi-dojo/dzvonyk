@@ -878,6 +878,12 @@
       "namePlaceholder": "Enter institution name",
       "nameHelp": "This name will appear in exported timetables"
     },
+    "sanitary": {
+      "title": "Sanitary regulation",
+      "description": "Check against Ukrainian MoH order №2205 (2020) sanitary regulation",
+      "toggleLabel": "Enforce sanitary limits",
+      "toggleHelp": "Warn when a class exceeds the maximum weekly load defined in Annex 8 (MoH №2205). Warnings do not block generation."
+    },
     "days": {
       "title": "Days of the Week",
       "description": "Configure working days ({{count}} days)",

@@ -17,6 +17,7 @@ import {
 import type { WorkerInMessage, WorkerOutMessage } from '@/lib/engine/generator.worker';
 import type { GenerationResult } from '@/lib/engine/types';
 import { runPreflight, type PreflightResult } from '@/lib/validation/preflight';
+import { getSanitaryMode } from '@/lib/sanitaryMode';
 import { db } from '@/db';
 import type { TimetableSolution } from '@/types';
 import { cn } from '@/lib/utils';
@@ -111,6 +112,7 @@ export function Generate() {
       rules, activities, teachers, rooms,
       studentsGroups, studentsSubgroups: subgroups || [],
       timeConstraints, spaceConstraints,
+      sanitaryMode: getSanitaryMode(),
     });
     setPreflight(pf);
     if (!pf.ok) return;
