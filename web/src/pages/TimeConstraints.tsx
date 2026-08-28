@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Search, Clock, Pencil, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Trash2, Search, Clock, Pencil } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,107 +15,33 @@ import type { TimeConstraint, TimeSlot } from '@/types';
 
 // Constraint type definitions
 interface ConstraintTypeDef {
-  label: string;
-  description: string;
   category: string;
   fields: string[];
 }
 const TIME_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
-  'BasicCompulsoryTime': {
-    label: 'Basic Compulsory Time',
-    description: 'Ensures activities don\'t overlap for the same teacher/students. Required for valid timetables.',
-    category: 'basic',
-    fields: []
-  },
-  'BreakTimes': {
-    label: 'Break Times',
-    description: 'Define break periods when no activities can be scheduled.',
-    category: 'basic',
-    fields: ['times']
-  },
-  'TeacherNotAvailableTimes': {
-    label: 'Teacher Not Available Times',
-    description: 'Specify times when a specific teacher is unavailable to teach.',
-    category: 'teacher',
-    fields: ['teacher', 'times']
-  },
-  'TeacherMaxDaysPerWeek': {
-    label: 'Teacher Max Days Per Week',
-    description: 'Limit the maximum number of days a teacher can work in a week.',
-    category: 'teacher',
-    fields: ['teacher', 'maxDays']
-  },
-  'TeacherMaxHoursDaily': {
-    label: 'Teacher Max Hours Daily',
-    description: 'Limit the maximum hours a teacher can work in a single day.',
-    category: 'teacher',
-    fields: ['teacher', 'maxHours']
-  },
-  'TeacherMaxGapsPerWeek': {
-    label: 'Teacher Max Gaps Per Week',
-    description: 'Limit the maximum number of gaps (free periods between classes) for a teacher in a week.',
-    category: 'teacher',
-    fields: ['teacher', 'maxGaps']
-  },
-  'TeacherMaxGapsPerDay': {
-    label: 'Teacher Max Gaps Per Day',
-    description: 'Limit the maximum number of gaps for a teacher in a single day.',
-    category: 'teacher',
-    fields: ['teacher', 'maxGaps']
-  },
-  'TeachersMaxHoursDaily': {
-    label: 'All Teachers Max Hours Daily',
-    description: 'Limit the maximum hours all teachers can work in a single day.',
-    category: 'teacher',
-    fields: ['maxHours']
-  },
-  'StudentsSetNotAvailableTimes': {
-    label: 'Students Not Available Times',
-    description: 'Specify times when a student group is unavailable.',
-    category: 'students',
-    fields: ['studentsSet', 'times']
-  },
-  'StudentsSetMaxHoursDaily': {
-    label: 'Students Max Hours Daily',
-    description: 'Limit the maximum hours a student group can have classes in a single day.',
-    category: 'students',
-    fields: ['studentsSet', 'maxHours']
-  },
-  'StudentsSetMaxGapsPerWeek': {
-    label: 'Students Max Gaps Per Week',
-    description: 'Limit the maximum gaps for a student group in a week.',
-    category: 'students',
-    fields: ['studentsSet', 'maxGaps']
-  },
-  'MinDaysBetweenActivities': {
-    label: 'Min Days Between Activities',
-    description: 'Ensure minimum days between split activities (e.g., same subject on different days).',
-    category: 'activity',
-    fields: ['activities', 'minDays', 'consecutiveIfSameDay']
-  },
-  'ActivitiesSameStartingTime': {
-    label: 'Activities Same Starting Time',
-    description: 'Force a set of activities to start at the same time.',
-    category: 'activity',
-    fields: ['activities']
-  },
-  'ActivitiesNotOverlapping': {
-    label: 'Activities Not Overlapping',
-    description: 'Ensure a set of activities do not overlap in time.',
-    category: 'activity',
-    fields: ['activities']
-  },
-  'ActivityPreferredStartingTime': {
-    label: 'Activity Preferred Starting Time',
-    description: 'Set a preferred or locked starting time for an activity.',
-    category: 'activity',
-    fields: ['activity', 'day', 'hour', 'locked']
-  },
+  'BasicCompulsoryTime': { category: 'basic', fields: [] },
+  'BreakTimes': { category: 'basic', fields: ['times'] },
+  'TeacherNotAvailableTimes': { category: 'teacher', fields: ['teacher', 'times'] },
+  'TeacherMaxDaysPerWeek': { category: 'teacher', fields: ['teacher', 'maxDays'] },
+  'TeacherMaxHoursDaily': { category: 'teacher', fields: ['teacher', 'maxHours'] },
+  'TeacherMaxGapsPerWeek': { category: 'teacher', fields: ['teacher', 'maxGaps'] },
+  'TeacherMaxGapsPerDay': { category: 'teacher', fields: ['teacher', 'maxGaps'] },
+  'TeachersMaxHoursDaily': { category: 'teacher', fields: ['maxHours'] },
+  'StudentsSetNotAvailableTimes': { category: 'students', fields: ['studentsSet', 'times'] },
+  'StudentsSetMaxHoursDaily': { category: 'students', fields: ['studentsSet', 'maxHours'] },
+  'StudentsSetMaxGapsPerWeek': { category: 'students', fields: ['studentsSet', 'maxGaps'] },
+  'MinDaysBetweenActivities': { category: 'activity', fields: ['activities', 'minDays', 'consecutiveIfSameDay'] },
+  'ActivitiesSameStartingTime': { category: 'activity', fields: ['activities'] },
+  'ActivitiesNotOverlapping': { category: 'activity', fields: ['activities'] },
+  'ActivityPreferredStartingTime': { category: 'activity', fields: ['activity', 'day', 'hour', 'locked'] },
 };
 
 type TimeConstraintTypeKey = keyof typeof TIME_CONSTRAINT_TYPES;
 
 export function TimeConstraints() {
+  const { t } = useTranslation();
+  const typeLabel = (key: string) => t(`timeConstraints.types.${key}.label`, { defaultValue: key });
+  const typeDescription = (key: string) => t(`timeConstraints.types.${key}.description`, { defaultValue: '' });
   const dispatch = useAppDispatch();
   const { timeConstraints } = useAppSelector((state) => state.constraints);
   const teachers = useAppSelector((state) => state.teachers.items);
@@ -152,20 +79,20 @@ export function TimeConstraints() {
   // Student options
   const studentOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
-    years.forEach(y => opts.push({ value: y.name, label: `${y.name} (Year)` }));
-    groups.forEach(g => opts.push({ value: g.name, label: `${g.name} (Group)` }));
+    years.forEach(y => opts.push({ value: y.name, label: t('activities.studentLabelYear', { name: y.name }) }));
+    groups.forEach(g => opts.push({ value: g.name, label: t('activities.studentLabelGroup', { name: g.name }) }));
     return opts;
-  }, [years, groups]);
+  }, [years, groups, t]);
 
   const getTeacherDisplayName = (idOrName: string): string => {
-    const teacher = teachers.find(t => t.id === idOrName || t.name === idOrName);
+    const teacher = teachers.find(tt => tt.id === idOrName || tt.name === idOrName);
     if (teacher) return teacher.name;
-    return idOrName || 'Unknown';
+    return idOrName || t('timeConstraints.unknown');
   };
 
   const getActivityDisplayName = (id: string): string => {
     const activity = activities.find(a => a.id === id);
-    if (activity) return `${activity.subjectId} - ${activity.teacherIds.join(', ') || 'No teacher'} (${activity.duration}h)`;
+    if (activity) return t('timeConstraints.activityLabel', { subject: activity.subjectId, teachers: activity.teacherIds.join(', ') || t('timeConstraints.noTeacher'), duration: activity.duration });
     return id;
   };
 
@@ -173,35 +100,37 @@ export function TimeConstraints() {
     const c = constraint as any;
     switch (constraint.type) {
       case 'BasicCompulsoryTime':
-        return 'Basic time validity constraint';
+        return t('timeConstraints.descriptions.basic');
       case 'BreakTimes':
-        return `${c.times?.length || 0} break time slots`;
+        return t('timeConstraints.descriptions.breakTimes', { count: c.times?.length || 0 });
       case 'TeacherNotAvailableTimes':
-        return `${getTeacherDisplayName(c.teacherId)}: ${c.times?.length || 0} unavailable slots`;
+        return t('timeConstraints.descriptions.teacherUnavail', { teacher: getTeacherDisplayName(c.teacherId), count: c.times?.length || 0 });
       case 'TeacherMaxDaysPerWeek':
-        return `${getTeacherDisplayName(c.teacherId)}: max ${c.maxDays} days/week`;
+        return t('timeConstraints.descriptions.teacherMaxDays', { teacher: getTeacherDisplayName(c.teacherId), count: c.maxDays });
       case 'TeacherMaxHoursDaily':
-        return `${getTeacherDisplayName(c.teacherId)}: max ${c.maxHours} hours/day`;
+        return t('timeConstraints.descriptions.teacherMaxHours', { teacher: getTeacherDisplayName(c.teacherId), count: c.maxHours });
       case 'TeacherMaxGapsPerWeek':
-        return `${getTeacherDisplayName(c.teacherId)}: max ${c.maxGaps} gaps/week`;
+        return t('timeConstraints.descriptions.teacherMaxGapsWeek', { teacher: getTeacherDisplayName(c.teacherId), count: c.maxGaps });
       case 'TeacherMaxGapsPerDay':
-        return `${getTeacherDisplayName(c.teacherId)}: max ${c.maxGaps} gaps/day`;
+        return t('timeConstraints.descriptions.teacherMaxGapsDay', { teacher: getTeacherDisplayName(c.teacherId), count: c.maxGaps });
       case 'TeachersMaxHoursDaily':
-        return `All teachers: max ${c.maxHours} hours/day`;
+        return t('timeConstraints.descriptions.allTeachersMaxHours', { count: c.maxHours });
       case 'StudentsSetNotAvailableTimes':
-        return `${c.studentsSetId}: ${c.times?.length || 0} unavailable slots`;
+        return t('timeConstraints.descriptions.studentsUnavail', { students: c.studentsSetId, count: c.times?.length || 0 });
       case 'StudentsSetMaxHoursDaily':
-        return `${c.studentsSetId}: max ${c.maxHours} hours/day`;
+        return t('timeConstraints.descriptions.studentsMaxHours', { students: c.studentsSetId, count: c.maxHours });
       case 'StudentsSetMaxGapsPerWeek':
-        return `${c.studentsSetId}: max ${c.maxGaps} gaps/week`;
+        return t('timeConstraints.descriptions.studentsMaxGaps', { students: c.studentsSetId, count: c.maxGaps });
       case 'MinDaysBetweenActivities':
-        return `${c.activityIds?.length || 0} activities, min ${c.minDays} days between`;
+        return t('timeConstraints.descriptions.minDaysBetween', { count: c.activityIds?.length || 0, days: c.minDays });
       case 'ActivitiesSameStartingTime':
-        return `${c.activityIds?.length || 0} activities must start together`;
+        return t('timeConstraints.descriptions.sameStart', { count: c.activityIds?.length || 0 });
       case 'ActivitiesNotOverlapping':
-        return `${c.activityIds?.length || 0} activities must not overlap`;
+        return t('timeConstraints.descriptions.notOverlapping', { count: c.activityIds?.length || 0 });
       case 'ActivityPreferredStartingTime':
-        return `Activity at Day ${c.day + 1}, Hour ${c.hour + 1}${c.permanentlyLocked ? ' (Locked)' : ''}`;
+        return c.permanentlyLocked
+          ? t('timeConstraints.descriptions.activityAtLocked', { day: c.day + 1, hour: c.hour + 1 })
+          : t('timeConstraints.descriptions.activityAt', { day: c.day + 1, hour: c.hour + 1 });
       default:
         return '';
     }
@@ -212,12 +141,11 @@ export function TimeConstraints() {
     if (!searchQuery) return timeConstraints;
     const query = searchQuery.toLowerCase();
     return timeConstraints.filter((c) => {
-      const typeInfo = TIME_CONSTRAINT_TYPES[c.type as TimeConstraintTypeKey];
-      const label = typeInfo?.label?.toLowerCase() || c.type.toLowerCase();
+      const label = typeLabel(c.type).toLowerCase();
       const desc = getConstraintDescription(c).toLowerCase();
       return label.includes(query) || desc.includes(query) || c.type.toLowerCase().includes(query);
     });
-  }, [timeConstraints, searchQuery, teachers]);
+  }, [timeConstraints, searchQuery, teachers, t]);
 
   // Pagination
   const {
@@ -350,15 +278,15 @@ export function TimeConstraints() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this constraint?')) {
+    if (confirm(t('timeConstraints.confirmDelete'))) {
       await dispatch(deleteTimeConstraint(id));
     }
   };
 
   const toggleTimeSlot = (day: number, hour: number) => {
-    const exists = selectedTimes.some(t => t.day === day && t.hour === hour);
+    const exists = selectedTimes.some(ts => ts.day === day && ts.hour === hour);
     if (exists) {
-      setSelectedTimes(selectedTimes.filter(t => !(t.day === day && t.hour === hour)));
+      setSelectedTimes(selectedTimes.filter(ts => !(ts.day === day && ts.hour === hour)));
     } else {
       setSelectedTimes([...selectedTimes, { day, hour }]);
     }
@@ -389,16 +317,15 @@ export function TimeConstraints() {
     return cats;
   }, []);
 
-  const typeInfo = TIME_CONSTRAINT_TYPES[selectedType];
-  const fields = typeInfo?.fields || [];
+  const fields = TIME_CONSTRAINT_TYPES[selectedType]?.fields || [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Time Constraints</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('timeConstraints.title')}</h1>
           <p className="text-muted-foreground">
-            Define when activities can and cannot be scheduled ({timeConstraints.length} total)
+            {t('timeConstraints.description', { count: timeConstraints.length })}
           </p>
         </div>
       </div>
@@ -406,61 +333,23 @@ export function TimeConstraints() {
       {/* Add Constraint Section */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground">Add New Time Constraint</CardTitle>
-          <CardDescription className="text-muted-foreground">Select a constraint type to add</CardDescription>
+          <CardTitle className="text-foreground">{t('timeConstraints.addTitle')}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t('timeConstraints.addDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Basic Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Basic</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.basic.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)} className="text-left">
-                  {TIME_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
+          {(['basic', 'teacher', 'students', 'activity'] as const).map((cat) => (
+            <div key={cat}>
+              <h3 className="text-sm font-medium text-secondary-foreground mb-2">{t(`timeConstraints.categories.${cat}`)}</h3>
+              <div className="flex flex-wrap gap-2">
+                {constraintsByCategory[cat].map((type) => (
+                  <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)} className="text-left">
+                    {typeLabel(type)}
+                    <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Teacher Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Teacher Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.teacher.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)} className="text-left">
-                  {TIME_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Students Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Students Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.students.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)} className="text-left">
-                  {TIME_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Activity Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Activity Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.activity.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)} className="text-left">
-                  {TIME_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -468,7 +357,7 @@ export function TimeConstraints() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search constraints..."
+          placeholder={t('timeConstraints.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 bg-card border-border"
@@ -478,22 +367,22 @@ export function TimeConstraints() {
       {/* Constraints List */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground">All Time Constraints</CardTitle>
+          <CardTitle className="text-foreground">{t('timeConstraints.listTitle')}</CardTitle>
           <CardDescription className="text-muted-foreground">
-            {filteredConstraints.length} constraint(s) {searchQuery ? 'found' : 'defined'}
+            {t('timeConstraints.listCount', { count: filteredConstraints.length, status: searchQuery ? t('timeConstraints.statusFound') : t('timeConstraints.statusDefined') })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredConstraints.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchQuery ? 'No constraints match your search.' : 'No time constraints added yet.'}
+              {searchQuery ? t('timeConstraints.emptySearch') : t('timeConstraints.empty')}
             </div>
           ) : (
             <>
               <div className="space-y-2">
                 {paginatedConstraints.map((constraint) => (
-                  <div 
-                    key={constraint.id} 
+                  <div
+                    key={constraint.id}
                     className="p-4 rounded-lg border border-border bg-card flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3 flex-1">
@@ -501,10 +390,10 @@ export function TimeConstraints() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-medium text-foreground">
-                            {TIME_CONSTRAINT_TYPES[constraint.type as TimeConstraintTypeKey]?.label || constraint.type}
+                            {typeLabel(constraint.type)}
                           </span>
                           <Badge variant={constraint.active ? 'default' : 'secondary'}>
-                            {constraint.active ? 'Active' : 'Inactive'}
+                            {constraint.active ? t('common.active') : t('common.inactive')}
                           </Badge>
                           <Badge variant="outline" className="text-muted-foreground">
                             {constraint.weightPercentage}%
@@ -544,17 +433,19 @@ export function TimeConstraints() {
         <DialogContent className="bg-card max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {dialogMode === 'edit' ? 'Edit' : 'Add'} {typeInfo?.label}
+              {dialogMode === 'edit'
+                ? t('timeConstraints.dialog.editTitle', { label: typeLabel(selectedType) })
+                : t('timeConstraints.dialog.addTitle', { label: typeLabel(selectedType) })}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {typeInfo?.description}
+              {typeDescription(selectedType)}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {/* Weight */}
             <div className="grid gap-2">
-              <Label className="text-secondary-foreground">Weight Percentage</Label>
+              <Label className="text-secondary-foreground">{t('timeConstraints.dialog.weight')}</Label>
               <Input
                 type="number"
                 min="0"
@@ -563,7 +454,7 @@ export function TimeConstraints() {
                 onChange={(e) => setWeight(e.target.value)}
                 className="bg-background border-border"
               />
-              <p className="text-xs text-muted-foreground">100% = mandatory, lower = preferred</p>
+              <p className="text-xs text-muted-foreground">{t('timeConstraints.dialog.weightHint')}</p>
             </div>
 
             {/* Active */}
@@ -575,21 +466,21 @@ export function TimeConstraints() {
                 onChange={(e) => setActive(e.target.checked)}
                 className="h-4 w-4"
               />
-              <Label htmlFor="active" className="text-secondary-foreground">Active</Label>
+              <Label htmlFor="active" className="text-secondary-foreground">{t('timeConstraints.dialog.active')}</Label>
             </div>
 
             {/* Teacher field */}
             {fields.includes('teacher') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Teacher</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.teacher')}</Label>
                 <select
                   value={teacherId}
                   onChange={(e) => setTeacherId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select a teacher</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.name}>{t.name}</option>
+                  <option value="">{t('timeConstraints.dialog.selectTeacher')}</option>
+                  {teachers.map((tt) => (
+                    <option key={tt.id} value={tt.name}>{tt.name}</option>
                   ))}
                 </select>
               </div>
@@ -598,13 +489,13 @@ export function TimeConstraints() {
             {/* Students Set field */}
             {fields.includes('studentsSet') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Students Set</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.studentsSet')}</Label>
                 <select
                   value={studentsSetId}
                   onChange={(e) => setStudentsSetId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select a student group</option>
+                  <option value="">{t('timeConstraints.dialog.selectStudentsSet')}</option>
                   {studentOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
@@ -615,7 +506,7 @@ export function TimeConstraints() {
             {/* Max Days field */}
             {fields.includes('maxDays') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Maximum Days</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.maxDays')}</Label>
                 <Input
                   type="number"
                   min="1"
@@ -630,7 +521,7 @@ export function TimeConstraints() {
             {/* Max Hours field */}
             {fields.includes('maxHours') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Maximum Hours</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.maxHours')}</Label>
                 <Input
                   type="number"
                   min="1"
@@ -645,7 +536,7 @@ export function TimeConstraints() {
             {/* Max Gaps field */}
             {fields.includes('maxGaps') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Maximum Gaps</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.maxGaps')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -660,7 +551,7 @@ export function TimeConstraints() {
             {/* Min Days field */}
             {fields.includes('minDays') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Minimum Days Between</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.minDays')}</Label>
                 <Input
                   type="number"
                   min="1"
@@ -683,7 +574,7 @@ export function TimeConstraints() {
                   className="h-4 w-4"
                 />
                 <Label htmlFor="consecutiveIfSameDay" className="text-secondary-foreground">
-                  If on same day, activities must be consecutive
+                  {t('timeConstraints.dialog.consecutiveIfSameDay')}
                 </Label>
               </div>
             )}
@@ -691,13 +582,13 @@ export function TimeConstraints() {
             {/* Single Activity field */}
             {fields.includes('activity') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Activity</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.activity')}</Label>
                 <select
                   value={selectedActivityId}
                   onChange={(e) => setSelectedActivityId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select an activity</option>
+                  <option value="">{t('timeConstraints.dialog.selectActivity')}</option>
                   {activities.map((a) => (
                     <option key={a.id} value={a.id}>{getActivityDisplayName(a.id)}</option>
                   ))}
@@ -709,7 +600,7 @@ export function TimeConstraints() {
             {fields.includes('day') && fields.includes('hour') && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label className="text-secondary-foreground">Day</Label>
+                  <Label className="text-secondary-foreground">{t('timeConstraints.dialog.day')}</Label>
                   <select
                     value={selectedDay}
                     onChange={(e) => setSelectedDay(parseInt(e.target.value))}
@@ -721,7 +612,7 @@ export function TimeConstraints() {
                   </select>
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-secondary-foreground">Hour</Label>
+                  <Label className="text-secondary-foreground">{t('timeConstraints.dialog.hour')}</Label>
                   <select
                     value={selectedHour}
                     onChange={(e) => setSelectedHour(parseInt(e.target.value))}
@@ -746,7 +637,7 @@ export function TimeConstraints() {
                   className="h-4 w-4"
                 />
                 <Label htmlFor="locked" className="text-secondary-foreground">
-                  Permanently Locked (cannot be changed during generation)
+                  {t('timeConstraints.dialog.locked')}
                 </Label>
               </div>
             )}
@@ -754,10 +645,10 @@ export function TimeConstraints() {
             {/* Activities Multi-select */}
             {fields.includes('activities') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Activities ({selectedActivityIds.length} selected)</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.activities', { count: selectedActivityIds.length })}</Label>
                 <div className="max-h-48 overflow-y-auto border border-border rounded-md bg-background p-2">
                   {activities.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No activities available</p>
+                    <p className="text-muted-foreground text-sm">{t('timeConstraints.dialog.noActivities')}</p>
                   ) : (
                     activities.map((a) => (
                       <div 
@@ -784,7 +675,7 @@ export function TimeConstraints() {
             {/* Time Slots Grid */}
             {fields.includes('times') && days.length > 0 && hours.length > 0 && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Time Slots ({selectedTimes.length} selected)</Label>
+                <Label className="text-secondary-foreground">{t('timeConstraints.dialog.timeSlots', { count: selectedTimes.length })}</Label>
                 <div className="overflow-x-auto border border-border rounded-md bg-background p-2">
                   <table className="min-w-full">
                     <thead>
@@ -800,7 +691,7 @@ export function TimeConstraints() {
                         <tr key={hourIdx}>
                           <td className="p-1 text-xs text-muted-foreground whitespace-nowrap">{h.name}</td>
                           {days.map((_, dayIdx) => {
-                            const isSelected = selectedTimes.some(t => t.day === dayIdx && t.hour === hourIdx);
+                            const isSelected = selectedTimes.some(ts => ts.day === dayIdx && ts.hour === hourIdx);
                             return (
                               <td key={dayIdx} className="p-1">
                                 <button
@@ -823,9 +714,9 @@ export function TimeConstraints() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('common.cancel')}</Button>
             <Button onClick={handleSubmit}>
-              {dialogMode === 'edit' ? 'Update' : 'Add'} Constraint
+              {dialogMode === 'edit' ? t('timeConstraints.dialog.submitEdit') : t('timeConstraints.dialog.submitAdd')}
             </Button>
           </DialogFooter>
         </DialogContent>

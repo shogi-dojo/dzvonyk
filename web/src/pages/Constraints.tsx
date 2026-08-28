@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2, Search, Clock, Building2, Pencil, Shield } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -18,35 +19,34 @@ import { cn } from '@/lib/utils';
 import type { TimeConstraint, SpaceConstraint, TimeSlot } from '@/types';
 
 interface ConstraintTypeDef {
-  label: string;
-  description: string;
   category: string;
   fields: string[];
 }
 
 const TIME_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
-  'BasicCompulsoryTime': { label: 'Basic Compulsory Time', description: 'Ensures activities don\'t overlap. Required.', category: 'basic', fields: [] },
-  'BreakTimes': { label: 'Break Times', description: 'Define break periods.', category: 'basic', fields: ['times'] },
-  'TeacherNotAvailableTimes': { label: 'Teacher Not Available', description: 'Teacher unavailable times.', category: 'teacher', fields: ['teacher', 'times'] },
-  'TeacherMaxDaysPerWeek': { label: 'Teacher Max Days/Week', description: 'Max working days.', category: 'teacher', fields: ['teacher', 'maxDays'] },
-  'TeacherMaxHoursDaily': { label: 'Teacher Max Hours/Day', description: 'Max daily hours.', category: 'teacher', fields: ['teacher', 'maxHours'] },
-  'StudentsSetNotAvailableTimes': { label: 'Students Not Available', description: 'Student group unavailable.', category: 'students', fields: ['studentsSet', 'times'] },
-  'StudentsSetMaxHoursDaily': { label: 'Students Max Hours/Day', description: 'Max daily hours.', category: 'students', fields: ['studentsSet', 'maxHours'] },
-  'MinDaysBetweenActivities': { label: 'Min Days Between Activities', description: 'Spacing requirement.', category: 'activity', fields: ['activities', 'minDays'] },
-  'ActivityPreferredStartingTime': { label: 'Activity Preferred Time', description: 'Fixed time slot.', category: 'activity', fields: ['activity', 'day', 'hour'] },
+  'BasicCompulsoryTime': { category: 'basic', fields: [] },
+  'BreakTimes': { category: 'basic', fields: ['times'] },
+  'TeacherNotAvailableTimes': { category: 'teacher', fields: ['teacher', 'times'] },
+  'TeacherMaxDaysPerWeek': { category: 'teacher', fields: ['teacher', 'maxDays'] },
+  'TeacherMaxHoursDaily': { category: 'teacher', fields: ['teacher', 'maxHours'] },
+  'StudentsSetNotAvailableTimes': { category: 'students', fields: ['studentsSet', 'times'] },
+  'StudentsSetMaxHoursDaily': { category: 'students', fields: ['studentsSet', 'maxHours'] },
+  'MinDaysBetweenActivities': { category: 'activity', fields: ['activities', 'minDays'] },
+  'ActivityPreferredStartingTime': { category: 'activity', fields: ['activity', 'day', 'hour'] },
 };
 
 const SPACE_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
-  'BasicCompulsorySpace': { label: 'Basic Compulsory Space', description: 'No room overlaps. Required.', category: 'basic', fields: [] },
-  'RoomNotAvailableTimes': { label: 'Room Not Available', description: 'Room unavailable times.', category: 'room', fields: ['room', 'times'] },
-  'ActivityPreferredRoom': { label: 'Activity Preferred Room', description: 'Room for activity.', category: 'activity', fields: ['activity', 'room'] },
-  'SubjectPreferredRoom': { label: 'Subject Preferred Room', description: 'Room for subject.', category: 'subject', fields: ['subject', 'room'] },
-  'TeacherHomeRoom': { label: 'Teacher Home Room', description: 'Teacher home room.', category: 'teacher', fields: ['teacher', 'room'] },
+  'BasicCompulsorySpace': { category: 'basic', fields: [] },
+  'RoomNotAvailableTimes': { category: 'room', fields: ['room', 'times'] },
+  'ActivityPreferredRoom': { category: 'activity', fields: ['activity', 'room'] },
+  'SubjectPreferredRoom': { category: 'subject', fields: ['subject', 'room'] },
+  'TeacherHomeRoom': { category: 'teacher', fields: ['teacher', 'room'] },
 };
 
 type ActiveTab = 'time' | 'space';
 
 export function Constraints() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { timeConstraints, spaceConstraints } = useAppSelector((state) => state.constraints);
   const { rooms } = useAppSelector((state) => state.rooms);
@@ -83,17 +83,17 @@ export function Constraints() {
 
   const studentOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
-    years.forEach(y => opts.push({ value: y.name, label: `${y.name} (Year)` }));
-    groups.forEach(g => opts.push({ value: g.name, label: `${g.name} (Group)` }));
+    years.forEach(y => opts.push({ value: y.name, label: t('activities.studentLabelYear', { name: y.name }) }));
+    groups.forEach(g => opts.push({ value: g.name, label: t('activities.studentLabelGroup', { name: g.name }) }));
     return opts;
-  }, [years, groups]);
+  }, [years, groups, t]);
 
-  const getTeacherName = (id: string) => teachers.find(t => t.id === id || t.name === id)?.name || id;
+  const getTeacherName = (id: string) => teachers.find(tt => tt.id === id || tt.name === id)?.name || id;
   const getRoomName = (id: string) => rooms.find(r => r.id === id || r.name === id)?.name || id;
   const getSubjectName = (id: string) => subjects.find(s => s.id === id || s.name === id)?.name || id;
   const getActivityName = (id: string) => {
     const a = activities.find(act => act.id === id);
-    return a ? `${a.subjectId} - ${a.teacherIds.join(', ') || 'No teacher'}` : id;
+    return a ? t('constraints.activityLabel', { subject: a.subjectId, teachers: a.teacherIds.join(', ') || t('constraints.noTeacher') }) : id;
   };
 
   const filteredTimeConstraints = useMemo(() => {
@@ -184,25 +184,25 @@ export function Constraints() {
     setDialogOpen(false);
   };
 
-  const handleDeleteTime = (id: string) => { if (confirm('Delete this constraint?')) dispatch(deleteTimeConstraint(id)); };
-  const handleDeleteSpace = (id: string) => { if (confirm('Delete this constraint?')) dispatch(deleteSpaceConstraint(id)); };
+  const handleDeleteTime = (id: string) => { if (confirm(t('constraints.confirmDelete'))) dispatch(deleteTimeConstraint(id)); };
+  const handleDeleteSpace = (id: string) => { if (confirm(t('constraints.confirmDelete'))) dispatch(deleteSpaceConstraint(id)); };
 
   const toggleTimeSlot = (day: number, hour: number) => {
-    const exists = selectedTimes.some(t => t.day === day && t.hour === hour);
-    if (exists) setSelectedTimes(selectedTimes.filter(t => !(t.day === day && t.hour === hour)));
+    const exists = selectedTimes.some(ts => ts.day === day && ts.hour === hour);
+    if (exists) setSelectedTimes(selectedTimes.filter(ts => !(ts.day === day && ts.hour === hour)));
     else setSelectedTimes([...selectedTimes, { day, hour }]);
   };
 
   const getTimeDescription = (c: TimeConstraint) => {
     const any = c as any;
     switch (c.type) {
-      case 'BasicCompulsoryTime': return 'Basic time validity';
-      case 'TeacherNotAvailableTimes': return `${getTeacherName(any.teacherId)}: ${any.times?.length || 0} slots`;
-      case 'TeacherMaxDaysPerWeek': return `${getTeacherName(any.teacherId)}: max ${any.maxDays} days`;
-      case 'TeacherMaxHoursDaily': return `${getTeacherName(any.teacherId)}: max ${any.maxHours}h`;
-      case 'StudentsSetNotAvailableTimes': return `${any.studentsSetId}: ${any.times?.length || 0} slots`;
-      case 'StudentsSetMaxHoursDaily': return `${any.studentsSetId}: max ${any.maxHours}h`;
-      case 'ActivityPreferredStartingTime': return `Activity at Day ${any.day + 1}, Hour ${any.hour + 1}`;
+      case 'BasicCompulsoryTime': return t('constraints.descriptions.basicTime');
+      case 'TeacherNotAvailableTimes': return t('constraints.descriptions.teacherSlots', { teacher: getTeacherName(any.teacherId), count: any.times?.length || 0 });
+      case 'TeacherMaxDaysPerWeek': return t('constraints.descriptions.teacherMaxDays', { teacher: getTeacherName(any.teacherId), count: any.maxDays });
+      case 'TeacherMaxHoursDaily': return t('constraints.descriptions.teacherMaxHours', { teacher: getTeacherName(any.teacherId), count: any.maxHours });
+      case 'StudentsSetNotAvailableTimes': return t('constraints.descriptions.studentsSlots', { students: any.studentsSetId, count: any.times?.length || 0 });
+      case 'StudentsSetMaxHoursDaily': return t('constraints.descriptions.studentsMaxHours', { students: any.studentsSetId, count: any.maxHours });
+      case 'ActivityPreferredStartingTime': return t('constraints.descriptions.activityAt', { day: any.day + 1, hour: any.hour + 1 });
       default: return '';
     }
   };
@@ -210,14 +210,17 @@ export function Constraints() {
   const getSpaceDescription = (c: SpaceConstraint) => {
     const any = c as any;
     switch (c.type) {
-      case 'BasicCompulsorySpace': return 'Basic space validity';
-      case 'RoomNotAvailableTimes': return `${getRoomName(any.roomId)}: ${any.times?.length || 0} slots`;
-      case 'ActivityPreferredRoom': return `Activity → ${getRoomName(any.roomId)}`;
-      case 'SubjectPreferredRoom': return `${getSubjectName(any.subjectId)} → ${getRoomName(any.roomId)}`;
-      case 'TeacherHomeRoom': return `${getTeacherName(any.teacherId)} → ${getRoomName(any.roomId)}`;
+      case 'BasicCompulsorySpace': return t('constraints.descriptions.basicSpace');
+      case 'RoomNotAvailableTimes': return t('constraints.descriptions.roomSlots', { room: getRoomName(any.roomId), count: any.times?.length || 0 });
+      case 'ActivityPreferredRoom': return t('constraints.descriptions.activityToRoom', { room: getRoomName(any.roomId) });
+      case 'SubjectPreferredRoom': return t('constraints.descriptions.subjectToRoom', { subject: getSubjectName(any.subjectId), room: getRoomName(any.roomId) });
+      case 'TeacherHomeRoom': return t('constraints.descriptions.teacherToRoom', { teacher: getTeacherName(any.teacherId), room: getRoomName(any.roomId) });
       default: return '';
     }
   };
+
+  const typeLabel = (key: string) => t(`constraints.typeLabels.${key}`, { defaultValue: key });
+  const typeDescription = (key: string) => t(`constraints.typeDescriptions.${key}`, { defaultValue: '' });
 
   const isEditingTime = editingTimeConstraint !== null || (dialogMode === 'add' && activeTab === 'time');
   const currentInfo = isEditingTime ? TIME_CONSTRAINT_TYPES[selectedTimeType] : SPACE_CONSTRAINT_TYPES[selectedSpaceType];
@@ -226,36 +229,36 @@ export function Constraints() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Constraints"
-        description={`Define time and space constraints (${timeConstraints.length} time, ${spaceConstraints.length} space)`}
+        title={t('constraints.title')}
+        description={t('constraints.description', { time: timeConstraints.length, space: spaceConstraints.length })}
         icon={<Shield className="h-6 w-6" />}
       />
 
       {/* Statistics */}
       <div className="grid gap-4 md:grid-cols-2 stagger-children">
-        <StatCard title="Time Constraints" value={timeConstraints.length} icon={<Clock className="h-5 w-5" />} />
-        <StatCard title="Space Constraints" value={spaceConstraints.length} icon={<Building2 className="h-5 w-5" />} />
+        <StatCard title={t('constraints.stats.time')} value={timeConstraints.length} icon={<Clock className="h-5 w-5" />} />
+        <StatCard title={t('constraints.stats.space')} value={spaceConstraints.length} icon={<Building2 className="h-5 w-5" />} />
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-border animate-slide-up">
         <button onClick={() => setActiveTab('time')} className={cn("px-6 py-3 font-medium text-sm border-b-2 transition-all duration-200 flex items-center gap-2", activeTab === 'time' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
-          <Clock className="h-4 w-4" /> Time ({timeConstraints.length})
+          <Clock className="h-4 w-4" /> {t('constraints.tabs.time', { count: timeConstraints.length })}
         </button>
         <button onClick={() => setActiveTab('space')} className={cn("px-6 py-3 font-medium text-sm border-b-2 transition-all duration-200 flex items-center gap-2", activeTab === 'space' ? "border-success text-success" : "border-transparent text-muted-foreground hover:text-foreground")}>
-          <Building2 className="h-4 w-4" /> Space ({spaceConstraints.length})
+          <Building2 className="h-4 w-4" /> {t('constraints.tabs.space', { count: spaceConstraints.length })}
         </button>
       </div>
 
       {activeTab === 'time' && (
         <>
           <Card className="animate-slide-up">
-            <CardHeader><CardTitle>Add Time Constraint</CardTitle><CardDescription>Select a constraint type</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t('constraints.addTimeTitle')}</CardTitle><CardDescription>{t('constraints.selectType')}</CardDescription></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(TIME_CONSTRAINT_TYPES).map(([key, val]) => (
+                {Object.entries(TIME_CONSTRAINT_TYPES).map(([key]) => (
                   <Button key={key} variant="outline" size="sm" onClick={() => openAddTimeDialog(key)}>
-                    {val.label}
+                    {typeLabel(key)}
                     <Badge variant="secondary" className="ml-2">{timeConstraints.filter(c => c.type === key).length}</Badge>
                   </Button>
                 ))}
@@ -265,14 +268,14 @@ export function Constraints() {
 
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search constraints..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            <Input placeholder={t('constraints.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Time Constraints</CardTitle><CardDescription>{filteredTimeConstraints.length} defined</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t('constraints.listTimeTitle')}</CardTitle><CardDescription>{t('constraints.listCount', { count: filteredTimeConstraints.length })}</CardDescription></CardHeader>
             <CardContent>
               {filteredTimeConstraints.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No time constraints yet.</p>
+                <p className="text-center text-muted-foreground py-8">{t('constraints.emptyTime')}</p>
               ) : (
                 <div className="space-y-2">
                   {paginatedTimeConstraints.map((c) => (
@@ -281,8 +284,8 @@ export function Constraints() {
                         <Clock className="h-5 w-5 text-primary" />
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-foreground">{TIME_CONSTRAINT_TYPES[c.type]?.label || c.type}</span>
-                            <Badge variant={c.active ? 'default' : 'secondary'}>{c.active ? 'Active' : 'Inactive'}</Badge>
+                            <span className="font-medium text-foreground">{typeLabel(c.type)}</span>
+                            <Badge variant={c.active ? 'default' : 'secondary'}>{c.active ? t('common.active') : t('common.inactive')}</Badge>
                             <Badge variant="outline">{c.weightPercentage}%</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">{getTimeDescription(c)}</p>
@@ -305,12 +308,12 @@ export function Constraints() {
       {activeTab === 'space' && (
         <>
           <Card className="animate-slide-up">
-            <CardHeader><CardTitle>Add Space Constraint</CardTitle><CardDescription>Select a constraint type</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t('constraints.addSpaceTitle')}</CardTitle><CardDescription>{t('constraints.selectType')}</CardDescription></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(SPACE_CONSTRAINT_TYPES).map(([key, val]) => (
+                {Object.entries(SPACE_CONSTRAINT_TYPES).map(([key]) => (
                   <Button key={key} variant="outline" size="sm" onClick={() => openAddSpaceDialog(key)}>
-                    {val.label}
+                    {typeLabel(key)}
                     <Badge variant="secondary" className="ml-2">{spaceConstraints.filter(c => c.type === key).length}</Badge>
                   </Button>
                 ))}
@@ -320,14 +323,14 @@ export function Constraints() {
 
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search constraints..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            <Input placeholder={t('constraints.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Space Constraints</CardTitle><CardDescription>{filteredSpaceConstraints.length} defined</CardDescription></CardHeader>
+            <CardHeader><CardTitle>{t('constraints.listSpaceTitle')}</CardTitle><CardDescription>{t('constraints.listCount', { count: filteredSpaceConstraints.length })}</CardDescription></CardHeader>
             <CardContent>
               {filteredSpaceConstraints.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No space constraints yet.</p>
+                <p className="text-center text-muted-foreground py-8">{t('constraints.emptySpace')}</p>
               ) : (
                 <div className="space-y-2">
                   {paginatedSpaceConstraints.map((c) => (
@@ -336,8 +339,8 @@ export function Constraints() {
                         <Building2 className="h-5 w-5 text-success" />
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-foreground">{SPACE_CONSTRAINT_TYPES[c.type]?.label || c.type}</span>
-                            <Badge variant={c.active ? 'default' : 'secondary'}>{c.active ? 'Active' : 'Inactive'}</Badge>
+                            <span className="font-medium text-foreground">{typeLabel(c.type)}</span>
+                            <Badge variant={c.active ? 'default' : 'secondary'}>{c.active ? t('common.active') : t('common.inactive')}</Badge>
                             <Badge variant="outline">{c.weightPercentage}%</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">{getSpaceDescription(c)}</p>
@@ -361,37 +364,37 @@ export function Constraints() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <form onSubmit={(e) => { e.preventDefault(); isEditingTime ? handleSubmitTimeConstraint() : handleSubmitSpaceConstraint(); }}>
             <DialogHeader>
-              <DialogTitle>{dialogMode === 'edit' ? 'Edit' : 'Add'} {isEditingTime ? 'Time' : 'Space'} Constraint</DialogTitle>
-              <DialogDescription>{currentInfo?.description || 'Configure constraint settings'}</DialogDescription>
+              <DialogTitle>{dialogMode === 'edit' ? (isEditingTime ? t('constraints.dialog.editTime') : t('constraints.dialog.editSpace')) : (isEditingTime ? t('constraints.dialog.addTime') : t('constraints.dialog.addSpace'))}</DialogTitle>
+              <DialogDescription>{typeDescription(isEditingTime ? selectedTimeType : selectedSpaceType) || t('constraints.dialog.defaultDescription')}</DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Weight (%)</Label>
+                  <Label>{t('constraints.dialog.weight')}</Label>
                   <Input type="number" min="0" max="100" value={weight} onChange={(e) => setWeight(e.target.value)} />
                 </div>
                 <div className="flex items-center gap-2 pt-6">
                   <input type="checkbox" id="active" checked={active} onChange={(e) => setActive(e.target.checked)} className="h-4 w-4" />
-                  <Label htmlFor="active">Active</Label>
+                  <Label htmlFor="active">{t('constraints.dialog.active')}</Label>
                 </div>
               </div>
 
               {fields.includes('teacher') && (
                 <div className="grid gap-2">
-                  <Label>Teacher</Label>
+                  <Label>{t('constraints.dialog.teacher')}</Label>
                   <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                    <option value="">Select teacher</option>
-                    {teachers.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                    <option value="">{t('constraints.dialog.selectTeacher')}</option>
+                    {teachers.map(tt => <option key={tt.id} value={tt.name}>{tt.name}</option>)}
                   </select>
                 </div>
               )}
 
               {fields.includes('studentsSet') && (
                 <div className="grid gap-2">
-                  <Label>Students</Label>
+                  <Label>{t('constraints.dialog.students')}</Label>
                   <select value={studentsSetId} onChange={(e) => setStudentsSetId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                    <option value="">Select students</option>
+                    <option value="">{t('constraints.dialog.selectStudents')}</option>
                     {studentOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
@@ -399,19 +402,19 @@ export function Constraints() {
 
               {fields.includes('activity') && (
                 <div className="grid gap-2">
-                  <Label>Activity</Label>
+                  <Label>{t('constraints.dialog.activity')}</Label>
                   <select value={selectedActivityId} onChange={(e) => setSelectedActivityId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                    <option value="">Select activity</option>
-                    {activities.map(a => <option key={a.id} value={a.id}>{a.subjectId} - {a.teacherIds.join(', ') || 'No teacher'}</option>)}
+                    <option value="">{t('constraints.dialog.selectActivity')}</option>
+                    {activities.map(a => <option key={a.id} value={a.id}>{a.subjectId} - {a.teacherIds.join(', ') || t('constraints.noTeacher')}</option>)}
                   </select>
                 </div>
               )}
 
               {fields.includes('room') && (
                 <div className="grid gap-2">
-                  <Label>Room</Label>
+                  <Label>{t('constraints.dialog.room')}</Label>
                   <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                    <option value="">Select room</option>
+                    <option value="">{t('constraints.dialog.selectRoom')}</option>
                     {rooms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                   </select>
                 </div>
@@ -419,9 +422,9 @@ export function Constraints() {
 
               {fields.includes('subject') && (
                 <div className="grid gap-2">
-                  <Label>Subject</Label>
+                  <Label>{t('constraints.dialog.subject')}</Label>
                   <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                    <option value="">Select subject</option>
+                    <option value="">{t('constraints.dialog.selectSubject')}</option>
                     {subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                   </select>
                 </div>
@@ -429,14 +432,14 @@ export function Constraints() {
 
               {fields.includes('maxDays') && (
                 <div className="grid gap-2">
-                  <Label>Max Days</Label>
+                  <Label>{t('constraints.dialog.maxDays')}</Label>
                   <Input type="number" min="1" max="7" value={maxDays} onChange={(e) => setMaxDays(e.target.value)} />
                 </div>
               )}
 
               {fields.includes('maxHours') && (
                 <div className="grid gap-2">
-                  <Label>Max Hours</Label>
+                  <Label>{t('constraints.dialog.maxHours')}</Label>
                   <Input type="number" min="1" max="12" value={maxHours} onChange={(e) => setMaxHours(e.target.value)} />
                 </div>
               )}
@@ -445,7 +448,7 @@ export function Constraints() {
                 <div className="grid grid-cols-2 gap-4">
                   {fields.includes('day') && (
                     <div className="grid gap-2">
-                      <Label>Day</Label>
+                      <Label>{t('constraints.dialog.day')}</Label>
                       <select value={selectedDay} onChange={(e) => setSelectedDay(parseInt(e.target.value))} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                         {days.map((d, i) => <option key={i} value={i}>{d.name}</option>)}
                       </select>
@@ -453,7 +456,7 @@ export function Constraints() {
                   )}
                   {fields.includes('hour') && (
                     <div className="grid gap-2">
-                      <Label>Hour</Label>
+                      <Label>{t('constraints.dialog.hour')}</Label>
                       <select value={selectedHour} onChange={(e) => setSelectedHour(parseInt(e.target.value))} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                         {hours.map((h, i) => <option key={i} value={i}>{h.name}</option>)}
                       </select>
@@ -464,7 +467,7 @@ export function Constraints() {
 
               {fields.includes('times') && days.length > 0 && hours.length > 0 && (
                 <div className="grid gap-2">
-                  <Label>Time Slots ({selectedTimes.length} selected)</Label>
+                  <Label>{t('constraints.dialog.timeSlots', { count: selectedTimes.length })}</Label>
                   <div className="overflow-auto max-h-48 border border-border rounded-lg p-2 bg-muted/50">
                     <table className="w-full text-sm">
                       <thead><tr><th className="p-1"></th>{days.map((d, i) => <th key={i} className="p-1 text-muted-foreground">{d.name.slice(0, 3)}</th>)}</tr></thead>
@@ -473,7 +476,7 @@ export function Constraints() {
                           <tr key={hi}>
                             <td className="p-1 text-muted-foreground">{h.name}</td>
                             {days.map((_, di) => {
-                              const isSelected = selectedTimes.some(t => t.day === di && t.hour === hi);
+                              const isSelected = selectedTimes.some(ts => ts.day === di && ts.hour === hi);
                               return (
                                 <td key={di} className="p-1">
                                   <button type="button" onClick={() => toggleTimeSlot(di, hi)} className={cn("w-full h-6 rounded transition-colors", isSelected ? "bg-primary" : "bg-muted hover:bg-muted-foreground/20")} />
@@ -490,8 +493,8 @@ export function Constraints() {
             </div>
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{dialogMode === 'edit' ? 'Update' : 'Add'}</Button>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{dialogMode === 'edit' ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

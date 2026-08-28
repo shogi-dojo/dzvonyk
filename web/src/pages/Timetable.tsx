@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { 
+import { useTranslation } from 'react-i18next';
+import {
   Download, Eye, UserCircle, Building2, Loader2, 
   Calendar, Clock, AlertTriangle, Grid3X3, CheckCircle2,
   GraduationCap, Users, RotateCcw, Printer, Archive, X
@@ -44,6 +45,7 @@ interface BulkExportProgress {
 }
 
 export function Timetable() {
+  const { t } = useTranslation();
   const rules = useAppSelector((state) => state.rules.current);
   const teachers = useAppSelector((state) => state.teachers.items);
   const activities = useAppSelector((state) => state.activities.items);
@@ -107,7 +109,7 @@ export function Timetable() {
       let shouldInclude = false;
       
       if (entityType === 'teachers') {
-        const teacher = teachers.find(t => t.id === entityId || t.name === entityId);
+        const teacher = teachers.find(tt => tt.id === entityId || tt.name === entityId);
         if (teacher && activity.teacherIds.some(tid => tid === teacher.name || tid === teacher.id)) {
           shouldInclude = true;
         }
@@ -200,7 +202,7 @@ export function Timetable() {
       return item?.displayName || entityId;
     }
     if (entityType === 'teachers') {
-      const teacher = teachers.find(t => t.name === entityId || t.id === entityId);
+      const teacher = teachers.find(tt => tt.name === entityId || tt.id === entityId);
       return teacher?.name || entityId;
     }
     if (entityType === 'rooms') {
@@ -473,7 +475,7 @@ export function Timetable() {
     zip.file('index.html', indexHtml);
     
     // Generate ZIP and download
-    setBulkProgress({ current: total, total, currentItem: 'Creating ZIP file...' });
+    setBulkProgress({ current: total, total, currentItem: t('timetable.bulkCreatingZip') });
     const blob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -489,18 +491,18 @@ export function Timetable() {
   if (!rules) {
     return (
       <div className="space-y-6">
-        <PageHeader 
-          title="Timetable" 
-          description="View and export your generated timetable" 
-          icon={<Grid3X3 className="h-6 w-6" aria-hidden="true" />} 
+        <PageHeader
+          title={t('timetable.title')}
+          description={t('timetable.description')}
+          icon={<Grid3X3 className="h-6 w-6" aria-hidden="true" />}
         />
         <Card>
           <CardContent className="py-12">
             <EmptyState
               icon={<Grid3X3 className="h-12 w-12" aria-hidden="true" />}
-              title="No Rules Configured"
-              description="Set up your timetable rules first to view schedules"
-              action={<Button asChild><Link to="/settings">Go to Settings</Link></Button>}
+              title={t('timetable.noRulesTitle')}
+              description={t('timetable.noRulesDescription')}
+              action={<Button asChild><Link to="/settings">{t('timetable.goToSettings')}</Link></Button>}
             />
           </CardContent>
         </Card>
@@ -511,18 +513,18 @@ export function Timetable() {
   if (!latestSolution) {
     return (
       <div className="space-y-6">
-        <PageHeader 
-          title="Timetable" 
-          description="View and export your generated timetable" 
-          icon={<Grid3X3 className="h-6 w-6" aria-hidden="true" />} 
+        <PageHeader
+          title={t('timetable.title')}
+          description={t('timetable.description')}
+          icon={<Grid3X3 className="h-6 w-6" aria-hidden="true" />}
         />
         <Card>
           <CardContent className="py-12">
             <EmptyState
               icon={<Calendar className="h-12 w-12" aria-hidden="true" />}
-              title="No Timetable Generated"
-              description="Generate a timetable first to view it here"
-              action={<Button asChild><Link to="/generate">Generate Timetable</Link></Button>}
+              title={t('timetable.noSolutionTitle')}
+              description={t('timetable.noSolutionDescription')}
+              action={<Button asChild><Link to="/generate">{t('timetable.generateTimetable')}</Link></Button>}
             />
           </CardContent>
         </Card>
@@ -533,8 +535,8 @@ export function Timetable() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Timetable"
-        description={`${rules.institutionName} • ${rules.nDaysPerWeek} days × ${rules.nHoursPerDay} hours`}
+        title={t('timetable.title')}
+        description={t('timetable.meta', { name: rules.institutionName, days: rules.nDaysPerWeek, hours: rules.nHoursPerDay })}
         icon={<Grid3X3 className="h-6 w-6" aria-hidden="true" />}
         actions={
           <div className="flex gap-2">
@@ -542,11 +544,11 @@ export function Timetable() {
               <>
                 <Button onClick={handlePrint} variant="outline" className="gap-2">
                   <Printer className="h-4 w-4" aria-hidden="true" />
-                  Print
+                  {t('timetable.print')}
                 </Button>
                 <Button onClick={handleExport} variant="outline" className="gap-2">
                   <Download className="h-4 w-4" aria-hidden="true" />
-                  Export
+                  {t('timetable.export')}
                 </Button>
               </>
             )}
@@ -554,12 +556,12 @@ export function Timetable() {
               {bulkExporting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  Exporting...
+                  {t('timetable.exporting')}
                 </>
               ) : (
                 <>
                   <Archive className="h-4 w-4" aria-hidden="true" />
-                  Export All (ZIP)
+                  {t('timetable.exportAll')}
                 </>
               )}
             </Button>
@@ -575,7 +577,7 @@ export function Timetable() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="font-medium">Exporting All Timetables</span>
+                  <span className="font-medium">{t('timetable.bulkTitle')}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {bulkProgress.current} / {bulkProgress.total}
@@ -610,16 +612,16 @@ export function Timetable() {
               )}
               <div>
                 <p className={cn("font-medium", latestSolution.isComplete ? "text-accent" : "text-warning")}>
-                  {latestSolution.isComplete ? 'Complete Timetable' : 'Partial Timetable'}
+                  {latestSolution.isComplete ? t('timetable.complete') : t('timetable.partial')}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {latestSolution.placements.length} activities • {new Date(latestSolution.generatedAt).toLocaleString()}
+                  {t('timetable.activitiesMeta', { count: latestSolution.placements.length, when: new Date(latestSolution.generatedAt).toLocaleString() })}
                 </p>
               </div>
             </div>
             {!latestSolution.isComplete && (
               <Button asChild variant="outline" size="sm">
-                <Link to="/generate">Regenerate</Link>
+                <Link to="/generate">{t('timetable.regenerate')}</Link>
               </Button>
             )}
           </div>
@@ -631,14 +633,14 @@ export function Timetable() {
           {/* Step 1: Select View Type */}
           <Card className="hover-lift">
             <CardHeader>
-              <CardTitle className="text-lg">1. Select View Type</CardTitle>
-              <CardDescription>Choose how to view the timetable</CardDescription>
+              <CardTitle className="text-lg">{t('timetable.step1Title')}</CardTitle>
+              <CardDescription>{t('timetable.step1Description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { type: 'teachers' as ViewType, icon: UserCircle, label: 'By Teacher', count: teachers.length },
-                { type: 'students' as ViewType, icon: GraduationCap, label: 'By Students', count: studentHierarchy.length },
-                { type: 'rooms' as ViewType, icon: Building2, label: 'By Room', count: rooms.length },
+                { type: 'teachers' as ViewType, icon: UserCircle, label: t('timetable.byTeacher'), count: teachers.length },
+                { type: 'students' as ViewType, icon: GraduationCap, label: t('timetable.byStudents'), count: studentHierarchy.length },
+                { type: 'rooms' as ViewType, icon: Building2, label: t('timetable.byRoom'), count: rooms.length },
               ].map(opt => (
                 <Button
                   key={opt.type}
@@ -659,27 +661,27 @@ export function Timetable() {
           <Card className="hover-lift">
             <CardHeader>
               <CardTitle className="text-lg">
-                2. Select {viewType === 'teachers' ? 'Teacher' : viewType === 'students' ? 'Group' : viewType === 'rooms' ? 'Room' : '...'}
+                {t('timetable.step2Title', { item: viewType === 'teachers' ? t('timetable.step2Teacher') : viewType === 'students' ? t('timetable.step2Group') : viewType === 'rooms' ? t('timetable.step2Room') : t('timetable.step2Placeholder') })}
               </CardTitle>
-              <CardDescription>{viewType ? 'Choose from the list' : 'Select view type first'}</CardDescription>
+              <CardDescription>{viewType ? t('timetable.step2DescriptionActive') : t('timetable.step2DescriptionInactive')}</CardDescription>
             </CardHeader>
             <CardContent>
               {!viewType ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">Select a view type first</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">{t('timetable.step2EmptyPrompt')}</p>
               ) : (
                 <ScrollArea className="h-64">
-                  <div className="space-y-1" role="listbox" aria-label={`Select ${viewType}`}>
-                    {viewType === 'teachers' && teachers.map(t => (
-                      <Button 
-                        key={t.id} 
-                        variant={selectedEntity === t.name ? 'default' : 'ghost'} 
-                        className="w-full justify-start" 
-                        onClick={() => setSelectedEntity(t.name)}
+                  <div className="space-y-1" role="listbox" aria-label={t('timetable.selectAria', { type: viewType })}>
+                    {viewType === 'teachers' && teachers.map(tt => (
+                      <Button
+                        key={tt.id}
+                        variant={selectedEntity === tt.name ? 'default' : 'ghost'}
+                        className="w-full justify-start"
+                        onClick={() => setSelectedEntity(tt.name)}
                         role="option"
-                        aria-selected={selectedEntity === t.name}
+                        aria-selected={selectedEntity === tt.name}
                       >
                         <UserCircle className="h-4 w-4 mr-2 text-muted-foreground" aria-hidden="true" />
-                        {t.name}
+                        {tt.name}
                       </Button>
                     ))}
                     {viewType === 'students' && studentHierarchy.map((item, idx) => (

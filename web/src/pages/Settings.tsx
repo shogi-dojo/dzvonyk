@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,7 @@ function serializeDates<T>(obj: T): T {
 }
 
 export function Settings() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const rules = useAppSelector((state) => state.rules.current);
   const modified = useAppSelector((state) => state.rules.modified);
@@ -196,13 +198,18 @@ export function Settings() {
         subgroups: data.studentsSubgroups,
       }));
       
-      setImportSuccess(`Successfully imported: ${data.teachers.length} teachers, ${data.subjects.length} subjects, ${data.activities.length} activities, ${data.rooms.length} rooms`);
-      
+      setImportSuccess(t('settings.importSuccessDetail', {
+        teachers: data.teachers.length,
+        subjects: data.subjects.length,
+        activities: data.activities.length,
+        rooms: data.rooms.length,
+      }));
+
       if (fileInputRef.current) fileInputRef.current.value = '';
-      
+
     } catch (error) {
       console.error('Import error:', error);
-      setImportError(error instanceof Error ? error.message : 'Failed to import FET file');
+      setImportError(error instanceof Error ? error.message : t('settings.importFailedGeneric'));
     } finally {
       setImporting(false);
     }
@@ -252,31 +259,31 @@ export function Settings() {
 
   return (
     <div className="space-y-6">
-      <input 
-        ref={fileInputRef} 
-        type="file" 
-        accept=".fet,.xml" 
-        onChange={handleFileChange} 
-        className="hidden" 
-        aria-label="Import FET file"
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".fet,.xml"
+        onChange={handleFileChange}
+        className="hidden"
+        aria-label={t('settings.fileInputLabel')}
       />
 
       <PageHeader
-        title="Settings"
-        description="Configure your timetable parameters"
+        title={t('settings.title')}
+        description={t('settings.description')}
         icon={<SettingsIcon className="h-6 w-6" aria-hidden="true" />}
         actions={
           <div className="flex gap-2">
             {!rules && (
               <Button onClick={handleCreateNew} className="gap-2 gradient-primary hover-lift">
                 <Plus className="h-4 w-4" aria-hidden="true" />
-                Create New
+                {t('common.createNew')}
               </Button>
             )}
             {rules && (
               <Button onClick={handleSave} disabled={!modified && institutionName === rules.institutionName} className="gap-2 hover-lift">
                 <Save className="h-4 w-4" aria-hidden="true" />
-                Save Changes
+                {t('common.saveChanges')}
               </Button>
             )}
           </div>
@@ -286,30 +293,30 @@ export function Settings() {
       {/* Import Section */}
       <Card className="animate-slide-up">
         <CardHeader>
-          <CardTitle>Import FET File</CardTitle>
-          <CardDescription>Import a .fet file from the desktop FET application</CardDescription>
+          <CardTitle>{t('settings.importTitle')}</CardTitle>
+          <CardDescription>{t('settings.importDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleImportClick} variant="outline" disabled={importing} className="gap-2 hover-lift">
             <FileUp className="h-4 w-4" aria-hidden="true" />
-            {importing ? 'Importing...' : 'Choose FET File'}
+            {importing ? t('common.importing') : t('settings.chooseFile')}
           </Button>
-          
+
           {importError && (
             <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3 animate-slide-up" role="alert">
               <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <p className="text-sm font-medium text-destructive">Import Failed</p>
+                <p className="text-sm font-medium text-destructive">{t('settings.importFailed')}</p>
                 <p className="text-sm text-destructive/80">{importError}</p>
               </div>
             </div>
           )}
-          
+
           {importSuccess && (
             <div className="mt-4 p-4 rounded-lg bg-success/10 border border-success/20 flex items-start gap-3 animate-slide-up" role="status">
               <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <p className="text-sm font-medium text-success">Import Successful</p>
+                <p className="text-sm font-medium text-success">{t('settings.importSuccess')}</p>
                 <p className="text-sm text-success/80">{importSuccess}</p>
               </div>
             </div>
@@ -322,22 +329,22 @@ export function Settings() {
           {/* Institution Settings */}
           <Card className="animate-slide-up" style={{ animationDelay: '50ms' }}>
             <CardHeader>
-              <CardTitle>Institution</CardTitle>
-              <CardDescription>Basic information about your institution</CardDescription>
+              <CardTitle>{t('settings.institution.title')}</CardTitle>
+              <CardDescription>{t('settings.institution.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="institutionName">Institution Name</Label>
+                <Label htmlFor="institutionName">{t('settings.institution.nameLabel')}</Label>
                 <Input
                   id="institutionName"
                   value={institutionName}
                   onChange={(e) => setInstitutionName(e.target.value)}
-                  placeholder="Enter institution name"
+                  placeholder={t('settings.institution.namePlaceholder')}
                   className="max-w-md"
                   aria-describedby="institutionName-desc"
                 />
                 <p id="institutionName-desc" className="text-xs text-muted-foreground">
-                  This name will appear in exported timetables
+                  {t('settings.institution.nameHelp')}
                 </p>
               </div>
             </CardContent>
@@ -352,18 +359,18 @@ export function Settings() {
                     <Calendar className="h-5 w-5 text-primary" aria-hidden="true" />
                   </div>
                   <div>
-                    <CardTitle>Days of the Week</CardTitle>
-                    <CardDescription>Configure working days ({days.length} days)</CardDescription>
+                    <CardTitle>{t('settings.days.title')}</CardTitle>
+                    <CardDescription>{t('settings.days.description', { count: days.length })}</CardDescription>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={resetToDefaults}>
                     <RotateCcw className="h-4 w-4 mr-1" aria-hidden="true" />
-                    Reset Defaults
+                    {t('settings.days.resetDefaults')}
                   </Button>
                   <Button size="sm" onClick={addDay} className="gap-1">
                     <Plus className="h-4 w-4" aria-hidden="true" />
-                    Add Day
+                    {t('settings.days.add')}
                   </Button>
                 </div>
               </div>
@@ -372,7 +379,7 @@ export function Settings() {
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {days.map((day, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Label htmlFor={`day-${index}`} className="sr-only">Day {index + 1}</Label>
+                    <Label htmlFor={`day-${index}`} className="sr-only">{t('settings.days.labelSr', { index: index + 1 })}</Label>
                     <Input 
                       id={`day-${index}`}
                       value={day.name} 
@@ -381,10 +388,10 @@ export function Settings() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => removeDay(index)} 
-                      disabled={days.length <= 1} 
+                      onClick={() => removeDay(index)}
+                      disabled={days.length <= 1}
                       className="shrink-0"
-                      aria-label={`Remove ${day.name}`}
+                      aria-label={t('settings.days.removeSr', { name: day.name })}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -403,13 +410,13 @@ export function Settings() {
                     <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
                   </div>
                   <div>
-                    <CardTitle>Hours of the Day</CardTitle>
-                    <CardDescription>Configure time slots ({hours.length} hours)</CardDescription>
+                    <CardTitle>{t('settings.hours.title')}</CardTitle>
+                    <CardDescription>{t('settings.hours.description', { count: hours.length })}</CardDescription>
                   </div>
                 </div>
                 <Button size="sm" onClick={addHour} className="gap-1">
                   <Plus className="h-4 w-4" aria-hidden="true" />
-                  Add Hour
+                  {t('settings.hours.add')}
                 </Button>
               </div>
             </CardHeader>
@@ -417,7 +424,7 @@ export function Settings() {
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
                 {hours.map((hour, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Label htmlFor={`hour-${index}`} className="sr-only">Hour {index + 1}</Label>
+                    <Label htmlFor={`hour-${index}`} className="sr-only">{t('settings.hours.labelSr', { index: index + 1 })}</Label>
                     <Input 
                       id={`hour-${index}`}
                       value={hour.name} 
@@ -426,10 +433,10 @@ export function Settings() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => removeHour(index)} 
-                      disabled={hours.length <= 1} 
+                      onClick={() => removeHour(index)}
+                      disabled={hours.length <= 1}
                       className="shrink-0"
-                      aria-label={`Remove ${hour.name}`}
+                      aria-label={t('settings.hours.removeSr', { name: hour.name })}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -441,10 +448,10 @@ export function Settings() {
 
           {/* Info */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
-            <StatCard title="Days per Week" value={days.length} icon={<Calendar className="h-5 w-5" aria-hidden="true" />} />
-            <StatCard title="Hours per Day" value={hours.length} icon={<Clock className="h-5 w-5" aria-hidden="true" />} />
-            <StatCard title="Total Slots/Week" value={days.length * hours.length} icon={<Calendar className="h-5 w-5" aria-hidden="true" />} />
-            <StatCard title="Status" value={modified ? 'Modified' : 'Saved'} icon={<SettingsIcon className="h-5 w-5" aria-hidden="true" />} />
+            <StatCard title={t('settings.stats.days')} value={days.length} icon={<Calendar className="h-5 w-5" aria-hidden="true" />} />
+            <StatCard title={t('settings.stats.hours')} value={hours.length} icon={<Clock className="h-5 w-5" aria-hidden="true" />} />
+            <StatCard title={t('settings.stats.slots')} value={days.length * hours.length} icon={<Calendar className="h-5 w-5" aria-hidden="true" />} />
+            <StatCard title={t('settings.stats.status')} value={modified ? t('settings.stats.modified') : t('settings.stats.saved')} icon={<SettingsIcon className="h-5 w-5" aria-hidden="true" />} />
           </div>
 
           {/* Reset Data Section */}
@@ -455,8 +462,8 @@ export function Settings() {
                   <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden="true" />
                 </div>
                 <div>
-                  <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                  <CardDescription>Irreversible actions that affect all your data</CardDescription>
+                  <CardTitle className="text-destructive">{t('settings.danger.title')}</CardTitle>
+                  <CardDescription>{t('settings.danger.description')}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -464,37 +471,36 @@ export function Settings() {
               {!showResetConfirm ? (
                 <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/20 bg-destructive/5">
                   <div>
-                    <p className="font-medium text-foreground">Reset All Data</p>
+                    <p className="font-medium text-foreground">{t('settings.danger.resetLabel')}</p>
                     <p className="text-sm text-muted-foreground">
-                      Delete all teachers, subjects, activities, rooms, constraints, and generated timetables
+                      {t('settings.danger.resetDetail')}
                     </p>
                   </div>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     onClick={() => setShowResetConfirm(true)}
                     className="gap-2"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    Reset Data
+                    {t('settings.danger.resetButton')}
                   </Button>
                 </div>
               ) : (
                 <div className="p-4 rounded-lg border-2 border-destructive bg-destructive/10 animate-slide-up" role="alertdialog" aria-labelledby="reset-title" aria-describedby="reset-desc">
-                  <p id="reset-title" className="font-medium text-destructive mb-2">Are you absolutely sure?</p>
+                  <p id="reset-title" className="font-medium text-destructive mb-2">{t('settings.danger.confirmTitle')}</p>
                   <p id="reset-desc" className="text-sm text-muted-foreground mb-4">
-                    This action cannot be undone. This will permanently delete all your data including teachers, 
-                    subjects, activities, rooms, constraints, and any generated timetables.
+                    {t('settings.danger.confirmDetail')}
                   </p>
                   <div className="flex gap-3">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setShowResetConfirm(false)}
                       disabled={resetting}
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
-                    <Button 
-                      variant="destructive" 
+                    <Button
+                      variant="destructive"
                       onClick={handleResetAllData}
                       disabled={resetting}
                       className="gap-2"
@@ -502,12 +508,12 @@ export function Settings() {
                       {resetting ? (
                         <>
                           <RotateCcw className="h-4 w-4 animate-spin" aria-hidden="true" />
-                          Resetting...
+                          {t('settings.danger.resetting')}
                         </>
                       ) : (
                         <>
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          Yes, Delete Everything
+                          {t('settings.danger.confirmDelete')}
                         </>
                       )}
                     </Button>
@@ -524,17 +530,17 @@ export function Settings() {
           <CardContent className="py-12">
             <EmptyState
               icon={<SettingsIcon className="h-12 w-12" aria-hidden="true" />}
-              title="No Configuration Found"
-              description="Create a new timetable configuration or import from a FET file."
+              title={t('settings.empty.title')}
+              description={t('settings.empty.description')}
               action={
                 <div className="flex gap-4">
                   <Button onClick={handleCreateNew} className="gap-2">
                     <Plus className="h-4 w-4" aria-hidden="true" />
-                    Create New
+                    {t('common.createNew')}
                   </Button>
                   <Button variant="outline" onClick={handleImportClick} className="gap-2">
                     <FileUp className="h-4 w-4" aria-hidden="true" />
-                    Import FET File
+                    {t('settings.empty.importFile')}
                   </Button>
                 </div>
               }

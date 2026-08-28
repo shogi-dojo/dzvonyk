@@ -5,7 +5,8 @@
     "skipToContent": "Skip to main content",
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu",
-    "home": "Home"
+    "home": "Home",
+    "loading": "Loading Dzvonyk..."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -44,6 +45,754 @@
     "uk": "Українська",
     "en": "English"
   },
+  "common": {
+    "save": "Save",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "update": "Update",
+    "create": "Create",
+    "createNew": "Create New",
+    "import": "Import",
+    "importing": "Importing...",
+    "export": "Export",
+    "exporting": "Exporting...",
+    "search": "Search",
+    "loading": "Loading...",
+    "name": "Name",
+    "longName": "Long Name",
+    "code": "Code",
+    "comments": "Comments",
+    "active": "Active",
+    "inactive": "Inactive",
+    "yes": "Yes",
+    "no": "No",
+    "required": "*",
+    "close": "Close",
+    "back": "Back",
+    "actions": "Actions",
+    "optional": "Optional"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "Welcome to Dzvonyk — the school timetable planner",
+    "institution": {
+      "empty": "No timetable loaded",
+      "meta": "{{days}} days × {{hours}} hours per day",
+      "prompt": "Import or create a new timetable",
+      "newTimetable": "New Timetable",
+      "importFet": "Import .fet",
+      "exportFet": "Export .fet",
+      "viewTimetable": "View Timetable",
+      "generate": "Generate",
+      "solutionComplete": "Complete timetable generated",
+      "solutionPartial": "Partial timetable generated",
+      "solutionMeta": "{{count}} activities • {{when}}"
+    },
+    "stats": {
+      "teachers": "Teachers",
+      "subjects": "Subjects",
+      "activities": "Lessons",
+      "rooms": "Rooms",
+      "timeConstraints": "Time Constraints",
+      "spaceConstraints": "Space Constraints"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "description": "Common tasks to set up your timetable",
+      "addTeachers": "Add Teachers",
+      "addSubjects": "Add Subjects",
+      "addStudents": "Add Students",
+      "addActivities": "Add Lessons"
+    },
+    "gettingStarted": {
+      "title": "Getting Started",
+      "description": "Follow these steps to create your timetable",
+      "steps": {
+        "1": "Set up your time structure (days and hours) in Settings",
+        "2": "Add teachers who will be teaching",
+        "3": "Add subjects/courses to be taught",
+        "4": "Define student years, groups, and subgroups",
+        "5": "Create lessons linking teachers, subjects, and students",
+        "6": "Add rooms and buildings",
+        "7": "Define constraints (time and space)",
+        "8": "Generate the timetable",
+        "9": "View and export your results"
+      }
+    },
+    "import": {
+      "success": "Successfully imported {{count}} lessons",
+      "exportSuccess": "Exported successfully!",
+      "unknownError": "Unknown error"
+    }
+  },
+  "teachers": {
+    "title": "Teachers",
+    "description": "Manage teachers for your timetable ({{count}} total)",
+    "addTeacher": "Add Teacher",
+    "editTeacher": "Edit Teacher",
+    "searchPlaceholder": "Search teachers...",
+    "emptyTitle": "No Teachers Yet",
+    "emptyTitleSearch": "No Teachers Found",
+    "emptyDescription": "Get started by adding your first teacher.",
+    "emptyDescriptionSearch": "No teachers match your search.",
+    "confirmDelete": "Are you sure you want to delete this teacher?",
+    "targetBadge": "{{count}}h target",
+    "subjectsBadge_one": "{{count}} subject",
+    "subjectsBadge_other": "{{count}} subjects",
+    "dialog": {
+      "addTitle": "Add Teacher",
+      "editTitle": "Edit Teacher",
+      "addDescription": "Enter the details for the new teacher.",
+      "editDescription": "Update the teacher details below.",
+      "namePlaceholder": "e.g., John Smith",
+      "longNamePlaceholder": "e.g., Dr. John Smith",
+      "codePlaceholder": "e.g., JS",
+      "targetHoursLabel": "Target Hours",
+      "commentsPlaceholder": "Optional notes..."
+    }
+  },
+  "subjects": {
+    "title": "Subjects",
+    "description": "Manage subjects/courses for your timetable ({{count}} total)",
+    "addSubject": "Add Subject",
+    "editSubject": "Edit Subject",
+    "searchPlaceholder": "Search subjects...",
+    "emptyTitle": "No Subjects Yet",
+    "emptyTitleSearch": "No Subjects Found",
+    "emptyDescription": "Get started by adding your first subject.",
+    "emptyDescriptionSearch": "No subjects match your search.",
+    "confirmDelete": "Are you sure you want to delete this subject?",
+    "dialog": {
+      "addTitle": "Add Subject",
+      "editTitle": "Edit Subject",
+      "addDescription": "Enter the details for the new subject.",
+      "editDescription": "Update the subject details.",
+      "namePlaceholder": "e.g., Mathematics",
+      "longNamePlaceholder": "e.g., Advanced Mathematics",
+      "codePlaceholder": "e.g., MATH"
+    }
+  },
+  "students": {
+    "title": "Students",
+    "description": "Manage students organized by years, groups, and subgroups",
+    "addYear": "Add Year",
+    "addGroup": "Add Group",
+    "addSubgroup": "Add Subgroup",
+    "subgroup": "Subgroup",
+    "stats": {
+      "years": "Years",
+      "groups": "Groups",
+      "subgroups": "Subgroups"
+    },
+    "searchPlaceholder": "Search years...",
+    "loading": "Loading...",
+    "emptyTitle": "No Student Years Yet",
+    "emptyTitleSearch": "No Years Found",
+    "emptyDescription": "Get started by adding your first student year.",
+    "emptyDescriptionSearch": "No matching years found.",
+    "studentsCount": "{{count}} students",
+    "groupsCount": "{{count}} groups",
+    "noGroups": "No groups yet. Click to add a group.",
+    "confirmDeleteYear": "Delete year \"{{name}}\" and all its groups?",
+    "confirmDeleteGroup": "Delete group \"{{name}}\" and all its subgroups?",
+    "confirmDeleteSubgroup": "Delete subgroup \"{{name}}\"?",
+    "dialog": {
+      "yearAddTitle": "Add Year",
+      "yearEditTitle": "Edit Year",
+      "yearDescription": "A year represents a cohort (e.g., \"Grade 10\", \"Year 1\")",
+      "groupAddTitle": "Add Group",
+      "groupEditTitle": "Edit Group",
+      "groupDescription": "A group is a subdivision of a year (e.g., \"Class A\", \"Section 1\")",
+      "subgroupAddTitle": "Add Subgroup",
+      "subgroupEditTitle": "Edit Subgroup",
+      "subgroupDescription": "A subgroup is used for splitting classes (e.g., \"Lab Group 1\")",
+      "namePlaceholderYear": "e.g., Year 1",
+      "namePlaceholderGroup": "e.g., Class A",
+      "namePlaceholderSubgroup": "e.g., Lab 1",
+      "numberOfStudents": "Number of Students"
+    }
+  },
+  "activities": {
+    "title": "Lessons",
+    "description": "Manage lessons — {{total}} total, {{active}} active",
+    "addActivity": "Add Lesson",
+    "editActivity": "Edit Lesson",
+    "searchPlaceholder": "Search lessons...",
+    "emptyTitle": "No Lessons Yet",
+    "emptyTitleSearch": "No Lessons Found",
+    "emptyDescription": "Get started by adding your first lesson.",
+    "emptyDescriptionSearch": "No lessons match your search.",
+    "confirmDelete": "Delete this lesson?",
+    "durationLine_one": "Duration: {{count}} hour",
+    "durationLine_other": "Duration: {{count}} hours",
+    "teacherLine": " • Teacher: {{name}}",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "inactiveBadge": "Inactive",
+    "tags": {
+      "sectionTitle": "Activity Tags",
+      "sectionCount_one": "{{count}} tag defined",
+      "sectionCount_other": "{{count}} tags defined",
+      "addTag": "Add Tag",
+      "searchPlaceholder": "Search tags...",
+      "emptySearch": "No tags match your search.",
+      "empty": "No activity tags defined yet. Click \"Add Tag\" to create one.",
+      "confirmDelete": "Are you sure you want to delete this activity tag?",
+      "addTitle": "Add Activity Tag",
+      "editTitle": "Edit Activity Tag",
+      "description": "Activity tags help categorize and filter lessons",
+      "namePlaceholder": "e.g., Lab, Lecture",
+      "printable": "Printable on timetable"
+    },
+    "dialog": {
+      "addTitle": "Add Lesson",
+      "editTitle": "Edit Lesson",
+      "addDescription": "Create a new lesson",
+      "editDescription": "Update lesson details",
+      "subject": "Subject",
+      "selectSubject": "Select subject",
+      "teacher": "Teacher",
+      "selectTeacher": "Select teacher",
+      "students": "Students",
+      "selectStudents": "Select students",
+      "tags": "Activity Tags",
+      "tagsHint": "Click tags to add/remove",
+      "duration": "Duration (hours)",
+      "totalStudents": "Total Students",
+      "active": "Active"
+    },
+    "studentLabelYear": "{{name}} (Year)",
+    "studentLabelGroup": "{{name}} (Group)"
+  },
+  "activityTags": {
+    "title": "Activity Tags",
+    "description": "Manage activity tags for categorizing lessons ({{count}} total)",
+    "addTag": "Add Activity Tag",
+    "searchPlaceholder": "Search activity tags...",
+    "loading": "Loading...",
+    "emptySearch": "No activity tags found matching your search.",
+    "empty": "No activity tags added yet.",
+    "confirmDelete": "Are you sure you want to delete this activity tag?",
+    "saveError": "Error saving activity tag",
+    "printable": "Printable",
+    "notPrintable": "Not Printable",
+    "printableCheckbox": "Printable on timetable",
+    "dialog": {
+      "addTitle": "Add Activity Tag",
+      "editTitle": "Edit Activity Tag",
+      "description": "Activity tags help categorize and filter lessons",
+      "namePlaceholder": "e.g., Lab, Lecture"
+    }
+  },
+  "rooms": {
+    "title": "Rooms",
+    "description": "Manage rooms and buildings ({{count}} total)",
+    "addRoom": "Add Room",
+    "addBuilding": "Add Building",
+    "editRoom": "Edit Room",
+    "editBuilding": "Edit Building",
+    "stats": {
+      "totalRooms": "Total Rooms",
+      "buildings": "Buildings"
+    },
+    "buildingsSection": "Buildings",
+    "roomsInBuilding": "{{count}} rooms",
+    "searchPlaceholder": "Search rooms...",
+    "emptyTitle": "No Rooms Yet",
+    "emptyTitleSearch": "No Rooms Found",
+    "emptyDescription": "Get started by adding your first room.",
+    "emptyDescriptionSearch": "No rooms match your search.",
+    "confirmDeleteRoom": "Delete room \"{{name}}\"?",
+    "confirmDeleteBuilding": "Delete building \"{{name}}\"?",
+    "capacityBadge": "Capacity: {{count}}",
+    "virtualBadge": "Virtual",
+    "roomDialog": {
+      "description": "Enter the details for the room.",
+      "namePlaceholder": "e.g., Room 101",
+      "longNamePlaceholder": "e.g., Science Lab 101",
+      "codePlaceholder": "e.g., R101",
+      "capacity": "Capacity",
+      "building": "Building",
+      "noBuilding": "No building",
+      "isVirtual": "Virtual room"
+    },
+    "buildingDialog": {
+      "description": "Buildings help organize rooms by location.",
+      "namePlaceholder": "e.g., Main Building"
+    }
+  },
+  "constraints": {
+    "title": "Constraints",
+    "description": "Define time and space constraints ({{time}} time, {{space}} space)",
+    "stats": {
+      "time": "Time Constraints",
+      "space": "Space Constraints"
+    },
+    "tabs": {
+      "time": "Time ({{count}})",
+      "space": "Space ({{count}})"
+    },
+    "addTimeTitle": "Add Time Constraint",
+    "addSpaceTitle": "Add Space Constraint",
+    "selectType": "Select a constraint type",
+    "listTimeTitle": "Time Constraints",
+    "listSpaceTitle": "Space Constraints",
+    "listCount_one": "{{count}} defined",
+    "listCount_other": "{{count}} defined",
+    "emptyTime": "No time constraints yet.",
+    "emptySpace": "No space constraints yet.",
+    "searchPlaceholder": "Search constraints...",
+    "confirmDelete": "Delete this constraint?",
+    "dialog": {
+      "editTime": "Edit Time Constraint",
+      "addTime": "Add Time Constraint",
+      "editSpace": "Edit Space Constraint",
+      "addSpace": "Add Space Constraint",
+      "defaultDescription": "Configure constraint settings",
+      "weight": "Weight (%)",
+      "active": "Active",
+      "teacher": "Teacher",
+      "selectTeacher": "Select teacher",
+      "students": "Students",
+      "selectStudents": "Select students",
+      "activity": "Lesson",
+      "selectActivity": "Select lesson",
+      "room": "Room",
+      "selectRoom": "Select room",
+      "subject": "Subject",
+      "selectSubject": "Select subject",
+      "maxDays": "Max Days",
+      "maxHours": "Max Hours",
+      "day": "Day",
+      "hour": "Hour",
+      "timeSlots": "Time Slots ({{count}} selected)"
+    },
+    "activityLabel": "{{subject}} — {{teachers}}",
+    "noTeacher": "No teacher",
+    "descriptions": {
+      "basicTime": "Basic time validity",
+      "teacherSlots": "{{teacher}}: {{count}} slots",
+      "teacherMaxDays": "{{teacher}}: max {{count}} days",
+      "teacherMaxHours": "{{teacher}}: max {{count}}h",
+      "studentsSlots": "{{students}}: {{count}} slots",
+      "studentsMaxHours": "{{students}}: max {{count}}h",
+      "activityAt": "Lesson at Day {{day}}, Hour {{hour}}",
+      "basicSpace": "Basic space validity",
+      "roomSlots": "{{room}}: {{count}} slots",
+      "activityToRoom": "Lesson → {{room}}",
+      "subjectToRoom": "{{subject}} → {{room}}",
+      "teacherToRoom": "{{teacher}} → {{room}}"
+    },
+    "typeLabels": {
+      "BasicCompulsoryTime": "Basic Compulsory Time",
+      "BreakTimes": "Break Times",
+      "TeacherNotAvailableTimes": "Teacher Not Available",
+      "TeacherMaxDaysPerWeek": "Teacher Max Days/Week",
+      "TeacherMaxHoursDaily": "Teacher Max Hours/Day",
+      "StudentsSetNotAvailableTimes": "Students Not Available",
+      "StudentsSetMaxHoursDaily": "Students Max Hours/Day",
+      "MinDaysBetweenActivities": "Min Days Between Lessons",
+      "ActivityPreferredStartingTime": "Lesson Preferred Time",
+      "BasicCompulsorySpace": "Basic Compulsory Space",
+      "RoomNotAvailableTimes": "Room Not Available",
+      "ActivityPreferredRoom": "Lesson Preferred Room",
+      "SubjectPreferredRoom": "Subject Preferred Room",
+      "TeacherHomeRoom": "Teacher Home Room"
+    },
+    "typeDescriptions": {
+      "BasicCompulsoryTime": "Ensures lessons don't overlap. Required.",
+      "BreakTimes": "Define break periods.",
+      "TeacherNotAvailableTimes": "Teacher unavailable times.",
+      "TeacherMaxDaysPerWeek": "Max working days.",
+      "TeacherMaxHoursDaily": "Max daily hours.",
+      "StudentsSetNotAvailableTimes": "Student group unavailable.",
+      "StudentsSetMaxHoursDaily": "Max daily hours.",
+      "MinDaysBetweenActivities": "Spacing requirement.",
+      "ActivityPreferredStartingTime": "Fixed time slot.",
+      "BasicCompulsorySpace": "No room overlaps. Required.",
+      "RoomNotAvailableTimes": "Room unavailable times.",
+      "ActivityPreferredRoom": "Room for lesson.",
+      "SubjectPreferredRoom": "Room for subject.",
+      "TeacherHomeRoom": "Teacher home room."
+    }
+  },
+  "timeConstraints": {
+    "title": "Time Constraints",
+    "description": "Define when lessons can and cannot be scheduled ({{count}} total)",
+    "addTitle": "Add New Time Constraint",
+    "addDescription": "Select a constraint type to add",
+    "categories": {
+      "basic": "Basic",
+      "teacher": "Teacher Constraints",
+      "students": "Students Constraints",
+      "activity": "Lesson Constraints"
+    },
+    "listTitle": "All Time Constraints",
+    "listCount_one": "{{count}} constraint {{status}}",
+    "listCount_other": "{{count}} constraints {{status}}",
+    "statusFound": "found",
+    "statusDefined": "defined",
+    "searchPlaceholder": "Search constraints...",
+    "emptySearch": "No constraints match your search.",
+    "empty": "No time constraints added yet.",
+    "confirmDelete": "Are you sure you want to delete this constraint?",
+    "dialog": {
+      "editTitle": "Edit {{label}}",
+      "addTitle": "Add {{label}}",
+      "weight": "Weight Percentage",
+      "weightHint": "100% = mandatory, lower = preferred",
+      "active": "Active",
+      "teacher": "Teacher",
+      "selectTeacher": "Select a teacher",
+      "studentsSet": "Students Set",
+      "selectStudentsSet": "Select a student group",
+      "maxDays": "Maximum Days",
+      "maxHours": "Maximum Hours",
+      "maxGaps": "Maximum Gaps",
+      "minDays": "Minimum Days Between",
+      "consecutiveIfSameDay": "If on same day, lessons must be consecutive",
+      "activity": "Lesson",
+      "selectActivity": "Select a lesson",
+      "day": "Day",
+      "hour": "Hour",
+      "locked": "Permanently Locked (cannot be changed during generation)",
+      "activities": "Lessons ({{count}} selected)",
+      "noActivities": "No lessons available",
+      "timeSlots": "Time Slots ({{count}} selected)",
+      "submitEdit": "Update Constraint",
+      "submitAdd": "Add Constraint"
+    },
+    "types": {
+      "BasicCompulsoryTime": {
+        "label": "Basic Compulsory Time",
+        "description": "Ensures lessons don't overlap for the same teacher/students. Required for valid timetables."
+      },
+      "BreakTimes": {
+        "label": "Break Times",
+        "description": "Define break periods when no lessons can be scheduled."
+      },
+      "TeacherNotAvailableTimes": {
+        "label": "Teacher Not Available Times",
+        "description": "Specify times when a specific teacher is unavailable to teach."
+      },
+      "TeacherMaxDaysPerWeek": {
+        "label": "Teacher Max Days Per Week",
+        "description": "Limit the maximum number of days a teacher can work in a week."
+      },
+      "TeacherMaxHoursDaily": {
+        "label": "Teacher Max Hours Daily",
+        "description": "Limit the maximum hours a teacher can work in a single day."
+      },
+      "TeacherMaxGapsPerWeek": {
+        "label": "Teacher Max Gaps Per Week",
+        "description": "Limit the maximum number of gaps (free periods between classes) for a teacher in a week."
+      },
+      "TeacherMaxGapsPerDay": {
+        "label": "Teacher Max Gaps Per Day",
+        "description": "Limit the maximum number of gaps for a teacher in a single day."
+      },
+      "TeachersMaxHoursDaily": {
+        "label": "All Teachers Max Hours Daily",
+        "description": "Limit the maximum hours all teachers can work in a single day."
+      },
+      "StudentsSetNotAvailableTimes": {
+        "label": "Students Not Available Times",
+        "description": "Specify times when a student group is unavailable."
+      },
+      "StudentsSetMaxHoursDaily": {
+        "label": "Students Max Hours Daily",
+        "description": "Limit the maximum hours a student group can have classes in a single day."
+      },
+      "StudentsSetMaxGapsPerWeek": {
+        "label": "Students Max Gaps Per Week",
+        "description": "Limit the maximum gaps for a student group in a week."
+      },
+      "MinDaysBetweenActivities": {
+        "label": "Min Days Between Lessons",
+        "description": "Ensure minimum days between split lessons (e.g., same subject on different days)."
+      },
+      "ActivitiesSameStartingTime": {
+        "label": "Lessons Same Starting Time",
+        "description": "Force a set of lessons to start at the same time."
+      },
+      "ActivitiesNotOverlapping": {
+        "label": "Lessons Not Overlapping",
+        "description": "Ensure a set of lessons do not overlap in time."
+      },
+      "ActivityPreferredStartingTime": {
+        "label": "Lesson Preferred Starting Time",
+        "description": "Set a preferred or locked starting time for a lesson."
+      }
+    },
+    "descriptions": {
+      "basic": "Basic time validity constraint",
+      "breakTimes": "{{count}} break time slots",
+      "teacherUnavail": "{{teacher}}: {{count}} unavailable slots",
+      "teacherMaxDays": "{{teacher}}: max {{count}} days/week",
+      "teacherMaxHours": "{{teacher}}: max {{count}} hours/day",
+      "teacherMaxGapsWeek": "{{teacher}}: max {{count}} gaps/week",
+      "teacherMaxGapsDay": "{{teacher}}: max {{count}} gaps/day",
+      "allTeachersMaxHours": "All teachers: max {{count}} hours/day",
+      "studentsUnavail": "{{students}}: {{count}} unavailable slots",
+      "studentsMaxHours": "{{students}}: max {{count}} hours/day",
+      "studentsMaxGaps": "{{students}}: max {{count}} gaps/week",
+      "minDaysBetween": "{{count}} lessons, min {{days}} days between",
+      "sameStart": "{{count}} lessons must start together",
+      "notOverlapping": "{{count}} lessons must not overlap",
+      "activityAt": "Lesson at Day {{day}}, Hour {{hour}}",
+      "activityAtLocked": "Lesson at Day {{day}}, Hour {{hour}} (Locked)"
+    },
+    "unknown": "Unknown",
+    "noTeacher": "No teacher",
+    "activityLabel": "{{subject}} — {{teachers}} ({{duration}}h)"
+  },
+  "spaceConstraints": {
+    "title": "Space Constraints",
+    "description": "Define where lessons can and cannot be scheduled ({{count}} total)",
+    "addTitle": "Add New Space Constraint",
+    "addDescription": "Select a constraint type to add",
+    "categories": {
+      "basic": "Basic",
+      "room": "Room Constraints",
+      "activity": "Lesson Constraints",
+      "subject": "Subject Constraints",
+      "activityTag": "Activity Tag Constraints",
+      "teacher": "Teacher Constraints",
+      "students": "Students Constraints"
+    },
+    "listTitle": "All Space Constraints",
+    "listCount_one": "{{count}} constraint {{status}}",
+    "listCount_other": "{{count}} constraints {{status}}",
+    "statusFound": "found",
+    "statusDefined": "defined",
+    "searchPlaceholder": "Search constraints...",
+    "emptySearch": "No constraints match your search.",
+    "empty": "No space constraints added yet.",
+    "confirmDelete": "Are you sure you want to delete this constraint?",
+    "dialog": {
+      "editTitle": "Edit {{label}}",
+      "addTitle": "Add {{label}}",
+      "weight": "Weight Percentage",
+      "weightHint": "100% = mandatory, lower = preferred",
+      "active": "Active",
+      "room": "Room",
+      "selectRoom": "Select a room",
+      "rooms": "Rooms ({{count}} selected)",
+      "noRooms": "No rooms available",
+      "activity": "Lesson",
+      "selectActivity": "Select a lesson",
+      "subject": "Subject",
+      "selectSubject": "Select a subject",
+      "activityTag": "Activity Tag",
+      "selectActivityTag": "Select an activity tag",
+      "teacher": "Teacher",
+      "selectTeacher": "Select a teacher",
+      "studentsSet": "Students Set",
+      "selectStudentsSet": "Select a student group",
+      "locked": "Permanently Locked",
+      "timeSlots": "Time Slots ({{count}} selected)",
+      "submitEdit": "Update Constraint",
+      "submitAdd": "Add Constraint"
+    },
+    "types": {
+      "BasicCompulsorySpace": {
+        "label": "Basic Compulsory Space",
+        "description": "Ensures rooms don't have overlapping lessons. Required for valid timetables."
+      },
+      "RoomNotAvailableTimes": {
+        "label": "Room Not Available Times",
+        "description": "Specify times when a room is unavailable."
+      },
+      "ActivityPreferredRoom": {
+        "label": "Lesson Preferred Room",
+        "description": "Set a preferred room for a specific lesson."
+      },
+      "ActivityPreferredRooms": {
+        "label": "Lesson Preferred Rooms",
+        "description": "Set multiple preferred rooms for a lesson (any can be used)."
+      },
+      "SubjectPreferredRoom": {
+        "label": "Subject Preferred Room",
+        "description": "All lessons for a subject should use this room."
+      },
+      "SubjectPreferredRooms": {
+        "label": "Subject Preferred Rooms",
+        "description": "All lessons for a subject can use any of these rooms."
+      },
+      "SubjectActivityTagPreferredRoom": {
+        "label": "Subject + Activity Tag Preferred Room",
+        "description": "Lessons with specific subject and activity tag should use this room."
+      },
+      "SubjectActivityTagPreferredRooms": {
+        "label": "Subject + Activity Tag Preferred Rooms",
+        "description": "Lessons with specific subject and activity tag can use any of these rooms."
+      },
+      "TeacherHomeRoom": {
+        "label": "Teacher Home Room",
+        "description": "Define a home room for a teacher."
+      },
+      "TeacherHomeRooms": {
+        "label": "Teacher Home Rooms",
+        "description": "Define multiple home rooms for a teacher."
+      },
+      "StudentsSetHomeRoom": {
+        "label": "Students Home Room",
+        "description": "Define a home room for a student group."
+      },
+      "StudentsSetHomeRooms": {
+        "label": "Students Home Rooms",
+        "description": "Define multiple home rooms for a student group."
+      },
+      "ActivityTagPreferredRoom": {
+        "label": "Activity Tag Preferred Room",
+        "description": "All lessons with this tag should use this room."
+      },
+      "ActivityTagPreferredRooms": {
+        "label": "Activity Tag Preferred Rooms",
+        "description": "All lessons with this tag can use any of these rooms."
+      }
+    },
+    "descriptions": {
+      "basic": "Basic space validity constraint",
+      "roomUnavail": "{{room}}: {{count}} unavailable slots",
+      "activityToRoom": "Lesson → {{room}}",
+      "activityToRoomLocked": "Lesson → {{room}} (Locked)",
+      "activityToRooms": "Lesson → {{count}} rooms",
+      "subjectToRoom": "{{subject}} → {{room}}",
+      "subjectToRooms": "{{subject}} → {{count}} rooms",
+      "subjectTagToRoom": "{{subject}} + {{tag}} → {{room}}",
+      "subjectTagToRooms": "{{subject}} + {{tag}} → {{count}} rooms",
+      "teacherToRoom": "{{teacher}} → {{room}}",
+      "teacherToRooms": "{{teacher}} → {{count}} rooms",
+      "studentsToRoom": "{{students}} → {{room}}",
+      "studentsToRooms": "{{students}} → {{count}} rooms",
+      "tagToRoom": "Tag \"{{tag}}\" → {{room}}",
+      "tagToRooms": "Tag \"{{tag}}\" → {{count}} rooms"
+    },
+    "unknown": "Unknown"
+  },
+  "timetable": {
+    "title": "Timetable",
+    "description": "View and export your generated timetable",
+    "meta": "{{name}} • {{days}} days × {{hours}} hours",
+    "print": "Print",
+    "export": "Export",
+    "exportAll": "Export All (ZIP)",
+    "exporting": "Exporting...",
+    "bulkTitle": "Exporting All Timetables",
+    "bulkCreatingZip": "Creating ZIP file...",
+    "complete": "Complete Timetable",
+    "partial": "Partial Timetable",
+    "activitiesMeta": "{{count}} lessons • {{when}}",
+    "regenerate": "Regenerate",
+    "noRulesTitle": "No Rules Configured",
+    "noRulesDescription": "Set up your timetable rules first to view schedules",
+    "goToSettings": "Go to Settings",
+    "noSolutionTitle": "No Timetable Generated",
+    "noSolutionDescription": "Generate a timetable first to view it here",
+    "generateTimetable": "Generate Timetable",
+    "step1Title": "1. Select View Type",
+    "step1Description": "Choose how to view the timetable",
+    "byTeacher": "By Teacher",
+    "byStudents": "By Students",
+    "byRoom": "By Room",
+    "step2Title": "2. Select {{item}}",
+    "step2Teacher": "Teacher",
+    "step2Group": "Group",
+    "step2Room": "Room",
+    "step2Placeholder": "...",
+    "step2DescriptionActive": "Choose from the list",
+    "step2DescriptionInactive": "Select view type first",
+    "step2EmptyPrompt": "Select a view type first",
+    "selectAria": "Select {{type}}",
+    "step3Title": "3. View Timetable",
+    "step3Description": "Load and display the schedule",
+    "readyToView": "Ready to view:",
+    "loading": "Loading...",
+    "viewTimetable": "View Timetable",
+    "selectPrompt": "Select an item to continue",
+    "scheduleTeacher": "Teacher Schedule",
+    "scheduleStudent": "Student Schedule",
+    "scheduleRoom": "Room Schedule",
+    "change": "Change",
+    "grid": {
+      "aria": "Timetable",
+      "time": "Time",
+      "hours": "{{count}}h"
+    },
+    "stats": {
+      "totalPeriods": "Total Periods",
+      "averagePerDay": "Average Per Day",
+      "totalGaps": "Total Gaps",
+      "conflicts": "Conflicts"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Configure your timetable parameters",
+    "createNew": "Create New",
+    "saveChanges": "Save Changes",
+    "importFileAria": "Import FET file",
+    "importSection": {
+      "title": "Import FET File",
+      "description": "Import a .fet file from the desktop FET application",
+      "chooseFile": "Choose FET File",
+      "importing": "Importing...",
+      "failureTitle": "Import Failed",
+      "successTitle": "Import Successful",
+      "importFailure": "Failed to import FET file",
+      "successMessage": "Successfully imported: {{teachers}} teachers, {{subjects}} subjects, {{activities}} lessons, {{rooms}} rooms"
+    },
+    "institution": {
+      "title": "Institution",
+      "description": "Basic information about your institution",
+      "nameLabel": "Institution Name",
+      "namePlaceholder": "Enter institution name",
+      "nameHint": "This name will appear in exported timetables"
+    },
+    "days": {
+      "title": "Days of the Week",
+      "description": "Configure working days ({{count}} days)",
+      "resetDefaults": "Reset Defaults",
+      "addDay": "Add Day",
+      "removeAria": "Remove {{name}}",
+      "dayIndex": "Day {{index}}"
+    },
+    "hours": {
+      "title": "Hours of the Day",
+      "description": "Configure time slots ({{count}} hours)",
+      "addHour": "Add Hour",
+      "removeAria": "Remove {{name}}",
+      "hourIndex": "Hour {{index}}"
+    },
+    "info": {
+      "daysPerWeek": "Days per Week",
+      "hoursPerDay": "Hours per Day",
+      "totalSlots": "Total Slots/Week",
+      "status": "Status",
+      "modified": "Modified",
+      "saved": "Saved"
+    },
+    "danger": {
+      "title": "Danger Zone",
+      "description": "Irreversible actions that affect all your data",
+      "resetTitle": "Reset All Data",
+      "resetDescription": "Delete all teachers, subjects, lessons, rooms, constraints, and generated timetables",
+      "resetButton": "Reset Data",
+      "confirmTitle": "Are you absolutely sure?",
+      "confirmDescription": "This action cannot be undone. This will permanently delete all your data including teachers, subjects, lessons, rooms, constraints, and any generated timetables.",
+      "resetting": "Resetting...",
+      "yesDelete": "Yes, Delete Everything"
+    },
+    "empty": {
+      "title": "No Configuration Found",
+      "description": "Create a new timetable configuration or import from a FET file.",
+      "importFile": "Import FET File"
+    }
+  },
   "generate": {
     "title": "Generate Timetable",
     "description": "Create an optimal schedule based on your constraints",
@@ -70,7 +819,7 @@
       "rules": "Rules",
       "rulesNotSet": "Not set",
       "rulesValue": "{{days}}d × {{hours}}h",
-      "activities": "Activities",
+      "activities": "Lessons",
       "activitiesValue": "{{count}} active",
       "teachers": "Teachers",
       "teachersValue": "{{count}} defined",
@@ -85,30 +834,88 @@
     },
     "progress": "Progress",
     "stats": {
-      "placed": "Activities Placed",
+      "placed": "Lessons Placed",
       "maxPlaced": "Max Placed",
       "issues": "Issues"
     },
     "lastRun": "Last generation: {{when}}",
     "issues": "Issues ({{count}})",
-    "andMore": "…and more",
+    "andMore": "...and more",
     "lastSolution": {
       "success": "Timetable Generated Successfully",
       "partial": "Partial Timetable Generated",
-      "placed": "{{count}} activities placed • {{when}}",
+      "placed": "{{count}} lessons placed • {{when}}",
       "view": "View Timetable"
     },
     "tips": {
       "title": "Tips for Success",
       "1": "Ensure you have basic compulsory time and space constraints",
       "2": "If generation fails, try reducing constraint weights below 100%",
-      "3": "Activities with more teachers/students are scheduled first",
-      "4": "Check that your time structure can accommodate all activities",
+      "3": "Lessons with more teachers/students are scheduled first",
+      "4": "Check that your time structure can accommodate all lessons",
       "5": "Partial solutions can still be viewed in the Timetable page"
     },
     "errors": {
       "needRules": "Please set up the timetable rules first in Settings.",
-      "needActivities": "Please add some activities before generating."
+      "needActivities": "Please add some lessons before generating."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Configure your timetable parameters",
+    "fileInputLabel": "Import FET file",
+    "chooseFile": "Choose FET File",
+    "importTitle": "Import FET File",
+    "importDescription": "Import a .fet file from the desktop FET application",
+    "importFailed": "Import Failed",
+    "importSuccess": "Import Successful",
+    "importSuccessDetail": "Successfully imported: {{teachers}} teachers, {{subjects}} subjects, {{activities}} lessons, {{rooms}} rooms",
+    "importFailedGeneric": "Failed to import FET file",
+    "institution": {
+      "title": "Institution",
+      "description": "Basic information about your institution",
+      "nameLabel": "Institution Name",
+      "namePlaceholder": "Enter institution name",
+      "nameHelp": "This name will appear in exported timetables"
+    },
+    "days": {
+      "title": "Days of the Week",
+      "description": "Configure working days ({{count}} days)",
+      "add": "Add Day",
+      "resetDefaults": "Reset Defaults",
+      "labelSr": "Day {{index}}",
+      "removeSr": "Remove {{name}}"
+    },
+    "hours": {
+      "title": "Hours of the Day",
+      "description": "Configure time slots ({{count}} hours)",
+      "add": "Add Hour",
+      "labelSr": "Hour {{index}}",
+      "removeSr": "Remove {{name}}"
+    },
+    "stats": {
+      "days": "Days per Week",
+      "hours": "Hours per Day",
+      "slots": "Total Slots/Week",
+      "status": "Status",
+      "modified": "Modified",
+      "saved": "Saved"
+    },
+    "danger": {
+      "title": "Danger Zone",
+      "description": "Irreversible actions that affect all your data",
+      "resetLabel": "Reset All Data",
+      "resetDetail": "Delete all teachers, subjects, lessons, rooms, constraints, and generated timetables",
+      "resetButton": "Reset Data",
+      "confirmTitle": "Are you absolutely sure?",
+      "confirmDetail": "This action cannot be undone. This will permanently delete all your data including teachers, subjects, lessons, rooms, constraints, and any generated timetables.",
+      "resetting": "Resetting…",
+      "confirmDelete": "Yes, Delete Everything"
+    },
+    "empty": {
+      "title": "No Configuration Found",
+      "description": "Create a new timetable configuration or import from a FET file.",
+      "importFile": "Import FET File"
     }
   }
 }

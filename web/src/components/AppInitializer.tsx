@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch } from '@/hooks';
 import { setRules } from '@/store/slices/rulesSlice';
 import { setTeachers } from '@/store/slices/teachersSlice';
@@ -29,6 +30,7 @@ function serializeDates<T>(obj: T): T {
 }
 
 export function AppInitializer({ children }: AppInitializerProps) {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [initialized, setInitialized] = useState(false);
 
@@ -99,7 +101,7 @@ export function AppInitializer({ children }: AppInitializerProps) {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading FET Web...</p>
+          <p className="text-muted-foreground">{t('app.loading')}</p>
         </div>
       </div>
     );

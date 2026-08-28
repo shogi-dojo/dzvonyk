@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Users2, BookOpen, Calendar, Building2, Clock, Shield,
   Play, Upload, FilePlus, Download, AlertCircle, CheckCircle2, Eye,
@@ -22,6 +23,7 @@ import { parseFETFile, exportToFETXml } from '@/lib/fetParser';
 import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const rules = useAppSelector((state) => state.rules.current);
   const teachers = useAppSelector((state) => state.teachers.items);
@@ -53,12 +55,12 @@ export function Dashboard() {
   }, []);
 
   const quickStats = [
-    { name: 'Teachers', value: teachers.length, icon: Users2, href: '/teachers' },
-    { name: 'Subjects', value: subjects.length, icon: BookOpen, href: '/subjects' },
-    { name: 'Activities', value: activities.length, icon: Calendar, href: '/activities' },
-    { name: 'Rooms', value: rooms.length, icon: Building2, href: '/rooms' },
-    { name: 'Time Constraints', value: timeConstraints.length, icon: Clock, href: '/constraints' },
-    { name: 'Space Constraints', value: spaceConstraints.length, icon: Shield, href: '/constraints' },
+    { name: t('dashboard.stats.teachers'), value: teachers.length, icon: Users2, href: '/teachers' },
+    { name: t('dashboard.stats.subjects'), value: subjects.length, icon: BookOpen, href: '/subjects' },
+    { name: t('dashboard.stats.activities'), value: activities.length, icon: Calendar, href: '/activities' },
+    { name: t('dashboard.stats.rooms'), value: rooms.length, icon: Building2, href: '/rooms' },
+    { name: t('dashboard.stats.timeConstraints'), value: timeConstraints.length, icon: Clock, href: '/constraints' },
+    { name: t('dashboard.stats.spaceConstraints'), value: spaceConstraints.length, icon: Shield, href: '/constraints' },
   ];
 
   const handleImportClick = () => {
@@ -122,11 +124,11 @@ export function Dashboard() {
       dispatch(setSpaceConstraints(data.spaceConstraints));
       
       setLastSolution(null);
-      setImportSuccess(`Successfully imported ${data.activities.length} activities`);
-      
+      setImportSuccess(t('dashboard.import.success', { count: data.activities.length }));
+
     } catch (error) {
       console.error('Import error:', error);
-      setImportError(error instanceof Error ? error.message : 'Unknown error');
+      setImportError(error instanceof Error ? error.message : t('dashboard.import.unknownError'));
     } finally {
       setImporting(false);
       if (fileInputRef.current) {
@@ -175,10 +177,10 @@ export function Dashboard() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      setImportSuccess('Exported successfully!');
+      setImportSuccess(t('dashboard.import.exportSuccess'));
     } catch (error) {
       console.error('Export error:', error);
-      setImportError(error instanceof Error ? error.message : 'Unknown error');
+      setImportError(error instanceof Error ? error.message : t('dashboard.import.unknownError'));
     } finally {
       setExporting(false);
     }
@@ -189,8 +191,8 @@ export function Dashboard() {
       <input ref={fileInputRef} type="file" accept=".fet,.xml" className="hidden" onChange={handleFileChange} />
 
       <PageHeader
-        title="Dashboard"
-        description="Welcome to FET Web - Free Educational Timetabling"
+        title={t('dashboard.title')}
+        description={t('dashboard.description')}
         icon={<LayoutDashboard className="h-6 w-6" />}
       />
 
@@ -222,9 +224,9 @@ export function Dashboard() {
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle>{rules?.institutionName || 'No timetable loaded'}</CardTitle>
+              <CardTitle>{rules?.institutionName || t('dashboard.institution.empty')}</CardTitle>
               <CardDescription>
-                {rules ? `${rules.nDaysPerWeek} days × ${rules.nHoursPerDay} hours per day` : 'Import or create a new timetable'}
+                {rules ? t('dashboard.institution.meta', { days: rules.nDaysPerWeek, hours: rules.nHoursPerDay }) : t('dashboard.institution.prompt')}
               </CardDescription>
             </div>
           </div>
@@ -234,30 +236,30 @@ export function Dashboard() {
             <Button asChild className="gap-2 gradient-primary hover-lift">
               <Link to="/settings">
                 <FilePlus className="h-4 w-4" />
-                New Timetable
+                {t('dashboard.institution.newTimetable')}
               </Link>
             </Button>
             <Button variant="outline" onClick={handleImportClick} disabled={importing} className="gap-2 hover-lift">
               <Upload className="h-4 w-4" />
-              {importing ? 'Importing...' : 'Import .FET'}
+              {importing ? t('common.importing') : t('dashboard.institution.importFet')}
             </Button>
             <Button variant="outline" onClick={handleExport} disabled={exporting || !rules} className="gap-2 hover-lift">
               <Download className="h-4 w-4" />
-              {exporting ? 'Exporting...' : 'Export .FET'}
+              {exporting ? t('common.exporting') : t('dashboard.institution.exportFet')}
             </Button>
-            
+
             {lastSolution ? (
               <Button asChild className="gap-2 bg-success hover:bg-success/90 hover-lift">
                 <Link to="/timetable">
                   <Eye className="h-4 w-4" />
-                  View Timetable
+                  {t('dashboard.institution.viewTimetable')}
                 </Link>
               </Button>
             ) : (
               <Button asChild variant="outline" className="gap-2 hover-lift">
                 <Link to="/generate">
                   <Play className="h-4 w-4" />
-                  Generate
+                  {t('dashboard.institution.generate')}
                 </Link>
               </Button>
             )}
@@ -268,11 +270,11 @@ export function Dashboard() {
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-success" />
                 <span className="font-medium text-success">
-                  {lastSolution.isComplete ? 'Complete' : 'Partial'} timetable generated
+                  {lastSolution.isComplete ? t('dashboard.institution.solutionComplete') : t('dashboard.institution.solutionPartial')}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                {lastSolution.placements.length} activities • {new Date(lastSolution.generatedAt).toLocaleString()}
+                {t('dashboard.institution.solutionMeta', { count: lastSolution.placements.length, when: new Date(lastSolution.generatedAt).toLocaleString() })}
               </p>
             </div>
           )}
@@ -301,18 +303,18 @@ export function Dashboard() {
               <Zap className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks to set up your timetable</CardDescription>
+              <CardTitle>{t('dashboard.quickActions.title')}</CardTitle>
+              <CardDescription>{t('dashboard.quickActions.description')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { name: 'Add Teachers', icon: Users2, href: '/teachers' },
-              { name: 'Add Subjects', icon: BookOpen, href: '/subjects' },
-              { name: 'Add Students', icon: GraduationCap, href: '/students' },
-              { name: 'Add Activities', icon: Calendar, href: '/activities' },
+              { name: t('dashboard.quickActions.addTeachers'), icon: Users2, href: '/teachers' },
+              { name: t('dashboard.quickActions.addSubjects'), icon: BookOpen, href: '/subjects' },
+              { name: t('dashboard.quickActions.addStudents'), icon: GraduationCap, href: '/students' },
+              { name: t('dashboard.quickActions.addActivities'), icon: Calendar, href: '/activities' },
             ].map((action, index) => (
               <Button 
                 key={action.name}
@@ -339,23 +341,23 @@ export function Dashboard() {
               <FileText className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle>Getting Started</CardTitle>
-              <CardDescription>Follow these steps to create your timetable</CardDescription>
+              <CardTitle>{t('dashboard.gettingStarted.title')}</CardTitle>
+              <CardDescription>{t('dashboard.gettingStarted.description')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[
-              'Set up your time structure (days and hours) in Settings',
-              'Add teachers who will be teaching',
-              'Add subjects/courses to be taught',
-              'Define student years, groups, and subgroups',
-              'Create activities linking teachers, subjects, and students',
-              'Add rooms and buildings',
-              'Define constraints (time and space)',
-              'Generate the timetable',
-              'View and export your results',
+              t('dashboard.gettingStarted.steps.1'),
+              t('dashboard.gettingStarted.steps.2'),
+              t('dashboard.gettingStarted.steps.3'),
+              t('dashboard.gettingStarted.steps.4'),
+              t('dashboard.gettingStarted.steps.5'),
+              t('dashboard.gettingStarted.steps.6'),
+              t('dashboard.gettingStarted.steps.7'),
+              t('dashboard.gettingStarted.steps.8'),
+              t('dashboard.gettingStarted.steps.9'),
             ].map((step, index) => (
               <div 
                 key={index} 

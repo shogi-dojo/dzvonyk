@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Search, Building2, DoorOpen } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import type { Room, Building } from '@/types';
 type DialogMode = 'room' | 'building';
 
 export function Rooms() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { rooms, buildings, loading } = useAppSelector((state) => state.rooms);
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,30 +136,30 @@ export function Rooms() {
   };
 
   const handleDeleteRoom = (room: Room) => {
-    if (!confirm(`Delete room "${room.name}"?`)) return;
+    if (!confirm(t('rooms.confirmDeleteRoom', { name: room.name }))) return;
     dispatch(deleteRoom(room.id));
   };
 
   const handleDeleteBuilding = (building: Building) => {
-    if (!confirm(`Delete building "${building.name}"?`)) return;
+    if (!confirm(t('rooms.confirmDeleteBuilding', { name: building.name }))) return;
     dispatch(deleteBuilding(building.id));
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Rooms"
-        description={`Manage rooms and buildings (${rooms.length} total)`}
+        title={t('rooms.title')}
+        description={t('rooms.description', { count: rooms.length })}
         icon={<Building2 className="h-6 w-6" />}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => openBuildingDialog()} className="gap-2 hover-lift">
               <Building2 className="h-4 w-4" />
-              Add Building
+              {t('rooms.addBuilding')}
             </Button>
             <Button onClick={() => openRoomDialog()} className="gap-2 gradient-primary hover-lift">
               <Plus className="h-4 w-4" />
-              Add Room
+              {t('rooms.addRoom')}
             </Button>
           </div>
         }
@@ -165,15 +167,15 @@ export function Rooms() {
 
       {/* Statistics */}
       <div className="grid gap-4 md:grid-cols-2 stagger-children">
-        <StatCard title="Total Rooms" value={rooms.length} icon={<DoorOpen className="h-5 w-5" />} />
-        <StatCard title="Buildings" value={buildings.length} icon={<Building2 className="h-5 w-5" />} />
+        <StatCard title={t('rooms.stats.totalRooms')} value={rooms.length} icon={<DoorOpen className="h-5 w-5" />} />
+        <StatCard title={t('rooms.stats.buildings')} value={buildings.length} icon={<Building2 className="h-5 w-5" />} />
       </div>
 
       {/* Buildings section */}
       {buildings.length > 0 && (
         <Card className="animate-slide-up">
           <CardHeader>
-            <CardTitle>Buildings</CardTitle>
+            <CardTitle>{t('rooms.buildingsSection')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -181,7 +183,7 @@ export function Rooms() {
                 <div key={building.id} className="group flex items-center gap-2 bg-muted rounded-lg px-3 py-2 hover:bg-muted/80 transition-colors">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span className="text-foreground">{building.name}</span>
-                  <Badge variant="outline">{rooms.filter(r => r.buildingId === building.id || r.buildingId === building.name).length} rooms</Badge>
+                  <Badge variant="outline">{t('rooms.roomsInBuilding', { count: rooms.filter(r => r.buildingId === building.id || r.buildingId === building.name).length })}</Badge>
                   <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openBuildingDialog(building)}>
                     <Pencil className="h-3 w-3" />
                   </Button>
@@ -198,23 +200,23 @@ export function Rooms() {
       {/* Search */}
       <div className="relative max-w-sm animate-slide-up">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search rooms..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        <Input placeholder={t('rooms.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
       </div>
 
       {/* Rooms List */}
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">{t('common.loading')}</div>
       ) : filteredRooms.length === 0 ? (
         <Card className="animate-slide-up">
           <CardContent className="py-12">
             <EmptyState
               icon={<DoorOpen className="h-12 w-12" />}
-              title={searchQuery ? 'No Rooms Found' : 'No Rooms Yet'}
-              description={searchQuery ? 'No rooms match your search.' : 'Get started by adding your first room.'}
+              title={searchQuery ? t('rooms.emptyTitleSearch') : t('rooms.emptyTitle')}
+              description={searchQuery ? t('rooms.emptyDescriptionSearch') : t('rooms.emptyDescription')}
               action={!searchQuery && (
                 <Button onClick={() => openRoomDialog()} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Add Room
+                  {t('rooms.addRoom')}
                 </Button>
               )}
             />
@@ -253,9 +255,9 @@ export function Rooms() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">Capacity: {room.capacity}</Badge>
+                    <Badge variant="outline">{t('rooms.capacityBadge', { count: room.capacity })}</Badge>
                     {room.buildingId && <Badge variant="secondary">{getBuildingName(room.buildingId)}</Badge>}
-                    {room.isVirtual && <Badge className="bg-primary">Virtual</Badge>}
+                    {room.isVirtual && <Badge className="bg-primary">{t('rooms.virtualBadge')}</Badge>}
                   </div>
                   {room.comments && <p className="mt-2 text-sm text-muted-foreground">{room.comments}</p>}
                 </CardContent>
@@ -271,33 +273,33 @@ export function Rooms() {
         <DialogContent>
           <form onSubmit={handleRoomSubmit}>
             <DialogHeader>
-              <DialogTitle>{editingRoom ? 'Edit Room' : 'Add Room'}</DialogTitle>
-              <DialogDescription>Enter the details for the room.</DialogDescription>
+              <DialogTitle>{editingRoom ? t('rooms.editRoom') : t('rooms.addRoom')}</DialogTitle>
+              <DialogDescription>{t('rooms.roomDialog.description')}</DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input id="name" value={roomFormData.name} onChange={(e) => setRoomFormData({ ...roomFormData, name: e.target.value })} placeholder="e.g., Room 101" required />
+                <Label htmlFor="name">{t('common.name')} *</Label>
+                <Input id="name" value={roomFormData.name} onChange={(e) => setRoomFormData({ ...roomFormData, name: e.target.value })} placeholder={t('rooms.roomDialog.namePlaceholder')} required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="longName">Long Name</Label>
-                <Input id="longName" value={roomFormData.longName} onChange={(e) => setRoomFormData({ ...roomFormData, longName: e.target.value })} placeholder="e.g., Science Lab 101" />
+                <Label htmlFor="longName">{t('common.longName')}</Label>
+                <Input id="longName" value={roomFormData.longName} onChange={(e) => setRoomFormData({ ...roomFormData, longName: e.target.value })} placeholder={t('rooms.roomDialog.longNamePlaceholder')} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="code">Code</Label>
-                  <Input id="code" value={roomFormData.code} onChange={(e) => setRoomFormData({ ...roomFormData, code: e.target.value })} placeholder="e.g., R101" />
+                  <Label htmlFor="code">{t('common.code')}</Label>
+                  <Input id="code" value={roomFormData.code} onChange={(e) => setRoomFormData({ ...roomFormData, code: e.target.value })} placeholder={t('rooms.roomDialog.codePlaceholder')} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="capacity">Capacity</Label>
+                  <Label htmlFor="capacity">{t('rooms.roomDialog.capacity')}</Label>
                   <Input id="capacity" type="number" min="1" value={roomFormData.capacity} onChange={(e) => setRoomFormData({ ...roomFormData, capacity: parseInt(e.target.value) || 30 })} />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="building">Building</Label>
+                <Label htmlFor="building">{t('rooms.roomDialog.building')}</Label>
                 <select id="building" value={roomFormData.buildingId} onChange={(e) => setRoomFormData({ ...roomFormData, buildingId: e.target.value })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                  <option value="">No building</option>
+                  <option value="">{t('rooms.roomDialog.noBuilding')}</option>
                   {buildings.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
@@ -305,17 +307,17 @@ export function Rooms() {
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="isVirtual" checked={roomFormData.isVirtual} onChange={(e) => setRoomFormData({ ...roomFormData, isVirtual: e.target.checked })} className="h-4 w-4" />
-                <Label htmlFor="isVirtual">Virtual room</Label>
+                <Label htmlFor="isVirtual">{t('rooms.roomDialog.isVirtual')}</Label>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="comments">Comments</Label>
+                <Label htmlFor="comments">{t('common.comments')}</Label>
                 <Input id="comments" value={roomFormData.comments} onChange={(e) => setRoomFormData({ ...roomFormData, comments: e.target.value })} />
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingRoom ? 'Update' : 'Add'}</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{editingRoom ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -326,32 +328,32 @@ export function Rooms() {
         <DialogContent>
           <form onSubmit={handleBuildingSubmit}>
             <DialogHeader>
-              <DialogTitle>{editingBuilding ? 'Edit Building' : 'Add Building'}</DialogTitle>
-              <DialogDescription>Buildings help organize rooms by location.</DialogDescription>
+              <DialogTitle>{editingBuilding ? t('rooms.editBuilding') : t('rooms.addBuilding')}</DialogTitle>
+              <DialogDescription>{t('rooms.buildingDialog.description')}</DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="bName">Name *</Label>
-                <Input id="bName" value={buildingFormData.name} onChange={(e) => setBuildingFormData({ ...buildingFormData, name: e.target.value })} placeholder="e.g., Main Building" required />
+                <Label htmlFor="bName">{t('common.name')} *</Label>
+                <Input id="bName" value={buildingFormData.name} onChange={(e) => setBuildingFormData({ ...buildingFormData, name: e.target.value })} placeholder={t('rooms.buildingDialog.namePlaceholder')} required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bLongName">Long Name</Label>
+                <Label htmlFor="bLongName">{t('common.longName')}</Label>
                 <Input id="bLongName" value={buildingFormData.longName} onChange={(e) => setBuildingFormData({ ...buildingFormData, longName: e.target.value })} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bCode">Code</Label>
+                <Label htmlFor="bCode">{t('common.code')}</Label>
                 <Input id="bCode" value={buildingFormData.code} onChange={(e) => setBuildingFormData({ ...buildingFormData, code: e.target.value })} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bComments">Comments</Label>
+                <Label htmlFor="bComments">{t('common.comments')}</Label>
                 <Input id="bComments" value={buildingFormData.comments} onChange={(e) => setBuildingFormData({ ...buildingFormData, comments: e.target.value })} />
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingBuilding ? 'Update' : 'Add'}</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{editingBuilding ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
