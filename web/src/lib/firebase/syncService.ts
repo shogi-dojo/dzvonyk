@@ -1,12 +1,11 @@
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { firestore, storage } from './client';
-import { db, GUEST_WORKSPACE_ID, type FETDatabase } from '@/db';
+import { db, type FETDatabase } from '@/db';
 import type {
   AcademicYearWorkspace,
   School,
   SyncStatus,
-  WorkspaceSnapshotEnvelope,
 } from '@/types';
 import {
   createSnapshotEnvelope,

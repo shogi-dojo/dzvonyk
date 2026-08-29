@@ -1144,5 +1144,47 @@
     "migrationDesc": "You signed in with Google. Would you like to migrate your current local timetable into your cloud profile for backup and cross-device sync?",
     "migrateConfirm": "Migrate timetable to cloud",
     "startFresh": "Start fresh"
+  },
+  "workspace": {
+    "selector": "Academic Year Selector",
+    "guestSchool": "Local School",
+    "defaultYear": "Main",
+    "academicYears": "Academic Years",
+    "newYear": "New Academic Year",
+    "newSchool": "Add Educational Institution",
+    "createSchoolTitle": "New Educational Institution",
+    "createSchoolDesc": "Enter school or gymnasium name",
+    "schoolName": "Institution Name",
+    "schoolShortName": "Short Name (optional)",
+    "createYearTitle": "New Academic Year",
+    "createYearDesc": "Create a new year or semester workspace",
+    "yearLabel": "Year / Semester Name",
+    "cloneFromCurrent": "Copy data from current year",
+    "cloneStructureOnly": "Structure only (teachers, subjects, classes, constraints without timetable)"
+  },
+  "versions": {
+    "title": "Saved Versions and Milestones",
+    "desc": "Create named timetable checkpoints for quick restoration to any previous stage.",
+    "create": "Save Version",
+    "createTitle": "Create Milestone Checkpoint",
+    "createDesc": "Save the current timetable state with a description (e.g., \"Before workload reallocation\")",
+    "empty": "No saved versions for this year",
+    "restore": "Restore"
+  },
+  "account": {
+    "title": "Account & Data Management",
+    "desc": "Manage cloud synchronization, backups, and data deletion",
+    "cloudProtected": "Cloud backup active",
+    "deleteAccount": "Delete Account",
+    "notSignedIn": "Working locally",
+    "signInToSync": "Sign in with Google to sync timetables across devices.",
+    "exportJSON": "Full JSON Export",
+    "exportJSONDesc": "Download complete database archive",
+    "clearLocalCache": "Clear Local Cache",
+    "clearLocalCacheDesc": "Clear IndexedDB without affecting cloud data",
+    "confirmClearLocal": "Clear local IndexedDB database? Your cloud data remains safe.",
+    "deleteAccountTitle": "Delete Account and All Cloud Data?",
+    "deleteAccountWarning": "This action is permanent and cannot be undone. All your schools, academic years, saved versions, and history will be permanently deleted from cloud storage.",
+    "confirmDelete": "Permanently Delete"
   }
 }

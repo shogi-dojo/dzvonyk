@@ -17,6 +17,7 @@ import { ConsentBanner } from './ConsentBanner';
 import { HistoryControls } from './HistoryDrawer';
 import { UserProfileButton } from './UserProfileButton';
 import { GuestMigrationModal } from './GuestMigrationModal';
+import { WorkspaceSelector } from './WorkspaceSelector';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { DONATE_URL } from '@/lib/links';
@@ -156,6 +157,10 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
         
+        <div className="px-4 pt-4">
+          <WorkspaceSelector />
+        </div>
+
         <ScrollArea className="flex-1 min-h-0">
           <nav className="flex flex-col gap-1 p-4" aria-label="Primary">
             {navigation.map((item, index) => {
