@@ -3,21 +3,17 @@
     "public": "web/dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
-    "rewrites": [
-      { "source": "**", "destination": "/index.html" }
-    ],
     "headers": [
       {
-        "source": "/index.html",
+        "source": "!/@(assets)/**",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
         ]
       },
       {
-        "source": "/manifest.webmanifest",
+        "source": "/assets/**",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache" },
-          { "key": "Content-Type", "value": "application/manifest+json" }
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
         ]
       },
       {
@@ -27,11 +23,21 @@
         ]
       },
       {
-        "source": "**/*.@(js|css|woff|woff2|ttf|otf|png|jpg|jpeg|svg|webp|ico)",
+        "source": "/registerSW.js",
         "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/manifest.webmanifest",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+          { "key": "Content-Type", "value": "application/manifest+json" }
         ]
       }
+    ],
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
     ]
   }
 }

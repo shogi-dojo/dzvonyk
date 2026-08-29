@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, FileText, Shield, Code2 } from 'lucide-react';
+import { Bell, FileText, Shield, Code2 } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
 // SPDX-License-Identifier: AGPL-3.0-or-later
@@ -20,7 +20,7 @@ export function Footer() {
           {/* About Section */}
           <div className="space-y-4 md:col-span-2">
             <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" aria-hidden="true" />
+              <Bell className="h-5 w-5 text-primary" aria-hidden="true" />
               <span className="font-semibold text-foreground">{t('app.name')}</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">

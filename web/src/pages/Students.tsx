@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, ChevronRight, ChevronDown, GraduationCap, Trash2, Pencil, Search, UserPlus, Users } from 'lucide-react';
+import { Plus, ChevronRight, ChevronDown, GraduationCap, Trash2, Pencil, Search, UserPlus, Users, Clock } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,9 @@ import {
   updateSubgroup,
   deleteSubgroup,
 } from '@/store/slices/studentsSlice';
-import type { StudentsYear, StudentsGroup, StudentsSubgroup } from '@/types';
+import { addTimeConstraint, updateTimeConstraint, deleteTimeConstraint } from '@/store/slices/constraintsSlice';
+import { TimeGrid } from '@/components/TimeGrid';
+import type { StudentsYear, StudentsGroup, StudentsSubgroup, TimeSlot, StudentsSetNotAvailableTimesConstraint } from '@/types';
 import { STUDENTS_YEAR, STUDENTS_GROUP, STUDENTS_SUBGROUP } from '@/types';
 
 type DialogMode = 'year' | 'group' | 'subgroup';
@@ -38,6 +40,9 @@ export function Students() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { years, groups, subgroups, loading } = useAppSelector((state) => state.students);
+  const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
+  const rules = useAppSelector((state) => state.rules.current);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -55,6 +60,58 @@ export function Students() {
     comments: '',
     shift: 0 as 0 | 1 | 2,
   });
+
+  // Class availability dialog state
+  const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
+  const [availabilityGroup, setAvailabilityGroup] = useState<StudentsGroup | null>(null);
+  const [availabilityTimes, setAvailabilityTimes] = useState<TimeSlot[]>([]);
+
+  const days = rules?.daysOfTheWeek || [];
+  const hours = rules?.hoursOfTheDay || [];
+
+  const groupUnavailConstraint = useCallback(
+    (group: StudentsGroup) => {
+      return timeConstraints.find(
+        (c) =>
+          c.type === 'StudentsSetNotAvailableTimes' &&
+          ((c as unknown as { studentsSetId: string }).studentsSetId === group.id ||
+            (c as unknown as { studentsSetId: string }).studentsSetId === group.name)
+      ) as StudentsSetNotAvailableTimesConstraint | undefined;
+    },
+    [timeConstraints]
+  );
+
+  const openGroupAvailabilityDialog = (group: StudentsGroup) => {
+    setAvailabilityGroup(group);
+    const existing = groupUnavailConstraint(group);
+    setAvailabilityTimes(existing?.times || []);
+    setIsAvailabilityOpen(true);
+  };
+
+  const handleSaveGroupAvailability = async () => {
+    if (!availabilityGroup) return;
+    const existing = groupUnavailConstraint(availabilityGroup);
+
+    if (availabilityTimes.length > 0) {
+      const constraint: StudentsSetNotAvailableTimesConstraint = {
+        id: existing?.id || uuidv4(),
+        type: 'StudentsSetNotAvailableTimes',
+        studentsSetId: availabilityGroup.id,
+        times: availabilityTimes,
+        weightPercentage: 100,
+        active: true,
+        comments: '',
+      };
+      if (existing) {
+        await dispatch(updateTimeConstraint(constraint));
+      } else {
+        await dispatch(addTimeConstraint(constraint));
+      }
+    } else if (existing) {
+      await dispatch(deleteTimeConstraint(existing.id));
+    }
+    setIsAvailabilityOpen(false);
+  };
 
   useEffect(() => {
     dispatch(loadStudents());
@@ -259,8 +316,28 @@ export function Students() {
                                 )}
                                 <span className="font-medium text-foreground">{group.name}</span>
                                 <Badge variant="outline" className="text-xs">{t('students.studentsCount', { count: group.numberOfStudents })}</Badge>
+                                {group.shift ? (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {group.shift === 1 ? t('students.dialog.shift1') : t('students.dialog.shift2')}
+                                  </Badge>
+                                ) : null}
+                                {(() => {
+                                  const unavail = groupUnavailConstraint(group);
+                                  if (unavail && unavail.times.length > 0) {
+                                    return (
+                                      <Badge variant="outline" className="text-destructive border-destructive/30 bg-destructive/5 text-xs">
+                                        {t('students.unavailableBadge', { count: unavail.times.length, defaultValue: `${unavail.times.length} нед. слотів` })}
+                                      </Badge>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                               <div className="flex items-center gap-1">
+                                <Button variant="outline" size="sm" onClick={() => openGroupAvailabilityDialog(group)} className="h-7 text-xs gap-1">
+                                  <Clock className="h-3 w-3 text-muted-foreground" />
+                                  {t('students.availabilityButton', { defaultValue: 'Коли не вчиться' })}
+                                </Button>
                                 <Button variant="ghost" size="sm" onClick={() => openDialog('subgroup', group.id)}>
                                   <UserPlus className="h-3 w-3 mr-1" />{t('students.subgroup')}
                                 </Button>
@@ -353,6 +430,51 @@ export function Students() {
               <Button type="submit">{editingItem ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Class Availability Dialog */}
+      <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {availabilityGroup
+                ? t('students.availabilityDialogTitle', {
+                    name: availabilityGroup.name,
+                    defaultValue: `Коли клас не вчиться: ${availabilityGroup.name}`,
+                  })
+                : ''}
+            </DialogTitle>
+            <DialogDescription>
+              {t('students.availabilityDialogDesc', {
+                defaultValue: 'Позначте червоним хрестиком слоти (дні та години), коли у цього класу немає занять.',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {days.length > 0 && hours.length > 0 ? (
+            <div className="py-2">
+              <TimeGrid
+                selectedTimes={availabilityTimes}
+                onChange={setAvailabilityTimes}
+                days={days}
+                hours={hours}
+              />
+            </div>
+          ) : (
+            <div className="py-4 text-center text-sm text-muted-foreground">
+              {t('students.availabilityNoRules', { defaultValue: 'Спочатку налаштуйте дні та години в Налаштуваннях.' })}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsAvailabilityOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="button" onClick={handleSaveGroupAvailability}>
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

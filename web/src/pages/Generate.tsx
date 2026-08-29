@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Play, Pause, Square, RotateCcw, CheckCircle2, AlertTriangle, 
-  XCircle, Clock, Eye, Zap, Activity, Target, Shield
+  Play, Square, RotateCcw, CheckCircle2, AlertTriangle, 
+  XCircle, Clock, Eye, Zap, Activity, Target, Shield, Lock,
+  History, Trash2, Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageHeader, StatCard } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import {
-  startGeneration, pauseGeneration, resumeGeneration, stopGeneration,
+  startGeneration, stopGeneration,
   updateProgress, generationComplete, generationFailed, resetGeneration, addConflict,
 } from '@/store/slices/generationSlice';
 import type { WorkerInMessage, WorkerOutMessage } from '@/lib/engine/generator.worker';
@@ -21,6 +22,7 @@ import { getSanitaryMode } from '@/lib/sanitaryMode';
 import { db } from '@/db';
 import type { TimetableSolution } from '@/types';
 import { cn } from '@/lib/utils';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 export function Generate() {
   const { t } = useTranslation();
@@ -31,6 +33,7 @@ export function Generate() {
   const teachers = useAppSelector((state) => state.teachers.items);
   const subgroups = useAppSelector((state) => state.students.subgroups);
   const studentsGroups = useAppSelector((state) => state.students.groups);
+  const studentsYears = useAppSelector((state) => state.students.years);
   const { rooms } = useAppSelector((state) => state.rooms);
   const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
   const spaceConstraints = useAppSelector((state) => state.constraints.spaceConstraints);
@@ -40,12 +43,37 @@ export function Generate() {
   const [currentTotal, setCurrentTotal] = useState(0);
   const [generationTimestamp, setGenerationTimestamp] = useState<Date | null>(null);
   const [preflight, setPreflight] = useState<PreflightResult | null>(null);
+  const [maxSeconds, setMaxSeconds] = useState<number>(60);
   const workerRef = useRef<Worker | null>(null);
+
+  // Live query for all saved solutions (history)
+  const allSolutions = useLiveQuery(() => db.solutions.orderBy('generatedAt').reverse().toArray()) || [];
+
+  // Count locked activities that will remain in their fixed starting slots
+  const lockedLessonsCount = useMemo(() => {
+    return timeConstraints.filter((c) => {
+      if (!c.active || c.type !== 'ActivityPreferredStartingTime') return false;
+      const raw = c as unknown as { permanentlyLocked?: boolean; locked?: boolean };
+      return raw.permanentlyLocked || raw.locked || c.weightPercentage === 100;
+    }).length;
+  }, [timeConstraints]);
+
+  // Prevent accidental navigation/tab closing during generation
+  useEffect(() => {
+    if (!generation.isRunning) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [generation.isRunning]);
 
   useEffect(() => {
     return () => {
       workerRef.current?.terminate();
-      workerRef.current = null;
     };
   }, []);
 
@@ -67,13 +95,6 @@ export function Generate() {
     loadLastSolution();
   }, []);
 
-  useEffect(() => {
-    if (!generation.isRunning && generation.placedActivities === 0 && generation.totalActivities === 0 && !lastSolution) {
-      setCurrentPlaced(0);
-      setCurrentTotal(0);
-    }
-  }, [generation.isRunning, generation.placedActivities, generation.totalActivities, lastSolution]);
-
   const finishGeneration = async (result: GenerationResult) => {
     if (!rules) return;
     const timestamp = new Date();
@@ -83,14 +104,21 @@ export function Generate() {
 
     for (const conflict of result.conflicts) dispatch(addConflict(conflict.reason));
 
+    const activeActivities = activities.filter((a) => a.active);
+    const roomMap = new Map(result.roomAllocations.map((ra) => [ra.activityIndex, ra.roomIndex]));
+
     const newSolution: TimetableSolution = {
       id: crypto.randomUUID(),
       rulesId: rules.id,
-      placements: result.timeAllocations.map((ta) => ({
-        activityId: activities[ta.activityIndex]?.id || '',
-        day: ta.day,
-        hour: ta.hour,
-      })),
+      placements: result.timeAllocations.map((ta) => {
+        const roomIdx = roomMap.get(ta.activityIndex);
+        return {
+          activityId: activeActivities[ta.activityIndex]?.id || '',
+          day: ta.day,
+          hour: ta.hour,
+          roomId: roomIdx !== undefined && roomIdx >= 0 ? rooms[roomIdx]?.id : undefined,
+        };
+      }),
       conflicts: result.conflicts.map((c) => c.reason),
       isComplete: result.success,
       generatedAt: timestamp,
@@ -111,6 +139,7 @@ export function Generate() {
     const pf = runPreflight({
       rules, activities, teachers, rooms,
       studentsGroups, studentsSubgroups: subgroups || [],
+      studentsYears,
       timeConstraints, spaceConstraints,
       sanitaryMode: getSanitaryMode(),
     });
@@ -124,7 +153,7 @@ export function Generate() {
     dispatch(startGeneration(activeActivities.length));
     dispatch(resetGeneration());
 
-    // Fresh worker per run — cheaper than clearing state and avoids leaked handlers.
+    // Fresh worker per run
     workerRef.current?.terminate();
     const worker = new Worker(
       new URL('../lib/engine/generator.worker.ts', import.meta.url),
@@ -172,21 +201,24 @@ export function Generate() {
         teachers,
         subgroups: subgroups || [],
         studentsGroups,
+        studentsYears,
         rooms,
         timeConstraints,
         spaceConstraints,
+        config: {
+          maxSeconds,
+        },
       },
     };
     worker.postMessage(startMsg);
   };
 
-  const handlePause = () => dispatch(pauseGeneration());
-  const handleResume = () => dispatch(resumeGeneration());
   const handleStop = () => {
     const stopMsg: WorkerInMessage = { type: 'stop' };
     workerRef.current?.postMessage(stopMsg);
     dispatch(stopGeneration());
   };
+
   const handleReset = () => {
     workerRef.current?.terminate();
     workerRef.current = null;
@@ -198,7 +230,26 @@ export function Generate() {
     dispatch(resetGeneration());
   };
 
-  const activeActivitiesCount = activities.filter(a => a.active).length;
+  const handleMakeActiveSolution = async (solution: TimetableSolution) => {
+    const updated = {
+      ...solution,
+      generatedAt: new Date(),
+    };
+    await db.solutions.put(updated);
+    setLastSolution(updated);
+  };
+
+  const handleDeleteSolution = async (solutionId: string) => {
+    if (confirm(t('generate.history.confirmDelete', { defaultValue: 'Ви дійсно бажаєте видалити цей варіант розкладу?' }))) {
+      await db.solutions.delete(solutionId);
+      if (lastSolution?.id === solutionId) {
+        const remaining = await db.solutions.orderBy('generatedAt').reverse().limit(1).toArray();
+        setLastSolution(remaining.length > 0 ? remaining[0] : null);
+      }
+    }
+  };
+
+  const activeActivitiesCount = activities.filter((a) => a.active).length;
   const displayTotal = currentTotal || lastSolution?.placements.length || activeActivitiesCount;
   const displayPlaced = currentPlaced || lastSolution?.placements.length || 0;
   const progressPercentage = displayTotal > 0 ? Math.round((displayPlaced / displayTotal) * 100) : 0;
@@ -207,9 +258,7 @@ export function Generate() {
 
   const getStatusBadge = () => {
     if (generation.isRunning) {
-      return generation.isPaused
-        ? <Badge variant="secondary" className="animate-pulse">{t('generate.status.paused')}</Badge>
-        : <Badge className="bg-primary animate-pulse">{t('generate.status.running')}</Badge>;
+      return <Badge className="bg-primary animate-pulse">{t('generate.status.running')}</Badge>;
     }
     if (lastSolution) {
       return lastSolution.isComplete
@@ -241,7 +290,7 @@ export function Generate() {
                   <p className={cn("font-semibold text-lg", lastSolution.isComplete ? "text-success" : "text-warning")}>
                     {lastSolution.isComplete ? t('generate.lastSolution.success') : t('generate.lastSolution.partial')}
                   </p>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     {t('generate.lastSolution.placed', {
                       count: lastSolution.placements.length,
                       when: generationTimestamp ? formatTimestamp(generationTimestamp) : formatTimestamp(new Date(lastSolution.generatedAt)),
@@ -343,24 +392,63 @@ export function Generate() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Controls */}
-          <div className="flex flex-wrap gap-3">
-            {!generation.isRunning ? (
-              <Button onClick={handleStart} className="gap-2 gradient-primary hover-lift">
-                <Play className="h-4 w-4" />{lastSolution ? t('generate.controls.regenerate') : t('generate.controls.start')}
-              </Button>
-            ) : generation.isPaused ? (
-              <Button onClick={handleResume} className="gap-2"><Play className="h-4 w-4" />{t('generate.controls.resume')}</Button>
-            ) : (
-              <Button onClick={handlePause} variant="secondary" className="gap-2"><Pause className="h-4 w-4" />{t('generate.controls.pause')}</Button>
-            )}
-            {generation.isRunning && (
-              <Button onClick={handleStop} variant="destructive" className="gap-2"><Square className="h-4 w-4" />{t('generate.controls.stop')}</Button>
-            )}
-            {!generation.isRunning && lastSolution && (
-              <Button onClick={handleReset} variant="outline" className="gap-2"><RotateCcw className="h-4 w-4" />{t('generate.controls.reset')}</Button>
-            )}
+          {/* Controls & Configuration */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {!generation.isRunning ? (
+                <Button onClick={handleStart} className="gap-2 gradient-primary hover-lift">
+                  <Play className="h-4 w-4" />
+                  {lastSolution ? t('generate.controls.regenerate') : t('generate.controls.start')}
+                </Button>
+              ) : (
+                <Button onClick={handleStop} variant="destructive" className="gap-2">
+                  <Square className="h-4 w-4" />
+                  {t('generate.controls.stop')}
+                </Button>
+              )}
+              {!generation.isRunning && lastSolution && (
+                <Button onClick={handleReset} variant="outline" className="gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  {t('generate.controls.reset')}
+                </Button>
+              )}
+            </div>
+
+            {/* Time Limit Selector */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="max-seconds-select" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                <Clock className="h-3.5 w-3.5 inline mr-1" />
+                {t('generate.controls.timeLimit', { defaultValue: 'Ліміт часу' })}:
+              </label>
+              <select
+                id="max-seconds-select"
+                value={maxSeconds}
+                disabled={generation.isRunning}
+                onChange={(e) => setMaxSeconds(Number(e.target.value))}
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+              >
+                <option value={10}>10 с</option>
+                <option value={30}>30 с</option>
+                <option value={60}>60 с (1 хв)</option>
+                <option value={120}>120 с (2 хв)</option>
+                <option value={300}>300 с (5 хв)</option>
+                <option value={600}>600 с (10 хв)</option>
+              </select>
+            </div>
           </div>
+
+          {/* Locked lessons notification */}
+          {lockedLessonsCount > 0 && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs">
+              <Lock className="h-4 w-4 shrink-0" />
+              <span>
+                {t('generate.controls.lockedInfo', {
+                  count: lockedLessonsCount,
+                  defaultValue: `${lockedLessonsCount} закріплених уроків (🔒) залишаться на своїх місцях при перегенерації.`,
+                })}
+              </span>
+            </div>
+          )}
 
           {/* Progress Bar */}
           <div className="space-y-3">
@@ -410,6 +498,85 @@ export function Generate() {
         </CardContent>
       </Card>
 
+      {/* Solution History */}
+      {allSolutions.length > 0 && (
+        <Card className="animate-slide-up" style={{ animationDelay: '130ms' }}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><History className="h-5 w-5 text-primary" /></div>
+              <div>
+                <CardTitle>{t('generate.history.title', { defaultValue: 'Історія генерацій' })}</CardTitle>
+                <CardDescription>{t('generate.history.description', { defaultValue: 'Збережені варіанти розкладу' })}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y divide-border">
+              {allSolutions.map((sol, index) => {
+                const isCurrent = lastSolution?.id === sol.id;
+                return (
+                  <div key={sol.id} className="py-3 flex items-center justify-between flex-wrap gap-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className={cn('p-2 rounded-lg', sol.isComplete ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning')}>
+                        {sol.isComplete ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm text-foreground">
+                            {formatTimestamp(new Date(sol.generatedAt))}
+                          </span>
+                          {index === 0 && (
+                            <Badge variant="outline" className="text-[10px] text-primary border-primary/40">
+                              Поточний
+                            </Badge>
+                          )}
+                          <Badge variant="secondary" className="text-[10px]">
+                            {t('generate.history.lessonsCount', { count: sol.placements.length, defaultValue: `${sol.placements.length} уроків` })}
+                          </Badge>
+                          {sol.conflicts.length > 0 && (
+                            <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">
+                              {sol.conflicts.length} конфліктів
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {!isCurrent && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMakeActiveSolution(sol)}
+                          className="h-8 text-xs gap-1"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          {t('generate.history.makeActive', { defaultValue: 'Зробити активним' })}
+                        </Button>
+                      )}
+                      <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1">
+                        <Link to="/timetable">
+                          <Eye className="h-3.5 w-3.5" />
+                          {t('generate.history.view', { defaultValue: 'Переглянути' })}
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteSolution(sol.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tips */}
       <Card className="animate-slide-up" style={{ animationDelay: '150ms' }}>
         <CardHeader>
@@ -421,7 +588,7 @@ export function Generate() {
         <CardContent>
           <ul className="space-y-2">
             {[1, 2, 3, 4, 5].map((n) => t(`generate.tips.${n}`)).map((tip, i) => (
-              <li key={i} className="flex items-start gap-3 text-muted-foreground">
+              <li key={i} className="flex items-start gap-3 text-muted-foreground text-sm">
                 <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />{tip}
               </li>
             ))}

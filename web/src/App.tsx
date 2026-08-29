@@ -13,7 +13,9 @@ import {
   Constraints,
   Generate,
   Timetable,
+  Print,
   Settings,
+  About,
 } from './pages';
 
 function App() {
@@ -33,7 +35,9 @@ function App() {
               <Route path="/constraints" element={<Constraints />} />
               <Route path="/generate" element={<Generate />} />
               <Route path="/timetable" element={<Timetable />} />
+              <Route path="/print" element={<Print />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/about" element={<About />} />
             </Routes>
           </Layout>
         </HashRouter>

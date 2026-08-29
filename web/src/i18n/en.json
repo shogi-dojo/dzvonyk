@@ -27,8 +27,12 @@
     "generateDesc": "Create timetable",
     "timetable": "Timetable",
     "timetableDesc": "View schedule",
+    "print": "Print & Reports",
+    "printDesc": "Print schedules & reports",
     "settings": "Settings",
-    "settingsDesc": "Configuration"
+    "settingsDesc": "Configuration",
+    "about": "About",
+    "aboutDesc": "Info & updates"
   },
   "footer": {
     "aboutLead": "Offline school timetable planner for the vice-principal.",
@@ -45,7 +49,14 @@
     "uk": "Українська",
     "en": "English"
   },
+  "pwa": {
+    "install": "Install app",
+    "installed": "App installed",
+    "dialogTitle": "Install «Dzvonyk» App",
+    "dialogDesc": "«Dzvonyk» works completely offline as a standalone application on desktop and mobile."
+  },
   "common": {
+    "navigate": "Go to",
     "save": "Save",
     "saveChanges": "Save Changes",
     "cancel": "Cancel",
@@ -84,6 +95,7 @@
       "prompt": "Import or create a new timetable",
       "newTimetable": "New Timetable",
       "importFet": "Import .fet",
+      "importRoz": "Import .roz",
       "exportFet": "Export .fet",
       "viewTimetable": "View Timetable",
       "generate": "Generate",
@@ -717,6 +729,14 @@
     "byTeacher": "By Teacher",
     "byStudents": "By Students",
     "byRoom": "By Room",
+    "byAllClasses": "All Classes",
+    "allClassesTitle": "Summary Timetable of All Classes",
+    "allClassesDescription": "Timetable matrix for all classes simultaneously",
+    "lockTooltip": "Lock / unlock lesson",
+    "moveSuccess": "Lesson moved",
+    "movePrompt": "Select a slot to move the lesson",
+    "cancelMove": "Cancel",
+    "dragOrClickToMove": "Drag lesson or click to move",
     "step2Title": "2. Select {{item}}",
     "step2Teacher": "Teacher",
     "step2Group": "Group",
@@ -823,13 +843,26 @@
     },
     "controls": {
       "title": "Generation Controls",
-      "description": "Start, pause, or stop the generation process",
+      "description": "Start or stop the generation process",
       "start": "Start Generation",
       "regenerate": "Regenerate",
-      "pause": "Pause",
-      "resume": "Resume",
       "stop": "Stop",
-      "reset": "Reset"
+      "reset": "Reset",
+      "timeLimit": "Time Limit",
+      "seconds": "{{count}}s",
+      "lockedInfo": "{{count}} pinned lessons (🔒) will stay in their slots"
+    },
+    "history": {
+      "title": "Generation History",
+      "description": "Saved timetable solutions",
+      "empty": "No generation history yet",
+      "makeActive": "Make Active",
+      "view": "View",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this timetable solution?",
+      "complete": "Complete",
+      "partial": "Partial",
+      "lessonsCount": "{{count}} lessons"
     },
     "precheck": {
       "title": "Pre-Generation Check",
@@ -951,5 +984,36 @@
       "description": "Create a new timetable configuration or import from a FET file.",
       "importFile": "Import FET File"
     }
+  },
+  "rozImport": {
+    "title": "Import aSc TimeTables (.roz)",
+    "button": "Import .roz",
+    "chooseFile": "Choose .roz file",
+    "previewTitle": "aSc Import Preview",
+    "school": "Institution",
+    "year": "Academic Year",
+    "classes": "Classes",
+    "subgroups": "Subgroups",
+    "teachers": "Teachers",
+    "subjects": "Subjects",
+    "lessons": "Lessons",
+    "hours": "Weekly Hours",
+    "placements": "Placed in grid",
+    "unplaced": "Unplaced",
+    "warningsTitle": "Notices and Limitations",
+    "constraintsNotImported": "Teacher and room constraints not imported — please check availability manually",
+    "roomsNotImported": "No rooms defined in the aSc file",
+    "unplacedHours": "{{count}} lesson hours not placed in the aSc grid",
+    "skippedLessons": "Skipped {{count}} unrecognised lesson records",
+    "droppedCards": "Dropped {{count}} extra placements that exceed the declared workload",
+    "duplicateNamesResolved": "Found {{count}} duplicate names, suffixes added automatically",
+    "sampleLessonsTitle": "Sample decoded lessons",
+    "hoursSuffix": "h",
+    "dangerNotice": "Warning: this will replace all current timetable data.",
+    "confirmButton": "Import",
+    "cancelButton": "Cancel",
+    "success": ".roz timetable imported successfully",
+    "successDetail": "Successfully imported: {{classes}} classes, {{teachers}} teachers, {{subjects}} subjects, {{hours}} weekly hours",
+    "error": "Failed to import .roz file"
   }
 }

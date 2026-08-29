@@ -4,12 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { 
   Users2, BookOpen, Calendar, Building2, Clock, Shield,
   Play, Upload, FilePlus, Download, AlertCircle, CheckCircle2, Eye,
-  Sparkles, ArrowRight, FileText, Zap, LayoutDashboard, GraduationCap
+  Bell, ArrowRight, FileText, Zap, LayoutDashboard, GraduationCap
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
+import { PageHeader, StatCard } from '@/components/PageTransition';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { setRules } from '@/store/slices/rulesSlice';
 import { setTeachers } from '@/store/slices/teachersSlice';
@@ -20,6 +20,8 @@ import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constrai
 import { setStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile, exportToFETXml } from '@/lib/fetParser';
+import { useRozImport } from '@/hooks/useRozImport';
+import { RozImportDialog } from '@/components/RozImportDialog';
 import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
@@ -34,6 +36,17 @@ export function Dashboard() {
   const { timeConstraints, spaceConstraints } = useAppSelector((state) => state.constraints);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const rozFileInputRef = useRef<HTMLInputElement>(null);
+  const [rozDialogOpen, setRozDialogOpen] = useState(false);
+  const {
+    preview: rozPreview,
+    parseFile: parseRozFile,
+    confirm: confirmRozImport,
+    cancel: cancelRozImport,
+    importing: rozImporting,
+    error: rozError,
+  } = useRozImport();
+
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -186,9 +199,22 @@ export function Dashboard() {
     }
   };
 
+  const handleRozFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(null);
+    setImportSuccess(null);
+    const ok = await parseRozFile(file);
+    if (ok) {
+      setRozDialogOpen(true);
+    }
+    if (rozFileInputRef.current) rozFileInputRef.current.value = '';
+  };
+
   return (
     <div className="space-y-8">
       <input ref={fileInputRef} type="file" accept=".fet,.xml" className="hidden" onChange={handleFileChange} />
+      <input ref={rozFileInputRef} type="file" accept=".roz" className="hidden" onChange={handleRozFileChange} />
 
       <PageHeader
         title={t('dashboard.title')}
@@ -197,11 +223,11 @@ export function Dashboard() {
       />
 
       {/* Status Messages */}
-      {importError && (
+      {(importError || rozError) && (
         <Card className="border-destructive bg-destructive/10 animate-slide-up">
           <CardContent className="py-4 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-            <span className="text-destructive">{importError}</span>
+            <span className="text-destructive">{importError || rozError}</span>
           </CardContent>
         </Card>
       )}
@@ -216,12 +242,12 @@ export function Dashboard() {
       )}
 
       {/* Institution Card */}
-      <Card className="overflow-hidden animate-slide-up">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+      <Card className="overflow-hidden animate-slide-up relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Bell className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle>{rules?.institutionName || t('dashboard.institution.empty')}</CardTitle>
@@ -242,6 +268,15 @@ export function Dashboard() {
             <Button variant="outline" onClick={handleImportClick} disabled={importing} className="gap-2 hover-lift">
               <Upload className="h-4 w-4" />
               {importing ? t('common.importing') : t('dashboard.institution.importFet')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => rozFileInputRef.current?.click()}
+              disabled={rozImporting}
+              className="gap-2 hover-lift"
+            >
+              <Upload className="h-4 w-4" />
+              {rozImporting ? t('common.importing') : t('dashboard.institution.importRoz')}
             </Button>
             <Button variant="outline" onClick={handleExport} disabled={exporting || !rules} className="gap-2 hover-lift">
               <Download className="h-4 w-4" />
@@ -280,6 +315,32 @@ export function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      <RozImportDialog
+        open={rozDialogOpen && !!rozPreview}
+        onOpenChange={setRozDialogOpen}
+        result={rozPreview}
+        onConfirm={async () => {
+          const report = rozPreview?.report;
+          await confirmRozImport();
+          if (report) {
+            setImportSuccess(
+              t('rozImport.successDetail', {
+                classes: report.counts.classes,
+                teachers: report.counts.teachers,
+                subjects: report.counts.subjects,
+                hours: report.counts.hours,
+              })
+            );
+          }
+          const solutions = await db.solutions.orderBy('generatedAt').reverse().limit(1).toArray();
+          if (solutions.length > 0) {
+            setLastSolution(solutions[0]);
+          }
+        }}
+        onCancel={cancelRozImport}
+        importing={rozImporting}
+      />
 
       {/* Statistics Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
@@ -347,28 +408,34 @@ export function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="divide-y divide-border/60 border border-border/70 rounded-xl overflow-hidden bg-card/60">
             {[
-              t('dashboard.gettingStarted.steps.1'),
-              t('dashboard.gettingStarted.steps.2'),
-              t('dashboard.gettingStarted.steps.3'),
-              t('dashboard.gettingStarted.steps.4'),
-              t('dashboard.gettingStarted.steps.5'),
-              t('dashboard.gettingStarted.steps.6'),
-              t('dashboard.gettingStarted.steps.7'),
-              t('dashboard.gettingStarted.steps.8'),
-              t('dashboard.gettingStarted.steps.9'),
-            ].map((step, index) => (
-              <div 
-                key={index} 
-                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              { step: 1, text: t('dashboard.gettingStarted.steps.1'), href: '/settings' },
+              { step: 2, text: t('dashboard.gettingStarted.steps.2'), href: '/teachers' },
+              { step: 3, text: t('dashboard.gettingStarted.steps.3'), href: '/subjects' },
+              { step: 4, text: t('dashboard.gettingStarted.steps.4'), href: '/students' },
+              { step: 5, text: t('dashboard.gettingStarted.steps.5'), href: '/activities' },
+              { step: 6, text: t('dashboard.gettingStarted.steps.6'), href: '/rooms' },
+              { step: 7, text: t('dashboard.gettingStarted.steps.7'), href: '/constraints' },
+              { step: 8, text: t('dashboard.gettingStarted.steps.8'), href: '/generate' },
+              { step: 9, text: t('dashboard.gettingStarted.steps.9'), href: '/timetable' },
+            ].map((item) => (
+              <Link
+                key={item.step}
+                to={item.href}
+                className="flex items-center gap-3.5 px-4 py-3 hover:bg-primary/5 transition-colors group text-sm"
               >
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                  {index + 1}
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  {item.step}
                 </div>
-                <span className="text-muted-foreground">{step}</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground/50 ml-auto" />
-              </div>
+                <span className="text-foreground group-hover:text-primary font-medium transition-colors flex-1">
+                  {item.text}
+                </span>
+                <span className="text-xs text-muted-foreground group-hover:text-primary flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-all shrink-0">
+                  <span className="hidden sm:inline">{t('common.navigate', { defaultValue: 'Перейти' })}</span>
+                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </span>
+              </Link>
             ))}
           </div>
         </CardContent>

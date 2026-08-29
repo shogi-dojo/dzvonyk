@@ -12,7 +12,7 @@
 
 import type {
   Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
-  TimetableRules, StudentsGroup, StudentsSubgroup,
+  TimetableRules, StudentsGroup, StudentsSubgroup, StudentsYear,
 } from '../../types';
 import { runSanitaryChecks } from './sanitary';
 
@@ -38,6 +38,7 @@ export interface PreflightInput {
   rooms: Room[];
   studentsGroups: StudentsGroup[];
   studentsSubgroups: StudentsSubgroup[];
+  studentsYears?: StudentsYear[];
   timeConstraints: TimeConstraint[];
   spaceConstraints: SpaceConstraint[];
   // Phase 4: when true, also apply МОЗ №2205 (2020) weekly-load limits as
@@ -97,7 +98,13 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     if (!c.active) continue;
     const raw = c as unknown as { type: string; teacherId?: string; times?: unknown[] };
     if (raw.type === 'TeacherNotAvailableTimes' && raw.teacherId && Array.isArray(raw.times)) {
-      teacherUnavail.set(raw.teacherId, (teacherUnavail.get(raw.teacherId) ?? 0) + raw.times.length);
+      const tMatch = teachers.find((t) => t.id === raw.teacherId || t.name === raw.teacherId);
+      if (tMatch) {
+        teacherUnavail.set(tMatch.id, (teacherUnavail.get(tMatch.id) ?? 0) + raw.times.length);
+        teacherUnavail.set(tMatch.name, (teacherUnavail.get(tMatch.name) ?? 0) + raw.times.length);
+      } else {
+        teacherUnavail.set(raw.teacherId, (teacherUnavail.get(raw.teacherId) ?? 0) + raw.times.length);
+      }
     }
   }
 

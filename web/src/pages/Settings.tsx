@@ -27,6 +27,8 @@ import { setStudents, clearStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile } from '@/lib/fetParser';
 import { useSanitaryMode } from '@/lib/sanitaryMode';
+import { useRozImport } from '@/hooks/useRozImport';
+import { RozImportDialog } from '@/components/RozImportDialog';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -68,6 +70,16 @@ export function Settings() {
   const rules = useAppSelector((state) => state.rules.current);
   const modified = useAppSelector((state) => state.rules.modified);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const rozFileInputRef = useRef<HTMLInputElement>(null);
+  const [rozDialogOpen, setRozDialogOpen] = useState(false);
+  const {
+    preview: rozPreview,
+    parseFile: parseRozFile,
+    confirm: confirmRozImport,
+    cancel: cancelRozImport,
+    importing: rozImporting,
+    error: rozError,
+  } = useRozImport();
   
   const [institutionName, setInstitutionName] = useState('');
   const [days, setDays] = useState<Day[]>(DEFAULT_DAYS);
@@ -241,6 +253,18 @@ export function Settings() {
     }
   };
 
+  const handleRozFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(null);
+    setImportSuccess(null);
+    const ok = await parseRozFile(file);
+    if (ok) {
+      setRozDialogOpen(true);
+    }
+    if (rozFileInputRef.current) rozFileInputRef.current.value = '';
+  };
+
   const addDay = () => {
     const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const nextDayIndex = days.length < 7 ? days.length : days.length;
@@ -293,6 +317,14 @@ export function Settings() {
         className="hidden"
         aria-label={t('settings.fileInputLabel')}
       />
+      <input
+        ref={rozFileInputRef}
+        type="file"
+        accept=".roz"
+        onChange={handleRozFileChange}
+        className="hidden"
+        aria-label={t('rozImport.title')}
+      />
 
       <PageHeader
         title={t('settings.title')}
@@ -323,10 +355,21 @@ export function Settings() {
           <CardDescription>{t('settings.importDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleImportClick} variant="outline" disabled={importing} className="gap-2 hover-lift">
-            <FileUp className="h-4 w-4" aria-hidden="true" />
-            {importing ? t('common.importing') : t('settings.chooseFile')}
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleImportClick} variant="outline" disabled={importing} className="gap-2 hover-lift">
+              <FileUp className="h-4 w-4" aria-hidden="true" />
+              {importing ? t('common.importing') : t('settings.chooseFile')}
+            </Button>
+            <Button
+              onClick={() => rozFileInputRef.current?.click()}
+              variant="outline"
+              disabled={rozImporting}
+              className="gap-2 hover-lift"
+            >
+              <FileUp className="h-4 w-4" aria-hidden="true" />
+              {rozImporting ? t('common.importing') : t('rozImport.button')}
+            </Button>
+          </div>
 
           {importError && (
             <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3 animate-slide-up" role="alert">
@@ -334,6 +377,16 @@ export function Settings() {
               <div>
                 <p className="text-sm font-medium text-destructive">{t('settings.importFailed')}</p>
                 <p className="text-sm text-destructive/80">{importError}</p>
+              </div>
+            </div>
+          )}
+
+          {rozError && (
+            <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3 animate-slide-up" role="alert">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-medium text-destructive">{t('rozImport.error')}</p>
+                <p className="text-sm text-destructive/80">{rozError}</p>
               </div>
             </div>
           )}
@@ -349,6 +402,28 @@ export function Settings() {
           )}
         </CardContent>
       </Card>
+
+      <RozImportDialog
+        open={rozDialogOpen && !!rozPreview}
+        onOpenChange={setRozDialogOpen}
+        result={rozPreview}
+        onConfirm={async () => {
+          const report = rozPreview?.report;
+          await confirmRozImport();
+          if (report) {
+            setImportSuccess(
+              t('rozImport.successDetail', {
+                classes: report.counts.classes,
+                teachers: report.counts.teachers,
+                subjects: report.counts.subjects,
+                hours: report.counts.hours,
+              })
+            );
+          }
+        }}
+        onCancel={cancelRozImport}
+        importing={rozImporting}
+      />
 
       {rules && (
         <>

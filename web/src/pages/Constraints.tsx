@@ -16,6 +16,7 @@ import {
   addSpaceConstraint, updateSpaceConstraint, deleteSpaceConstraint 
 } from '@/store/slices/constraintsSlice';
 import { cn } from '@/lib/utils';
+import { TimeGrid } from '@/components/TimeGrid';
 import type { TimeConstraint, SpaceConstraint, TimeSlot } from '@/types';
 
 interface ConstraintTypeDef {
@@ -34,7 +35,7 @@ const TIME_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
   'StudentsSetMaxHoursDaily': { category: 'students', fields: ['studentsSet', 'maxHours'] },
   'StudentsSetMaxGapsPerDay': { category: 'students', fields: ['studentsSet', 'maxGaps'] },
   'MinDaysBetweenActivities': { category: 'activity', fields: ['activities', 'minDays'] },
-  'ActivityPreferredStartingTime': { category: 'activity', fields: ['activity', 'day', 'hour'] },
+  'ActivityPreferredStartingTime': { category: 'activity', fields: ['activity', 'day', 'hour', 'locked'] },
 };
 
 const SPACE_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
@@ -69,6 +70,7 @@ export function Constraints() {
   const [selectedSpaceType, setSelectedSpaceType] = useState<string>('BasicCompulsorySpace');
   const [weight, setWeight] = useState('100');
   const [active, setActive] = useState(true);
+  const [lockedPin, setLockedPin] = useState(false);
   const [teacherId, setTeacherId] = useState('');
   const [studentsSetId, setStudentsSetId] = useState('');
   const [selectedActivityId, setSelectedActivityId] = useState('');
@@ -82,14 +84,24 @@ export function Constraints() {
   const [roomId, setRoomId] = useState('');
   const [subjectId, setSubjectId] = useState('');
 
-  const days = useMemo(() => rules?.daysOfTheWeek || [], [rules]);
-  const hours = useMemo(() => rules?.hoursOfTheDay || [], [rules]);
+  const days = rules?.daysOfTheWeek || [];
+  const hours = rules?.hoursOfTheDay || [];
 
   const studentOptions = useMemo(() => {
-    const opts: { value: string; label: string }[] = [];
-    years.forEach(y => opts.push({ value: y.name, label: t('activities.studentLabelYear', { name: y.name }) }));
-    groups.forEach(g => opts.push({ value: g.name, label: t('activities.studentLabelGroup', { name: g.name }) }));
-    return opts;
+    const options: { value: string; label: string }[] = [];
+    years.forEach(y => {
+      options.push({ value: y.id, label: `${t('constraints.year')}: ${y.name}` });
+      y.groups.forEach(gName => {
+        const g = groups.find(group => group.name === gName);
+        if (g) {
+          options.push({ value: g.id, label: `  ${t('constraints.group')}: ${g.name}` });
+          g.subgroups.forEach(sgName => {
+            options.push({ value: sgName, label: `    ${t('constraints.subgroup')}: ${sgName}` });
+          });
+        }
+      });
+    });
+    return options;
   }, [years, groups, t]);
 
   const getTeacherName = (id: string) => teachers.find(tt => tt.id === id || tt.name === id)?.name || id;
@@ -118,10 +130,10 @@ export function Constraints() {
   useEffect(() => { setTimeCurrentPage(1); setSpaceCurrentPage(1); }, [searchQuery, setTimeCurrentPage, setSpaceCurrentPage]);
 
   const resetForm = () => {
-    setWeight('100'); setActive(true); setTeacherId(''); setStudentsSetId(''); setSelectedActivityId('');
-    setMaxDays('5'); setMinDays('3'); setMaxHours('8'); setMaxGaps('1');
-    setSelectedDay(0); setSelectedHour(0); setSelectedTimes([]);
-    setRoomId(''); setSubjectId('');
+    setWeight('100'); setActive(true); setTeacherId(''); setStudentsSetId('');
+    setSelectedActivityId(''); setMaxDays('5'); setMinDays('3'); setMaxHours('8'); setMaxGaps('1');
+    setSelectedDay(0); setSelectedHour(0); setSelectedTimes([]); setRoomId(''); setSubjectId('');
+    setLockedPin(false);
   };
 
   const openAddTimeDialog = (type: string) => {
@@ -143,7 +155,9 @@ export function Constraints() {
     setMinDays(String(any.minDays || 3));
     setMaxHours(String(any.maxHours || 8)); setMaxGaps(String(any.maxGaps ?? 1));
     setSelectedDay(any.day || 0); setSelectedHour(any.hour || 0);
-    setSelectedTimes(any.times || []); setDialogOpen(true);
+    setSelectedTimes(any.times || []);
+    setLockedPin(Boolean(any.permanentlyLocked ?? any.locked ?? false));
+    setDialogOpen(true);
   };
 
   const openEditSpaceDialog = (c: SpaceConstraint) => {
@@ -169,7 +183,16 @@ export function Constraints() {
       case 'StudentsSetMaxHoursDaily': constraint = { ...base, type: 'StudentsSetMaxHoursDaily', studentsSetId, maxHours: parseInt(maxHours) } as any; break;
       case 'StudentsSetMaxGapsPerDay': constraint = { ...base, type: 'StudentsSetMaxGapsPerDay', studentsSetId, maxGaps: parseInt(maxGaps) } as any; break;
       case 'MinDaysBetweenActivities': constraint = { ...base, type: 'MinDaysBetweenActivities', activityIds: [selectedActivityId], minDays: parseInt(maxDays) } as any; break;
-      case 'ActivityPreferredStartingTime': constraint = { ...base, type: 'ActivityPreferredStartingTime', activityId: selectedActivityId, day: selectedDay, hour: selectedHour } as any; break;
+      case 'ActivityPreferredStartingTime':
+        constraint = {
+          ...base,
+          type: 'ActivityPreferredStartingTime',
+          activityId: selectedActivityId,
+          day: selectedDay,
+          hour: selectedHour,
+          permanentlyLocked: lockedPin,
+        } as any;
+        break;
       default: constraint = { ...base, type: selectedTimeType } as any;
     }
     if (dialogMode === 'edit') await dispatch(updateTimeConstraint(constraint));
@@ -196,12 +219,6 @@ export function Constraints() {
   const handleDeleteTime = (id: string) => { if (confirm(t('constraints.confirmDelete'))) dispatch(deleteTimeConstraint(id)); };
   const handleDeleteSpace = (id: string) => { if (confirm(t('constraints.confirmDelete'))) dispatch(deleteSpaceConstraint(id)); };
 
-  const toggleTimeSlot = (day: number, hour: number) => {
-    const exists = selectedTimes.some(ts => ts.day === day && ts.hour === hour);
-    if (exists) setSelectedTimes(selectedTimes.filter(ts => !(ts.day === day && ts.hour === hour)));
-    else setSelectedTimes([...selectedTimes, { day, hour }]);
-  };
-
   const getTimeDescription = (c: TimeConstraint) => {
     const any = c as any;
     switch (c.type) {
@@ -213,7 +230,8 @@ export function Constraints() {
       case 'StudentsSetNotAvailableTimes': return t('constraints.descriptions.studentsSlots', { students: any.studentsSetId, count: any.times?.length || 0 });
       case 'StudentsSetMaxHoursDaily': return t('constraints.descriptions.studentsMaxHours', { students: any.studentsSetId, count: any.maxHours });
       case 'StudentsSetMaxGapsPerDay': return t('constraints.descriptions.studentsMaxGaps', { students: any.studentsSetId, count: any.maxGaps });
-      case 'ActivityPreferredStartingTime': return t('constraints.descriptions.activityAt', { day: any.day + 1, hour: any.hour + 1 });
+      case 'ActivityPreferredStartingTime':
+        return `${getActivityName(any.activityId)}: ${t('constraints.descriptions.activityAt', { day: any.day + 1, hour: any.hour + 1 })}${any.permanentlyLocked ? ' (🔒)' : ''}`;
       default: return '';
     }
   };
@@ -373,7 +391,7 @@ export function Constraints() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <form onSubmit={(e) => { e.preventDefault(); isEditingTime ? handleSubmitTimeConstraint() : handleSubmitSpaceConstraint(); }}>
+          <form onSubmit={(e) => { e.preventDefault(); if (isEditingTime) { handleSubmitTimeConstraint(); } else { handleSubmitSpaceConstraint(); } }}>
             <DialogHeader>
               <DialogTitle>{dialogMode === 'edit' ? (isEditingTime ? t('constraints.dialog.editTime') : t('constraints.dialog.editSpace')) : (isEditingTime ? t('constraints.dialog.addTime') : t('constraints.dialog.addSpace'))}</DialogTitle>
               <DialogDescription>{typeDescription(isEditingTime ? selectedTimeType : selectedSpaceType) || t('constraints.dialog.defaultDescription')}</DialogDescription>
@@ -396,7 +414,7 @@ export function Constraints() {
                   <Label>{t('constraints.dialog.teacher')}</Label>
                   <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                     <option value="">{t('constraints.dialog.selectTeacher')}</option>
-                    {teachers.map(tt => <option key={tt.id} value={tt.name}>{tt.name}</option>)}
+                    {teachers.map(tt => <option key={tt.id} value={tt.id}>{tt.name}</option>)}
                   </select>
                 </div>
               )}
@@ -426,7 +444,7 @@ export function Constraints() {
                   <Label>{t('constraints.dialog.room')}</Label>
                   <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                     <option value="">{t('constraints.dialog.selectRoom')}</option>
-                    {rooms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                    {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                   </select>
                 </div>
               )}
@@ -436,7 +454,7 @@ export function Constraints() {
                   <Label>{t('constraints.dialog.subject')}</Label>
                   <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
                     <option value="">{t('constraints.dialog.selectSubject')}</option>
-                    {subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               )}
@@ -490,29 +508,32 @@ export function Constraints() {
                 </div>
               )}
 
+              {fields.includes('locked') && (
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="lockedPin"
+                    checked={lockedPin}
+                    onChange={(e) => setLockedPin(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="lockedPin">
+                    {t('constraints.dialog.permanentlyLocked', {
+                      defaultValue: 'Закріпити жорстко (не переміщувати при генерації)',
+                    })}
+                  </Label>
+                </div>
+              )}
+
               {fields.includes('times') && days.length > 0 && hours.length > 0 && (
                 <div className="grid gap-2">
                   <Label>{t('constraints.dialog.timeSlots', { count: selectedTimes.length })}</Label>
-                  <div className="overflow-auto max-h-48 border border-border rounded-lg p-2 bg-muted/50">
-                    <table className="w-full text-sm">
-                      <thead><tr><th className="p-1"></th>{days.map((d, i) => <th key={i} className="p-1 text-muted-foreground">{d.name.slice(0, 3)}</th>)}</tr></thead>
-                      <tbody>
-                        {hours.map((h, hi) => (
-                          <tr key={hi}>
-                            <td className="p-1 text-muted-foreground">{h.name}</td>
-                            {days.map((_, di) => {
-                              const isSelected = selectedTimes.some(ts => ts.day === di && ts.hour === hi);
-                              return (
-                                <td key={di} className="p-1">
-                                  <button type="button" onClick={() => toggleTimeSlot(di, hi)} className={cn("w-full h-6 rounded transition-colors", isSelected ? "bg-primary" : "bg-muted hover:bg-muted-foreground/20")} />
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <TimeGrid
+                    selectedTimes={selectedTimes}
+                    onChange={setSelectedTimes}
+                    days={days}
+                    hours={hours}
+                  />
                 </div>
               )}
             </div>

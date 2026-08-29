@@ -79,7 +79,7 @@ export function StatCard({ title, value, icon, className = '', delay = 0 }: Stat
         </div>
       </div>
       {/* Decorative gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </div>
   );
 }
