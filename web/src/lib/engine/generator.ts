@@ -354,7 +354,7 @@ export class TimetableGenerator {
           }
           break;
           
-        case 'TeacherNotAvailableTimes':
+        case 'TeacherNotAvailableTimes': {
           const teacherIdx = this.findTeacherIndex(c.teacherId);
           if (teacherIdx >= 0 && c.times) {
             if (!this.teacherNotAvailable.has(teacherIdx)) {
@@ -367,13 +367,15 @@ export class TimetableGenerator {
             }
           }
           break;
+        }
           
-        case 'TeacherMaxHoursDaily':
+        case 'TeacherMaxHoursDaily': {
           const maxHoursTeacherIdx = this.findTeacherIndex(c.teacherId);
           if (maxHoursTeacherIdx >= 0 && c.maxHours !== undefined) {
             this.teacherMaxHoursDaily.set(maxHoursTeacherIdx, c.maxHours);
           }
           break;
+        }
           
         case 'TeachersMaxHoursDaily':
           if (c.maxHours !== undefined) {
@@ -381,26 +383,29 @@ export class TimetableGenerator {
           }
           break;
           
-        case 'TeacherMaxDaysPerWeek':
+        case 'TeacherMaxDaysPerWeek': {
           const maxDaysTeacherIdx = this.findTeacherIndex(c.teacherId);
           if (maxDaysTeacherIdx >= 0 && c.maxDays !== undefined) {
             this.teacherMaxDaysPerWeek.set(maxDaysTeacherIdx, c.maxDays);
           }
           break;
+        }
           
-        case 'TeacherMaxGapsPerDay':
+        case 'TeacherMaxGapsPerDay': {
           const gapsTeacherIdx = this.findTeacherIndex(c.teacherId);
           if (gapsTeacherIdx >= 0 && c.maxGaps !== undefined) {
             this.teacherMaxGapsPerDay.set(gapsTeacherIdx, c.maxGaps);
           }
           break;
+        }
 
-        case 'TeacherMinDaysPerWeek':
+        case 'TeacherMinDaysPerWeek': {
           const minDaysTeacherIdx = this.findTeacherIndex(c.teacherId);
           if (minDaysTeacherIdx >= 0 && c.minDays !== undefined) {
             this.teacherMinDaysPerWeek.set(minDaysTeacherIdx, c.minDays);
           }
           break;
+        }
 
         case 'StudentsSetMaxGapsPerDay':
           if (c.maxGaps !== undefined) {
@@ -451,7 +456,7 @@ export class TimetableGenerator {
           }
           break;
           
-        case 'ActivityPreferredStartingTime':
+        case 'ActivityPreferredStartingTime': {
           const activityIdx = this.activityIdToIndex.get(c.activityId);
           if (activityIdx !== undefined && c.day !== undefined && c.hour !== undefined) {
             this.activityPreferredStartingTime.set(activityIdx, {
@@ -461,6 +466,7 @@ export class TimetableGenerator {
             });
           }
           break;
+        }
       }
     }
 
@@ -469,7 +475,7 @@ export class TimetableGenerator {
       const c = constraint as any;
       
       switch (constraint.type) {
-        case 'RoomNotAvailableTimes':
+        case 'RoomNotAvailableTimes': {
           const roomIdx = this.findRoomIndex(c.roomId);
           if (roomIdx >= 0 && c.times) {
             if (!this.roomNotAvailable.has(roomIdx)) {
@@ -482,8 +488,9 @@ export class TimetableGenerator {
             }
           }
           break;
+        }
           
-        case 'ActivityPreferredRoom':
+        case 'ActivityPreferredRoom': {
           const prefRoomActivityIdx = this.activityIdToIndex.get(c.activityId);
           const prefRoomIdx = this.findRoomIndex(c.roomId);
           if (prefRoomActivityIdx !== undefined && prefRoomIdx >= 0) {
@@ -493,8 +500,9 @@ export class TimetableGenerator {
             });
           }
           break;
+        }
           
-        case 'ActivityPreferredRooms':
+        case 'ActivityPreferredRooms': {
           const prefRoomsActivityIdx = this.activityIdToIndex.get(c.activityId);
           if (prefRoomsActivityIdx !== undefined && c.roomIds) {
             const roomIndices = c.roomIds
@@ -505,13 +513,15 @@ export class TimetableGenerator {
             }
           }
           break;
+        }
           
-        case 'SubjectPreferredRoom':
+        case 'SubjectPreferredRoom': {
           const subjRoomIdx = this.findRoomIndex(c.roomId);
           if (c.subjectId && subjRoomIdx >= 0) {
             this.subjectPreferredRoom.set(c.subjectId, subjRoomIdx);
           }
           break;
+        }
           
         case 'SubjectPreferredRooms':
           if (c.subjectId && c.roomIds) {

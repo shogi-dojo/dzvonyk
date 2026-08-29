@@ -238,7 +238,7 @@ describe('FET Parser', () => {
         expect(result.daysOfTheWeek.length).toBeGreaterThan(0);
         expect(result.hoursOfTheDay.length).toBeGreaterThan(0);
         expect(result.activities.length).toBeGreaterThan(0);
-      } catch (e) {
+      } catch {
         // File might not exist in test environment
         console.log('Skipping real file test - file not accessible');
       }
@@ -251,7 +251,7 @@ describe('FET Parser', () => {
         
         expect(result.daysOfTheWeek.length).toBeGreaterThan(0);
         expect(result.hoursOfTheDay.length).toBeGreaterThan(0);
-      } catch (e) {
+      } catch {
         // File might not exist in test environment
         console.log('Skipping real file test - file not accessible');
       }

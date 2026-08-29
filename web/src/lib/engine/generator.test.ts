@@ -1,7 +1,7 @@
 /**
  * Unit tests for the Timetable Generator
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { TimetableGenerator } from './generator';
 import type { Activity, Teacher, Room, TimetableRules, StudentsSubgroup } from '../../types';
 import { STUDENTS_SUBGROUP } from '../../types';
@@ -35,7 +35,7 @@ describe('TimetableGenerator', () => {
     type: STUDENTS_SUBGROUP,
   });
 
-  const createTestRoom = (name: string, capacity = 30): Room => ({
+  const _createTestRoom = (name: string, capacity = 30): Room => ({
     id: `room-${name}`,
     name,
     capacity,

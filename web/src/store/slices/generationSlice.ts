@@ -3,7 +3,7 @@
  */
 
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { GenerationState, ActivityPlacement } from '../../types';
+import type { GenerationState } from '../../types';
 
 const initialState: GenerationState = {
   isRunning: false,

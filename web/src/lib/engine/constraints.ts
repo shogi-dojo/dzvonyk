@@ -2,9 +2,8 @@
  * Constraint evaluation functions for timetable generation
  */
 
-import type { TimeConstraint, SpaceConstraint, Activity, Teacher, Room } from '../../types';
 import type { InternalActivity, ConstraintFitness, Matrix2D } from './types';
-import { hasOverlap, dayFromSlot, hourFromSlot } from './utils';
+import { dayFromSlot, hourFromSlot } from './utils';
 
 /**
  * Evaluates basic compulsory time constraints
@@ -17,7 +16,7 @@ export function evaluateBasicCompulsoryTime(
   hoursPerDay: number,
   teachersTimetable: Matrix2D<number>,
   subgroupsTimetable: Matrix2D<number>,
-  placedActivities: Map<number, { slot: number; duration: number }>
+  _placedActivities: Map<number, { slot: number; duration: number }>
 ): ConstraintFitness {
   const conflictingActivities: number[] = [];
   const day = dayFromSlot(slot, hoursPerDay);
@@ -276,7 +275,6 @@ export function countConstraintViolations(
   teacherNotAvailable: Map<number, Set<number>>,
   studentsNotAvailable: Map<number, Set<number>>
 ): { violations: number; conflictingActivities: number[] } {
-  const day = dayFromSlot(slot, hoursPerDay);
   const hour = hourFromSlot(slot, hoursPerDay);
 
   // Check if activity fits in the day

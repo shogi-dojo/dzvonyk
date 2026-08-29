@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import {
   Bell, Shield, Code2, FileText, CheckCircle2,
   ExternalLink, Sparkles, Heart, GitBranch, Cpu, Lock, BookOpen
@@ -12,6 +12,10 @@ import { InstallPwaButton } from '@/components/InstallPwaButton';
 
 const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
 const FET_URL = 'https://lalescu.ro/liviu/fet/';
+const FEEDBACK_URL = 'https://github.com/shogi-dojo/dzvonyk/issues';
+// Monobank «банка». Set once the jar exists; until then the donate button is
+// hidden rather than shipped as a dead link.
+const DONATE_URL = '';
 
 export function About() {
   const { t } = useTranslation();
@@ -148,6 +152,45 @@ export function About() {
               </li>
             </ul>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Support the project */}
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Heart className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>{t('support.title')}</CardTitle>
+              <CardDescription>{t('support.description')}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <p className="leading-relaxed">{t('support.free')}</p>
+          <p className="leading-relaxed">{t('support.body')}</p>
+
+          <div className="grid gap-3 sm:grid-cols-2 pt-1">
+            {DONATE_URL && (
+              <Button asChild variant="outline" className="gap-2 justify-start h-auto py-3">
+                <a href={DONATE_URL} target="_blank" rel="noopener noreferrer">
+                  <Heart className="h-4 w-4 text-primary shrink-0" />
+                  <span className="font-medium text-foreground">{t('support.donate')}</span>
+                  <ExternalLink className="h-3.5 w-3.5 opacity-60 ml-auto" />
+                </a>
+              </Button>
+            )}
+            <Button asChild variant="outline" className="gap-2 justify-start h-auto py-3">
+              <a href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer">
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-medium text-foreground">{t('support.feedback')}</span>
+                <ExternalLink className="h-3.5 w-3.5 opacity-60 ml-auto" />
+              </a>
+            </Button>
+          </div>
+          <p className="text-xs leading-relaxed">{t('support.feedbackBody')}</p>
         </CardContent>
       </Card>
 

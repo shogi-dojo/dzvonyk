@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseROZFile } from './rozParser';
-import { SyntheticRozBuilder, encodeCp1251 } from './rozFixture';
+import { SyntheticRozBuilder } from './rozFixture';
 
 describe('rozParser', () => {
   it('should reject invalid magic header', () => {

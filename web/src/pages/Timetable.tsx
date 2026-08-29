@@ -29,7 +29,7 @@ import {
   generateClassPrintHtml,
   generateTeacherPrintHtml,
   generateSummaryClassesMatrixPrintHtml,
-  generateAllClassesPrintHtml,
+  
 } from '@/lib/printDocument';
 import { addTimeConstraint, deleteTimeConstraint, updateTimeConstraint } from '@/store/slices/constraintsSlice';
 import type { ActivityPreferredStartingTimeConstraint } from '@/types';

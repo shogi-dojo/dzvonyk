@@ -45,6 +45,16 @@
     "copyright": "© {{year}} Dzvonyk. Based on <1>{{fet}}</1> by Liviu Lalescu. Licensed under <2>{{license}}</2>.",
     "language": "Language"
   },
+  "support": {
+    "title": "Support the project",
+    "description": "Dzvonyk is built and maintained by one person",
+    "free": "Dzvonyk is free. The source is open (AGPL-3.0) and may be used freely.",
+    "body": "If Dzvonyk saved you time, you can support the project. Contributions go towards hosting and development. If your school cannot afford it, simply use it — that is fine.",
+    "donate": "Support",
+    "feedbackTitle": "Tell us what broke",
+    "feedbackBody": "Feedback is worth more than a donation right now. If something broke or is missing, write to us.",
+    "feedback": "Report a problem"
+  },
   "lang": {
     "uk": "Українська",
     "en": "English"

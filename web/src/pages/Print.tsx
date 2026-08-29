@@ -2,12 +2,11 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Printer, FileText, Users, UserCheck, LayoutGrid,
-  CheckCircle2, ArrowLeft, Building2, Calendar, Clock
+  ArrowLeft, Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageTransition';
 import { useAppSelector } from '@/hooks';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -182,7 +181,6 @@ export function Print() {
   const teacherWorkload = useMemo(() => {
     if (reportType !== 'teacher-workload') return [];
 
-    const actMap = new Map(activities.map((a) => [a.id, a]));
     const subMap = new Map(subjects.map((s) => [s.id, s]));
 
     return sortedTeachers.map((teacher, index) => {

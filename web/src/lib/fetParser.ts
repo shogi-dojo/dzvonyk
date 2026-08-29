@@ -706,10 +706,14 @@ function parseSpaceConstraints(doc: Document): SpaceConstraint[] {
   constraintsList.querySelectorAll('ConstraintRoomNotAvailableTimes').forEach((el) => {
     const times: { day: number; hour: number }[] = [];
     el.querySelectorAll('Not_Available_Time').forEach((nat) => {
+      // FIXME: parsed but not yet mapped to indices — every imported
+      // RoomNotAvailableTimes constraint currently collapses to day 0 / hour 0.
+      // Needs the day/hour name arrays threaded in to resolve properly.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const dayName = nat.querySelector('Day')?.textContent?.trim() || '';
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const hourName = nat.querySelector('Hour')?.textContent?.trim() || '';
-      // Note: We would need day/hour arrays passed in, for now use indices
-      const dayIdx = 0; // TODO: map to actual index
+      const dayIdx = 0;
       const hourIdx = 0;
       times.push({ day: dayIdx, hour: hourIdx });
     });
