@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +26,7 @@ import { setTimeConstraints, setSpaceConstraints, clearConstraints } from '@/sto
 import { setStudents, clearStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile } from '@/lib/fetParser';
+import { getHourRange, formatHourRange } from '@/lib/bellSchedule';
 import { useSanitaryMode } from '@/lib/sanitaryMode';
 import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
@@ -95,6 +96,20 @@ export function Settings() {
   const [shift1Last, setShift1Last] = useState(4);
   const [shift2First, setShift2First] = useState(5);
   const [shift2Last, setShift2Last] = useState(8);
+
+  const hasLocalChanges = useMemo(() => {
+    if (!rules) return false;
+    const currentShifts = shiftsEnabled
+      ? {
+          shift1: { firstHour: shift1First, lastHour: shift1Last },
+          shift2: { firstHour: shift2First, lastHour: shift2Last },
+        }
+      : undefined;
+    return institutionName !== rules.institutionName
+      || JSON.stringify(days) !== JSON.stringify(rules.daysOfTheWeek)
+      || JSON.stringify(hours) !== JSON.stringify(rules.hoursOfTheDay)
+      || JSON.stringify(currentShifts) !== JSON.stringify(rules.shifts);
+  }, [rules, institutionName, days, hours, shiftsEnabled, shift1First, shift1Last, shift2First, shift2Last]);
 
   useEffect(() => {
     if (rules) {
@@ -302,6 +317,15 @@ export function Settings() {
     setHours(updated);
   };
 
+  const updateHourRange = (index: number, part: 'start' | 'end', value: string) => {
+    const updated = [...hours];
+    const [currentStart, currentEnd] = getHourRange(updated[index]);
+    const start = part === 'start' ? value : currentStart;
+    const end = part === 'end' ? value : currentEnd;
+    updated[index] = { ...updated[index], longName: formatHourRange(start, end) };
+    setHours(updated);
+  };
+
   const resetToDefaults = () => {
     setDays(DEFAULT_DAYS);
     setHours(DEFAULT_HOURS);
@@ -339,7 +363,7 @@ export function Settings() {
               </Button>
             )}
             {rules && (
-              <Button onClick={handleSave} disabled={!modified && institutionName === rules.institutionName} className="gap-2 hover-lift">
+              <Button onClick={handleSave} disabled={!modified && !hasLocalChanges} className="gap-2 hover-lift">
                 <Save className="h-4 w-4" aria-hidden="true" />
                 {t('common.saveChanges')}
               </Button>
@@ -610,21 +634,42 @@ export function Settings() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+              <div className="space-y-2">
+                <div className="hidden grid-cols-[3rem_1fr_1fr_1fr_2.5rem] gap-2 px-2 text-xs font-medium text-muted-foreground sm:grid">
+                  <span>№</span>
+                  <span>{t('settings.hours.label')}</span>
+                  <span>{t('settings.hours.start')}</span>
+                  <span>{t('settings.hours.end')}</span>
+                  <span />
+                </div>
                 {hours.map((hour, index) => (
-                  <div key={index} className="flex items-center gap-2">
+                  <div key={index} className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[3rem_1fr_1fr_1fr_2.5rem]">
+                    <span className="text-center text-sm font-semibold text-muted-foreground">{index + 1}</span>
                     <Label htmlFor={`hour-${index}`} className="sr-only">{t('settings.hours.labelSr', { index: index + 1 })}</Label>
                     <Input 
                       id={`hour-${index}`}
                       value={hour.name} 
                       onChange={(e) => updateHourName(index, e.target.value)} 
                     />
+                    <Input
+                      type="time"
+                      aria-label={t('settings.hours.startAria', { index: index + 1 })}
+                      value={getHourRange(hour)[0]}
+                      onChange={(e) => updateHourRange(index, 'start', e.target.value)}
+                      className="col-start-2 sm:col-start-auto"
+                    />
+                    <Input
+                      type="time"
+                      aria-label={t('settings.hours.endAria', { index: index + 1 })}
+                      value={getHourRange(hour)[1]}
+                      onChange={(e) => updateHourRange(index, 'end', e.target.value)}
+                    />
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       onClick={() => removeHour(index)}
                       disabled={hours.length <= 1}
-                      className="shrink-0"
+                      className="row-start-1 col-start-3 shrink-0 sm:col-start-auto"
                       aria-label={t('settings.hours.removeSr', { name: hour.name })}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />

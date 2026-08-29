@@ -38,7 +38,7 @@ export const fetApi = createApi({
         try {
           const teachers = await db.teachers.toArray();
           return { data: teachers };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch teachers' } };
         }
       },
@@ -51,7 +51,7 @@ export const fetApi = createApi({
         try {
           const subjects = await db.subjects.toArray();
           return { data: subjects };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch subjects' } };
         }
       },
@@ -64,7 +64,7 @@ export const fetApi = createApi({
         try {
           const activities = await db.activities.toArray();
           return { data: activities };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch activities' } };
         }
       },
@@ -77,7 +77,7 @@ export const fetApi = createApi({
         try {
           const rooms = await db.rooms.toArray();
           return { data: rooms };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch rooms' } };
         }
       },
@@ -90,7 +90,7 @@ export const fetApi = createApi({
         try {
           const buildings = await db.buildings.toArray();
           return { data: buildings };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch buildings' } };
         }
       },
@@ -103,7 +103,7 @@ export const fetApi = createApi({
         try {
           const constraints = await db.timeConstraints.toArray();
           return { data: constraints };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch time constraints' } };
         }
       },
@@ -116,7 +116,7 @@ export const fetApi = createApi({
         try {
           const constraints = await db.spaceConstraints.toArray();
           return { data: constraints };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch space constraints' } };
         }
       },
@@ -129,7 +129,7 @@ export const fetApi = createApi({
         try {
           const rules = await db.rules.toArray();
           return { data: rules };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch rules' } };
         }
       },
@@ -141,7 +141,7 @@ export const fetApi = createApi({
         try {
           const rules = await db.rules.get(id);
           return { data: rules };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch rules' } };
         }
       },
@@ -154,7 +154,7 @@ export const fetApi = createApi({
         try {
           const solutions = await db.solutions.toArray();
           return { data: solutions };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch solutions' } };
         }
       },
@@ -174,7 +174,7 @@ export const fetApi = createApi({
         try {
           const stats = await db.getStatistics();
           return { data: stats };
-        } catch (error) {
+        } catch {
           return { error: { message: 'Failed to fetch statistics' } };
         }
       },

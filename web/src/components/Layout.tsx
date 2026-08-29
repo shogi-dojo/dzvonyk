@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users2, BookOpen, GraduationCap, Calendar,
-  Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Bell, Sun, Moon, Info
+  Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Bell, Sun, Moon, Info,
+  Heart, ExternalLink
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -12,6 +13,7 @@ import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
 import { PageTransition } from './PageTransition';
 import { InstallPwaButton } from './InstallPwaButton';
+import { DONATE_URL } from '@/lib/links';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -104,7 +106,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-out lg:translate-x-0 no-print",
+          "fixed inset-y-0 left-0 z-50 w-72 flex flex-col transform transition-transform duration-300 ease-out lg:translate-x-0 no-print",
           "bg-card border-r border-border",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
@@ -142,7 +144,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
         
-        <ScrollArea className="h-[calc(100vh-4rem)]">
+        <ScrollArea className="flex-1 min-h-0">
           <nav className="flex flex-col gap-1 p-4" aria-label="Primary">
             {navigation.map((item, index) => {
               const isActive = location.pathname === item.href;
@@ -181,11 +183,31 @@ export function Layout({ children }: LayoutProps) {
               );
             })}
 
-            <div className="pt-3 mt-2 border-t border-border">
-              <InstallPwaButton className="w-full justify-start text-xs h-10 bg-primary/5 hover:bg-primary/10 border-primary/20" />
-            </div>
           </nav>
         </ScrollArea>
+
+        {/* Pinned below the scroll area so it stays visible without scrolling,
+            however long the nav list gets. */}
+        <div className="shrink-0 border-t border-border p-4 flex flex-col gap-1 bg-card">
+          <InstallPwaButton className="w-full justify-start text-xs h-10 bg-primary/5 hover:bg-primary/10 border-primary/20" />
+          {DONATE_URL && (
+            <a
+              href={DONATE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground"
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  dispatch(toggleSidebar());
+                }
+              }}
+            >
+              <Heart className="h-5 w-5 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+              <span className="flex-1">{t('support.donate')}</span>
+              <ExternalLink className="h-3.5 w-3.5 opacity-50 shrink-0" aria-hidden="true" />
+            </a>
+          )}
+        </div>
       </aside>
 
       {/* Overlay for mobile */}

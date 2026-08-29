@@ -87,7 +87,7 @@ describe('Phase 5 generator integration', () => {
     const constraints: TimeConstraint[] = [{
       id: 'c1', type: 'TeacherMinDaysPerWeek', weightPercentage: 100, active: true,
       teacherId: 't1', minDays: 3,
-    } as any];
+    } as TimeConstraint];
 
     const gen = new TimetableGenerator(rules(), acts, [t1], [sg], [], constraints, []);
     const result = await gen.generate();
@@ -102,7 +102,7 @@ describe('Phase 5 generator integration', () => {
     const constraints: TimeConstraint[] = [{
       id: 'c1', type: 'StudentsSetMaxGapsPerDay', weightPercentage: 100, active: true,
       studentsSetId: 'sg1', maxGaps: 0,
-    } as any];
+    } as TimeConstraint];
 
     const gen = new TimetableGenerator(rules(), acts, [t1], [sg], [], constraints, []);
     const result = await gen.generate();

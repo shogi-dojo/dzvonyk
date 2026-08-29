@@ -1,7 +1,7 @@
 /**
  * Unit tests for the Timetable Generator
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { TimetableGenerator } from './generator';
 import type { Activity, Teacher, Room, TimetableRules, StudentsSubgroup } from '../../types';
 import { STUDENTS_SUBGROUP } from '../../types';
@@ -35,7 +35,7 @@ describe('TimetableGenerator', () => {
     type: STUDENTS_SUBGROUP,
   });
 
-  const createTestRoom = (name: string, capacity = 30): Room => ({
+  const _createTestRoom = (name: string, capacity = 30): Room => ({
     id: `room-${name}`,
     name,
     capacity,
@@ -312,6 +312,23 @@ describe('TimetableGenerator', () => {
       // Must be placed in shift 2 (hour 2 or 3)
       expect(result.timeAllocations[0].hour).toBeGreaterThanOrEqual(2);
       expect(result.timeAllocations[0].hour).toBeLessThanOrEqual(3);
+    });
+  });
+
+  describe('teacher gaps', () => {
+    it('counts only empty periods between the first and last lesson', () => {
+      const generator = new TimetableGenerator(createTestRules(1, 5), [], [createTestTeacher('T1')], [], [], [], []);
+      const internal = generator as unknown as {
+        initialize: () => void;
+        teachersTimetable: number[][];
+        countTeacherGapsOnDay: (teacherIdx: number, day: number) => number;
+      };
+      internal.initialize();
+      internal.teachersTimetable[0] = [-1, 0, -1, 1, -1];
+      expect(internal.countTeacherGapsOnDay(0, 0)).toBe(1);
+
+      internal.teachersTimetable[0] = [-1, 0, 1, -1, -1];
+      expect(internal.countTeacherGapsOnDay(0, 0)).toBe(0);
     });
   });
 });

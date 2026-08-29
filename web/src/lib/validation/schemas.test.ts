@@ -11,17 +11,12 @@ import {
   DaySchema,
   HourSchema,
   validateTeacher,
-  validateSubject,
-  validateRoom,
-  validateActivity,
   safeValidateTeacher,
   getValidationErrors,
   STUDENTS_YEAR,
   STUDENTS_GROUP,
-  STUDENTS_SUBGROUP,
   StudentsYearSchema,
   StudentsGroupSchema,
-  StudentsSubgroupSchema,
 } from './schemas';
 
 describe('Validation Schemas', () => {

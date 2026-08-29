@@ -323,6 +323,37 @@ export type SpaceConstraint =
   | ActivityPreferredRoomsConstraint
   | SubjectPreferredRoomConstraint;
 
+/**
+ * Read-only view over any constraint's optional fields.
+ *
+ * `TimeConstraint` / `SpaceConstraint` include bare `BaseConstraint` as a union
+ * member, so TypeScript cannot narrow them by `type` alone. UI and description
+ * code needs to read fields that only exist on some members. This names that
+ * access explicitly instead of casting through `any` at each site.
+ *
+ * Prefer narrowing by `type` where possible; use this only for field reads.
+ */
+export type ConstraintFields = {
+  readonly teacherId?: string;
+  readonly studentsSetId?: string;
+  readonly activityId?: string;
+  readonly activityIds?: string[];
+  readonly roomId?: string;
+  readonly roomIds?: string[];
+  readonly subjectId?: string;
+  readonly maxDays?: number;
+  readonly minDays?: number;
+  readonly maxHours?: number;
+  readonly minHours?: number;
+  readonly maxGaps?: number;
+  readonly day?: number;
+  readonly hour?: number;
+  readonly times?: TimeSlot[];
+  readonly consecutiveIfSameDay?: boolean;
+  readonly permanentlyLocked?: boolean;
+  readonly locked?: boolean;
+};
+
 // ============ TIMETABLE DATA ============
 
 export interface TimetableRules {

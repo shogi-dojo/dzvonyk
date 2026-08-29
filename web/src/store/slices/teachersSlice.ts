@@ -3,7 +3,7 @@
  */
 
 import { createSlice, type PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import type { Teacher } from '../../types';
+import type { Teacher, ConstraintFields, TimeConstraint } from '../../types';
 import { db } from '../../db';
 
 interface TeachersState {
@@ -60,9 +60,9 @@ export const updateTeacher = createAsyncThunk(
       // Also update constraints that reference this teacher
       const timeConstraints = await db.timeConstraints.toArray();
       for (const constraint of timeConstraints) {
-        const c = constraint as any;
+        const c = constraint as ConstraintFields;
         if (c.teacherId === oldTeacher.name || c.teacherId === oldTeacher.id) {
-          const updated = { ...constraint, teacherId: teacher.name } as any;
+          const updated = { ...constraint, teacherId: teacher.name } as TimeConstraint;
           await db.timeConstraints.put(updated);
         }
       }

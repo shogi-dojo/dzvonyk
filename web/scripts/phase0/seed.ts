@@ -350,9 +350,9 @@ export function buildSeed(): SeedResult {
       weightPercentage: 100,
       active: true,
       // extra fields carried through parseConstraints via `any` cast
-      // @ts-expect-error extended shape used by parser
+      // @ts-expect-error - constraint union lacks this member's fields; see ConstraintFields
       teacherId: t.id,
-      // @ts-expect-error
+      // @ts-expect-error - constraint union lacks this member's fields; see ConstraintFields
       maxHours: 6,
     } as TimeConstraint);
   }
@@ -371,7 +371,7 @@ export function buildSeed(): SeedResult {
         active: true,
         // @ts-expect-error extended
         subjectId: subject.id,
-        // @ts-expect-error
+        // @ts-expect-error - constraint union lacks this member's fields; see ConstraintFields
         roomId: tagged[0].id,
       } as SpaceConstraint);
     } else {
@@ -382,7 +382,7 @@ export function buildSeed(): SeedResult {
         active: true,
         // @ts-expect-error extended
         subjectId: subject.id,
-        // @ts-expect-error
+        // @ts-expect-error - constraint union lacks this member's fields; see ConstraintFields
         roomIds: tagged.map(r => r.id),
       } as SpaceConstraint);
     }

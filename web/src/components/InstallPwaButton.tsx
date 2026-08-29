@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, CheckCircle2, Smartphone, Monitor } from 'lucide-react';
+import { Download, Smartphone, Monitor } from 'lucide-react';
 import { Button } from './ui/button';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { cn } from '@/lib/utils';

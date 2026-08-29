@@ -19,6 +19,7 @@ import {
   type GridCell,
   type CellData,
 } from './timetableGrid';
+import { hourTimeLabel } from './bellSchedule';
 
 export interface PrintOptions {
   includeApproval?: boolean;
@@ -283,6 +284,12 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+function renderWeekParity(parity?: 'both' | 'numerator' | 'denominator'): string {
+  if (parity === 'numerator') return '<div class="lesson-details">Чисельник</div>';
+  if (parity === 'denominator') return '<div class="lesson-details">Знаменник</div>';
+  return '';
+}
+
 /**
  * Renders a single entity grid (class or teacher) table HTML
  */
@@ -312,7 +319,7 @@ function renderSingleGridTable(
       <tr>
         <td class="time-cell">
           <div class="period-num">${hIdx + 1}</div>
-          <div class="period-time">${escapeHtml(hour.name)}</div>
+          <div class="period-time">${escapeHtml(hourTimeLabel(hour))}</div>
         </td>
     `;
 
@@ -332,6 +339,7 @@ function renderSingleGridTable(
           tableHtml += `
             <div class="lesson-box ${coloredClass}" style="${style}">
               <div class="lesson-subj">${escapeHtml(c.subject)}</div>
+              ${renderWeekParity(c.weekParity)}
               ${
                 showTeacher && c.teachers.length > 0
                   ? `<div class="lesson-details">${escapeHtml(c.teachers.join(', '))}</div>`
@@ -636,6 +644,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
                     <div style="font-weight: bold; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
                       c.subject
                     )}</div>
+                    ${renderWeekParity(c.weekParity)}
                     ${
                       c.teachers.length > 0
                         ? `<div style="font-size: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
@@ -710,6 +719,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
       room: roomObj?.name,
       duration: act.duration || 1,
       activityTags: act.activityTagIds || [],
+      weekParity: act.weekParity,
     };
 
     sortedTeachers.forEach((teacher, tIdx) => {
@@ -805,6 +815,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
                     <div style="font-weight: bold; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
                       c.subject
                     )}</div>
+                    ${renderWeekParity(c.weekParity)}
                     ${
                       c.students.length > 0
                         ? `<div style="font-size: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
@@ -950,4 +961,3 @@ export function generateTeacherWorkloadPrintHtml(params: {
 </body>
 </html>`;
 }
-

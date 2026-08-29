@@ -4,12 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import type {
-  FETFile, Teacher, Subject, ActivityTag, Activity,
-  StudentsYear, StudentsGroup, StudentsSubgroup,
-  Room, Building, Day, Hour,
-  TimeConstraint, SpaceConstraint,
-} from '../types';
+import type { FETFile, Teacher, Subject, ActivityTag, Activity, StudentsYear, StudentsGroup, StudentsSubgroup, Room, Building, Day, Hour, TimeConstraint, SpaceConstraint, ConstraintFields } from '../types';
 
 /**
  * Parse a FET XML file content into structured data
@@ -62,7 +57,7 @@ export function parseFETFile(xmlContent: string): FETFile {
     buildings: parseBuildings(doc),
     rooms: parseRooms(doc),
     timeConstraints: parseTimeConstraints(doc, daysOfTheWeek, hoursOfTheDay),
-    spaceConstraints: parseSpaceConstraints(doc),
+    spaceConstraints: parseSpaceConstraints(doc, daysOfTheWeek, hoursOfTheDay),
   };
   
   console.log('Parsed FET file:', {
@@ -623,10 +618,14 @@ function parseTimeConstraints(doc: Document, days: Day[], hours: Hour[]): TimeCo
   return constraints;
 }
 
-function parseSpaceConstraints(doc: Document): SpaceConstraint[] {
+function parseSpaceConstraints(doc: Document, days: Day[], hours: Hour[]): SpaceConstraint[] {
   const constraints: SpaceConstraint[] = [];
   const constraintsList = doc.querySelector('Space_Constraints_List');
   if (!constraintsList) return constraints;
+
+  // Helper to find day/hour index (mirrors parseTimeConstraints)
+  const findDayIndex = (dayName: string) => days.findIndex(d => d.name === dayName);
+  const findHourIndex = (hourName: string) => hours.findIndex(h => h.name === hourName);
   
   // Basic Compulsory Space
   constraintsList.querySelectorAll('ConstraintBasicCompulsorySpace').forEach((el) => {
@@ -708,10 +707,11 @@ function parseSpaceConstraints(doc: Document): SpaceConstraint[] {
     el.querySelectorAll('Not_Available_Time').forEach((nat) => {
       const dayName = nat.querySelector('Day')?.textContent?.trim() || '';
       const hourName = nat.querySelector('Hour')?.textContent?.trim() || '';
-      // Note: We would need day/hour arrays passed in, for now use indices
-      const dayIdx = 0; // TODO: map to actual index
-      const hourIdx = 0;
-      times.push({ day: dayIdx, hour: hourIdx });
+      const dayIdx = findDayIndex(dayName);
+      const hourIdx = findHourIndex(hourName);
+      if (dayIdx >= 0 && hourIdx >= 0) {
+        times.push({ day: dayIdx, hour: hourIdx });
+      }
     });
     constraints.push({
       id: uuidv4(),
@@ -934,7 +934,7 @@ export function exportToFETXml(data: FETFile): string {
   // Time Constraints
   xml += '<Time_Constraints_List>\n';
   for (const constraint of data.timeConstraints) {
-    const c = constraint as any;
+    const c = constraint as ConstraintFields;
     
     switch (constraint.type) {
       case 'BasicCompulsoryTime':
@@ -992,7 +992,7 @@ export function exportToFETXml(data: FETFile): string {
   // Space Constraints
   xml += '<Space_Constraints_List>\n';
   for (const constraint of data.spaceConstraints) {
-    const c = constraint as any;
+    const c = constraint as ConstraintFields;
     
     switch (constraint.type) {
       case 'BasicCompulsorySpace':

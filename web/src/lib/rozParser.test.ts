@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseROZFile } from './rozParser';
-import { SyntheticRozBuilder, encodeCp1251 } from './rozFixture';
+import { SyntheticRozBuilder } from './rozFixture';
 
 describe('rozParser', () => {
   it('should reject invalid magic header', () => {
@@ -30,6 +30,40 @@ describe('rozParser', () => {
     expect(res.file.teachers.map((t) => t.name)).toEqual(['Сисова Оксана', 'Грибок Лариса']);
     expect(res.file.studentsGroups.map((g) => g.name)).toEqual(['5-А']);
     expect(res.file.studentsYears.map((y) => y.name)).toEqual(['5']);
+    expect(res.file.teachers[0].targetNumberOfHours).toBe(2);
+    expect(res.file.teachers[0].qualifiedSubjects).toEqual(['Українська мова']);
+    expect(res.file.teachers[1].targetNumberOfHours).toBe(0);
+  });
+
+  it('accumulates teacher load and distinct qualified subjects', () => {
+    const res = parseROZFile(
+      new SyntheticRozBuilder()
+        .setSubjects(['Математика', 'Фізика'])
+        .setTeachers(['Вчитель Тестовий'])
+        .setClasses(['8-А'])
+        .addLesson(1, 2, 0, 0, 0)
+        .addLesson(2, 3, 1, 0, 0)
+        .addLesson(3, 1, 0, 0, 0)
+        .addCard(1, 1, 1)
+        .addCard(2, 2, 2)
+        .addCard(3, 4, 3)
+        .build()
+    );
+
+    expect(res.file.teachers[0].targetNumberOfHours).toBe(6);
+    expect(res.file.teachers[0].qualifiedSubjects).toEqual(['Математика', 'Фізика']);
+  });
+
+  it('uses configured bell ranges when enough periods are present', () => {
+    const configured = Array.from({ length: 9 }, (_, index) => ({
+      name: `${index + 1} урок`,
+      longName: `${String(8 + index).padStart(2, '0')}:15 – ${String(9 + index).padStart(2, '0')}:00`,
+    }));
+    const res = parseROZFile(
+      new SyntheticRozBuilder().setClasses(['5-А']).addLesson(1, 1, 0, 0, 0).addCard(1, 1, 1).build(),
+      configured
+    );
+    expect(res.file.hoursOfTheDay[0]).toEqual(configured[0]);
   });
 
   it('should enforce window k id and window k+1 payload rule', () => {
