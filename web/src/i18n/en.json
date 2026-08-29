@@ -1114,5 +1114,16 @@
     "success": ".roz timetable imported successfully",
     "successDetail": "Successfully imported: {{classes}} classes, {{teachers}} teachers, {{subjects}} subjects, {{hours}} weekly hours",
     "error": "Failed to import .roz file"
+  },
+  "analytics": {
+    "bannerTitle": "Anonymous Analytics",
+    "bannerText": "We only collect aggregated technical usage statistics (page views, generation performance). School names, schedules, subjects, and teacher names are never collected.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "moreInfo": "Learn more",
+    "settingsTitle": "Anonymous Analytics & Privacy",
+    "settingsDesc": "Manage participation in application improvement",
+    "allowAnalytics": "Allow sending anonymous technical statistics",
+    "privacyGuarantee": "Only technical metrics are collected (page loads, generation speed, export format). No school names, timetables, subjects, or teacher names are ever sent to analytics."
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw, ShieldCheck, BarChart2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
+import { getConsentStatus, setConsentStatus, CONSENT_CHANGED_EVENT, trackEvent, type ConsentStatus } from '@/lib/analytics';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import {
   createNewRules,
@@ -96,6 +97,21 @@ export function Settings() {
   const [shift1Last, setShift1Last] = useState(4);
   const [shift2First, setShift2First] = useState(5);
   const [shift2Last, setShift2Last] = useState(8);
+  const [consentStatus, setLocalConsentStatus] = useState<ConsentStatus | null>(getConsentStatus());
+
+  useEffect(() => {
+    const handleConsent = () => {
+      setLocalConsentStatus(getConsentStatus());
+    };
+    window.addEventListener(CONSENT_CHANGED_EVENT, handleConsent);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, handleConsent);
+  }, []);
+
+  const handleToggleConsent = async (granted: boolean) => {
+    const newStatus: ConsentStatus = granted ? 'granted' : 'denied';
+    await setConsentStatus(newStatus);
+    setLocalConsentStatus(newStatus);
+  };
 
   const hasLocalChanges = useMemo(() => {
     if (!rules) return false;
@@ -257,6 +273,11 @@ export function Settings() {
         activities: data.activities.length,
         rooms: data.rooms.length,
       }));
+
+      trackEvent('timetable_imported', {
+        source_type: 'fet',
+        activity_count: data.activities.length,
+      });
 
       if (fileInputRef.current) fileInputRef.current.value = '';
 
@@ -435,6 +456,10 @@ export function Settings() {
           const report = rozPreview?.report;
           await confirmRozImport();
           if (report) {
+            trackEvent('timetable_imported', {
+              source_type: 'roz',
+              activity_count: report.counts.lessons,
+            });
             setImportSuccess(
               t('rozImport.successDetail', {
                 classes: report.counts.classes,
@@ -687,6 +712,44 @@ export function Settings() {
             <StatCard title={t('settings.stats.slots')} value={days.length * hours.length} icon={<Calendar className="h-5 w-5" aria-hidden="true" />} />
             <StatCard title={t('settings.stats.status')} value={modified ? t('settings.stats.modified') : t('settings.stats.saved')} icon={<SettingsIcon className="h-5 w-5" aria-hidden="true" />} />
           </div>
+
+          {/* Analytics & Privacy */}
+          <Card className="animate-slide-up" style={{ animationDelay: '175ms' }}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <BarChart2 className="h-5 w-5 text-primary" aria-hidden="true" />
+                </div>
+                <div>
+                  <CardTitle>{t('analytics.settingsTitle', 'Анонімна статистика та конфіденційність')}</CardTitle>
+                  <CardDescription>
+                    {t('analytics.settingsDesc', 'Керування участю в покращенні застосунку')}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-primary"
+                  checked={consentStatus === 'granted'}
+                  onChange={(e) => handleToggleConsent(e.target.checked)}
+                />
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">
+                    {t('analytics.allowAnalytics', 'Дозволити надсилання анонімної технічної статистики')}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t(
+                      'analytics.privacyGuarantee',
+                      'Збираються лише технічні показники (відкриття сторінок, швидкість генерації, формат експорту). Жодні назви шкіл, розклади, предмети або імена вчителів ніколи не передаються.'
+                    )}
+                  </p>
+                </div>
+              </label>
+            </CardContent>
+          </Card>
 
           {/* Reset Data Section */}
           <Card className="animate-slide-up border-destructive/30" style={{ animationDelay: '200ms' }}>

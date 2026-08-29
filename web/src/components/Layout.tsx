@@ -13,6 +13,8 @@ import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
 import { PageTransition } from './PageTransition';
 import { InstallPwaButton } from './InstallPwaButton';
+import { ConsentBanner } from './ConsentBanner';
+import { usePageTracking } from '@/hooks/usePageTracking';
 import { DONATE_URL } from '@/lib/links';
 
 interface LayoutProps {
@@ -41,6 +43,7 @@ const navigation: NavItem[] = [
 ];
 
 export function Layout({ children }: LayoutProps) {
+  usePageTracking();
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.app.sidebarOpen);
   const isDarkMode = useAppSelector((state) => state.app.isDarkMode);
@@ -234,6 +237,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </main>
       </div>
+      <ConsentBanner />
     </div>
   );
 }

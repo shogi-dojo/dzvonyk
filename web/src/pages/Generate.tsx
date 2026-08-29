@@ -22,6 +22,7 @@ import { getSanitaryMode } from '@/lib/sanitaryMode';
 import { db } from '@/db';
 import type { TimetableSolution } from '@/types';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 export function Generate() {
@@ -127,6 +128,11 @@ export function Generate() {
     await db.solutions.add(newSolution);
     setLastSolution(newSolution);
 
+    trackEvent('generation_completed', {
+      is_complete: result.success,
+      elapsed_time_ms: result.elapsedTimeMs,
+    });
+
     if (result.success) dispatch(generationComplete());
     else dispatch(generationFailed(`Placed ${result.placedActivities} of ${result.totalActivities} activities`));
   };
@@ -145,6 +151,11 @@ export function Generate() {
     });
     setPreflight(pf);
     if (!pf.ok) return;
+
+    trackEvent('generation_started', {
+      mode: rules.mode,
+      n_activities: activeActivities.length,
+    });
 
     setCurrentPlaced(0);
     setCurrentTotal(activeActivities.length);
