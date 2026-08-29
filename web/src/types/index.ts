@@ -417,4 +417,8 @@ export interface FETFile {
   rooms: Room[];
   timeConstraints: TimeConstraint[];
   spaceConstraints: SpaceConstraint[];
+  shifts?: {
+    shift1: { firstHour: number; lastHour: number };
+    shift2: { firstHour: number; lastHour: number };
+  };
 }
