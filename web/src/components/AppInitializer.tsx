@@ -8,6 +8,7 @@ import { setActivities } from '@/store/slices/activitiesSlice';
 import { setRooms, setBuildings } from '@/store/slices/roomsSlice';
 import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constraintsSlice';
 import { setStudents } from '@/store/slices/studentsSlice';
+import { loadWorkspaceContext } from '@/store/slices/workspaceSlice';
 import { db } from '@/db';
 
 interface AppInitializerProps {
@@ -39,6 +40,13 @@ export function AppInitializer({ children }: AppInitializerProps) {
       try {
         console.log('Loading data from IndexedDB...');
         
+        // Initialize and load workspace context
+        try {
+          await dispatch(loadWorkspaceContext()).unwrap();
+        } catch (wsErr) {
+          console.warn('Workspace initialization notice:', wsErr);
+        }
+
         // Load rules and serialize dates
         const rules = await db.rules.toArray();
         if (rules.length > 0) {

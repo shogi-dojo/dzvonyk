@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '@/db';
 import {
-  createSnapshotEnvelope,
-  restoreSnapshotEnvelopeToDatabase,
   serializeSnapshotEnvelope,
   deserializeSnapshotEnvelope,
   validateSnapshotEnvelope,

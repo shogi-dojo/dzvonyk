@@ -18,10 +18,34 @@ import type {
   TimeConstraint,
   SpaceConstraint,
   TimetableSolution,
+  School,
+  AcademicYearWorkspace,
+  WorkspaceVersionMetadata,
+  HistoryEntry,
 } from '../types';
 
+export interface ActiveWorkspaceStateDoc {
+  id: string; // 'current'
+  currentWorkspaceId: string;
+  currentSchoolId: string;
+  activeRevision: number;
+}
+
+export interface SyncQueueDoc {
+  id: string;
+  workspaceId: string;
+  action: 'push' | 'pull' | 'delete';
+  status: 'pending' | 'processing' | 'failed';
+  payload?: string; // gzip/json string
+  createdAt: string;
+  retryCount: number;
+}
+
+export const GUEST_SCHOOL_ID = 'guest-school-default';
+export const GUEST_WORKSPACE_ID = 'guest-workspace-default';
+
 export class FETDatabase extends Dexie {
-  // Tables
+  // Active materialised timetable tables
   rules!: Table<TimetableRules, string>;
   teachers!: Table<Teacher, string>;
   subjects!: Table<Subject, string>;
@@ -36,9 +60,18 @@ export class FETDatabase extends Dexie {
   spaceConstraints!: Table<SpaceConstraint, string>;
   solutions!: Table<TimetableSolution, string>;
 
+  // Multi-school / workspace / versions / history tables (v2)
+  schools!: Table<School, string>;
+  workspaces!: Table<AcademicYearWorkspace, string>;
+  workspaceSnapshots!: Table<WorkspaceVersionMetadata, string>;
+  history!: Table<HistoryEntry, string>;
+  syncQueue!: Table<SyncQueueDoc, string>;
+  activeWorkspaceState!: Table<ActiveWorkspaceStateDoc, string>;
+
   constructor() {
     super('FETDatabase');
     
+    // Version 1 (legacy schema)
     this.version(1).stores({
       rules: 'id, institutionName, mode, createdAt, updatedAt',
       teachers: 'id, &name',
@@ -53,6 +86,57 @@ export class FETDatabase extends Dexie {
       timeConstraints: 'id, type, active',
       spaceConstraints: 'id, type, active',
       solutions: 'id, rulesId, generatedAt, isComplete',
+    });
+
+    // Version 2 (multi-workspace, version history, sync queue)
+    this.version(2).stores({
+      rules: 'id, institutionName, mode, createdAt, updatedAt',
+      teachers: 'id, &name',
+      subjects: 'id, &name',
+      activityTags: 'id, &name',
+      studentsYears: 'id, &name',
+      studentsGroups: 'id, name',
+      studentsSubgroups: 'id, name',
+      activities: 'id, subjectId, activityGroupId, *teacherIds, *studentSetIds',
+      buildings: 'id, &name',
+      rooms: 'id, &name, buildingId',
+      timeConstraints: 'id, type, active',
+      spaceConstraints: 'id, type, active',
+      solutions: 'id, rulesId, generatedAt, isComplete',
+      schools: 'id, name, ownerUid, createdAt, updatedAt',
+      workspaces: 'id, schoolId, label, localRevision, cloudRevision, lastSyncedAt, isArchived, createdAt, updatedAt',
+      workspaceSnapshots: 'id, workspaceId, revision, type, createdAt',
+      history: 'id, workspaceId, timestamp',
+      syncQueue: 'id, workspaceId, action, status, createdAt',
+      activeWorkspaceState: 'id, currentWorkspaceId, currentSchoolId, activeRevision',
+    }).upgrade(async (tx) => {
+      // Lossless migration: Initialize default guest school and workspace
+      const now = new Date().toISOString();
+      const rulesList = await tx.table('rules').toArray();
+      const institutionName = (rulesList[0] as TimetableRules)?.institutionName || 'Локальний розклад';
+
+      await tx.table('schools').put({
+        id: GUEST_SCHOOL_ID,
+        name: institutionName,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await tx.table('workspaces').put({
+        id: GUEST_WORKSPACE_ID,
+        schoolId: GUEST_SCHOOL_ID,
+        label: 'Основний',
+        localRevision: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await tx.table('activeWorkspaceState').put({
+        id: 'current',
+        currentWorkspaceId: GUEST_WORKSPACE_ID,
+        currentSchoolId: GUEST_SCHOOL_ID,
+        activeRevision: 1,
+      });
     });
   }
 
