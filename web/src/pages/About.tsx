@@ -13,9 +13,12 @@ import { InstallPwaButton } from '@/components/InstallPwaButton';
 const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
 const FET_URL = 'https://lalescu.ro/liviu/fet/';
 const FEEDBACK_URL = 'https://github.com/shogi-dojo/dzvonyk/issues';
-// Monobank «банка». Set once the jar exists; until then the donate button is
-// hidden rather than shipped as a dead link.
-const DONATE_URL = '';
+// Monobank «банка». The donate button is hidden while this is empty, so the
+// page never ships a dead link. Deliberately the shareable jar link and not the
+// jar's card number: this file is public under AGPL, so a card number would
+// live in git history, in every deployed bundle and in every fork, and could
+// not be rotated without recreating the jar.
+const DONATE_URL = 'https://send.monobank.ua/jar/81mYjES3MG';
 
 export function About() {
   const { t } = useTranslation();
