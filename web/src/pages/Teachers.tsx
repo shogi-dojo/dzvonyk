@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Search, Users2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { loadTeachers, addTeacher, updateTeacher, deleteTeacher } from '@/store/
 import type { Teacher } from '@/types';
 
 export function Teachers() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { items: teachers, loading } = useAppSelector((state) => state.teachers);
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,7 +90,7 @@ export function Teachers() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this teacher?')) {
+    if (confirm(t('teachers.confirmDelete'))) {
       dispatch(deleteTeacher(id));
     }
   };
@@ -96,13 +98,13 @@ export function Teachers() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Teachers"
-        description={`Manage teachers for your timetable (${teachers.length} total)`}
+        title={t('teachers.title')}
+        description={t('teachers.description', { count: teachers.length })}
         icon={<Users2 className="h-6 w-6" />}
         actions={
           <Button onClick={openNewDialog} className="gap-2 gradient-primary hover-lift">
             <Plus className="h-4 w-4" />
-            Add Teacher
+            {t('teachers.addTeacher')}
           </Button>
         }
       />
@@ -111,7 +113,7 @@ export function Teachers() {
       <div className="relative max-w-sm animate-slide-up">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search teachers..."
+          placeholder={t('teachers.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
@@ -120,18 +122,18 @@ export function Teachers() {
 
       {/* Teachers List */}
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">{t('common.loading')}</div>
       ) : filteredTeachers.length === 0 ? (
         <Card className="animate-slide-up">
           <CardContent className="py-12">
             <EmptyState
               icon={<Users2 className="h-12 w-12" />}
-              title={searchQuery ? 'No Teachers Found' : 'No Teachers Yet'}
-              description={searchQuery ? 'No teachers match your search.' : 'Get started by adding your first teacher.'}
+              title={searchQuery ? t('teachers.emptyTitleSearch') : t('teachers.emptyTitle')}
+              description={searchQuery ? t('teachers.emptyDescriptionSearch') : t('teachers.emptyDescription')}
               action={!searchQuery && (
                 <Button onClick={openNewDialog} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Add Teacher
+                  {t('teachers.addTeacher')}
                 </Button>
               )}
             />
@@ -173,10 +175,10 @@ export function Teachers() {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {teacher.targetNumberOfHours > 0 && (
-                      <Badge variant="outline">{teacher.targetNumberOfHours}h target</Badge>
+                      <Badge variant="outline">{t('teachers.targetBadge', { count: teacher.targetNumberOfHours })}</Badge>
                     )}
                     {teacher.qualifiedSubjects.length > 0 && (
-                      <Badge variant="secondary">{teacher.qualifiedSubjects.length} subjects</Badge>
+                      <Badge variant="secondary">{t('teachers.subjectsBadge', { count: teacher.qualifiedSubjects.length })}</Badge>
                     )}
                   </div>
                   {teacher.comments && (
@@ -195,47 +197,47 @@ export function Teachers() {
         <DialogContent>
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>{editingTeacher ? 'Edit Teacher' : 'Add Teacher'}</DialogTitle>
+              <DialogTitle>{editingTeacher ? t('teachers.dialog.editTitle') : t('teachers.dialog.addTitle')}</DialogTitle>
               <DialogDescription>
-                {editingTeacher ? 'Update the teacher details below.' : 'Enter the details for the new teacher.'}
+                {editingTeacher ? t('teachers.dialog.editDescription') : t('teachers.dialog.addDescription')}
               </DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name *</Label>
+                <Label htmlFor="name">{t('common.name')} *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., John Smith"
+                  placeholder={t('teachers.dialog.namePlaceholder')}
                   required
                 />
               </div>
-              
+
               <div className="grid gap-2">
-                <Label htmlFor="longName">Long Name</Label>
+                <Label htmlFor="longName">{t('common.longName')}</Label>
                 <Input
                   id="longName"
                   value={formData.longName}
                   onChange={(e) => setFormData({ ...formData, longName: e.target.value })}
-                  placeholder="e.g., Dr. John Smith"
+                  placeholder={t('teachers.dialog.longNamePlaceholder')}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="code">Code</Label>
+                  <Label htmlFor="code">{t('common.code')}</Label>
                   <Input
                     id="code"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    placeholder="e.g., JS"
+                    placeholder={t('teachers.dialog.codePlaceholder')}
                   />
                 </div>
-                
+
                 <div className="grid gap-2">
-                  <Label htmlFor="targetHours">Target Hours</Label>
+                  <Label htmlFor="targetHours">{t('teachers.dialog.targetHoursLabel')}</Label>
                   <Input
                     id="targetHours"
                     type="number"
@@ -245,21 +247,21 @@ export function Teachers() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid gap-2">
-                <Label htmlFor="comments">Comments</Label>
+                <Label htmlFor="comments">{t('common.comments')}</Label>
                 <Input
                   id="comments"
                   value={formData.comments}
                   onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-                  placeholder="Optional notes..."
+                  placeholder={t('teachers.dialog.commentsPlaceholder')}
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingTeacher ? 'Update' : 'Add'}</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{editingTeacher ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

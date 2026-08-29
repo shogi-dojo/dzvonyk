@@ -15,12 +15,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Terser hangs on Termux/Android when minifying the workbox SW template.
+      // Set VITE_DISABLE_PWA=true to skip PWA entirely for deploy builds from Termux.
+      disable: process.env.VITE_DISABLE_PWA === 'true',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'FET - Free Timetabling Software',
-        short_name: 'FET',
-        description: 'Free Educational Timetabling Software for Schools and Universities',
+        name: 'Дзвоник — шкільний розклад',
+        short_name: 'Дзвоник',
+        description: 'Офлайн-планувальник шкільного розкладу для завуча. AGPL-3.0.',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
         display: 'standalone',

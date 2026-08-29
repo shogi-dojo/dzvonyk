@@ -1,0 +1,14 @@
+# Node
+node_modules/
+.vite/
+
+# Playwright
+/web/test-results/
+/web/playwright-report/
+/web/playwright/.cache/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

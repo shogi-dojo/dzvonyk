@@ -62,6 +62,7 @@ export const StudentsSubgroupSchema = StudentsSetSchema.extend({
 export const StudentsGroupSchema = StudentsSetSchema.extend({
   type: z.literal(STUDENTS_GROUP),
   subgroups: z.array(z.string()).default([]),
+  shift: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
 export const StudentsYearSchema = StudentsSetSchema.extend({
@@ -104,6 +105,8 @@ export const ActivitySchema = z.object({
   computeNTotalStudents: z.boolean().default(true),
   nTotalStudents: z.number().min(0).default(0),
   comments: z.string().optional(),
+  shiftOverride: z.union([z.literal(1), z.literal(2)]).optional(),
+  weekParity: z.enum(['both', 'numerator', 'denominator']).optional(),
 });
 
 export const DaySchema = z.object({
@@ -212,6 +215,18 @@ export const TeacherMaxDaysPerWeekConstraintSchema = BaseConstraintSchema.extend
   maxDays: z.number().min(1).max(7),
 });
 
+export const TeacherMinDaysPerWeekConstraintSchema = BaseConstraintSchema.extend({
+  type: z.literal('TeacherMinDaysPerWeek'),
+  teacherId: z.string().min(1),
+  minDays: z.number().min(1).max(7),
+});
+
+export const StudentsSetMaxGapsPerDayConstraintSchema = BaseConstraintSchema.extend({
+  type: z.literal('StudentsSetMaxGapsPerDay'),
+  studentsSetId: z.string().min(1),
+  maxGaps: z.number().min(0).max(20),
+});
+
 // ============ RULES SCHEMA ============
 
 export const TimetableRulesSchema = z.object({
@@ -227,6 +242,10 @@ export const TimetableRulesSchema = z.object({
   nRealHoursPerDay: z.number().optional(),
   nTerms: z.number().optional(),
   nDaysPerTerm: z.number().optional(),
+  shifts: z.object({
+    shift1: z.object({ firstHour: z.number().min(0), lastHour: z.number().min(0) }),
+    shift2: z.object({ firstHour: z.number().min(0), lastHour: z.number().min(0) }),
+  }).optional(),
   modified: z.boolean().default(false),
   createdAt: z.date(),
   updatedAt: z.date(),

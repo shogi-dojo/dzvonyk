@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -10,7 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -33,9 +36,12 @@
     "clsx": "^2.1.1",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
+    "i18next": "^26.4.0",
+    "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^17.0.12",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.12.0",
     "react-window": "^2.2.5",
@@ -45,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -59,10 +66,12 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "firebase-tools": "^15.28.2",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.23.12",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",

@@ -21,6 +21,10 @@ export interface TimetableRulesState {
   nRealHoursPerDay?: number;
   nTerms?: number;
   nDaysPerTerm?: number;
+  shifts?: {
+    shift1: { firstHour: number; lastHour: number };
+    shift2: { firstHour: number; lastHour: number };
+  };
   modified: boolean;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
@@ -129,6 +133,13 @@ const rulesSlice = createSlice({
         state.modified = true;
       }
     },
+    updateShifts: (state, action: PayloadAction<TimetableRulesState['shifts']>) => {
+      if (state.current) {
+        state.current.shifts = action.payload;
+        state.current.updatedAt = new Date().toISOString();
+        state.modified = true;
+      }
+    },
     markAsSaved: (state) => {
       state.modified = false;
       if (state.current) {
@@ -150,6 +161,7 @@ export const {
   updateMode,
   updateDays,
   updateHours,
+  updateShifts,
   markAsSaved,
   clearRules,
 } = rulesSlice.actions;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, ChevronRight, ChevronDown, GraduationCap, Trash2, Pencil, Search, UserPlus, Users } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import { STUDENTS_YEAR, STUDENTS_GROUP, STUDENTS_SUBGROUP } from '@/types';
 type DialogMode = 'year' | 'group' | 'subgroup';
 
 export function Students() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { years, groups, subgroups, loading } = useAppSelector((state) => state.students);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +53,7 @@ export function Students() {
     code: '',
     numberOfStudents: 0,
     comments: '',
+    shift: 0 as 0 | 1 | 2,
   });
 
   useEffect(() => {
@@ -85,6 +88,7 @@ export function Students() {
       code: item?.code || '',
       numberOfStudents: item?.numberOfStudents || 0,
       comments: item?.comments || '',
+      shift: (item && 'shift' in item ? (item as StudentsGroup).shift ?? 0 : 0) as 0 | 1 | 2,
     });
     setIsDialogOpen(true);
   };
@@ -92,17 +96,20 @@ export function Students() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const { shift, ...baseFormData } = formData;
+    const groupShift = shift === 0 ? undefined : shift;
+
     if (dialogMode === 'year') {
       if (editingItem) {
-        dispatch(updateYear({ ...(editingItem as StudentsYear), ...formData }));
+        dispatch(updateYear({ ...(editingItem as StudentsYear), ...baseFormData }));
       } else {
-        dispatch(addYear({ id: uuidv4(), ...formData, type: STUDENTS_YEAR, groups: [], divisions: [], separator: ' ' }));
+        dispatch(addYear({ id: uuidv4(), ...baseFormData, type: STUDENTS_YEAR, groups: [], divisions: [], separator: ' ' }));
       }
     } else if (dialogMode === 'group') {
       if (editingItem) {
-        dispatch(updateGroup({ ...(editingItem as StudentsGroup), ...formData }));
+        dispatch(updateGroup({ ...(editingItem as StudentsGroup), ...baseFormData, shift: groupShift }));
       } else {
-        const newGroup: StudentsGroup = { id: uuidv4(), ...formData, type: STUDENTS_GROUP, subgroups: [] };
+        const newGroup: StudentsGroup = { id: uuidv4(), ...baseFormData, type: STUDENTS_GROUP, subgroups: [], shift: groupShift };
         dispatch(addGroup(newGroup));
         const parentYear = years.find(y => y.id === parentId);
         if (parentYear) {
@@ -111,9 +118,9 @@ export function Students() {
       }
     } else if (dialogMode === 'subgroup') {
       if (editingItem) {
-        dispatch(updateSubgroup({ ...(editingItem as StudentsSubgroup), ...formData }));
+        dispatch(updateSubgroup({ ...(editingItem as StudentsSubgroup), ...baseFormData }));
       } else {
-        const newSubgroup: StudentsSubgroup = { id: uuidv4(), ...formData, type: STUDENTS_SUBGROUP };
+        const newSubgroup: StudentsSubgroup = { id: uuidv4(), ...baseFormData, type: STUDENTS_SUBGROUP };
         dispatch(addSubgroup(newSubgroup));
         const parentGroup = groups.find(g => g.id === parentId);
         if (parentGroup) {
@@ -126,18 +133,18 @@ export function Students() {
   };
 
   const handleDeleteYear = (year: StudentsYear) => {
-    if (!confirm(`Delete year "${year.name}" and all its groups?`)) return;
+    if (!confirm(t('students.confirmDeleteYear', { name: year.name }))) return;
     dispatch(deleteYear(year.id));
   };
 
   const handleDeleteGroup = (group: StudentsGroup, parentYear: StudentsYear) => {
-    if (!confirm(`Delete group "${group.name}" and all its subgroups?`)) return;
+    if (!confirm(t('students.confirmDeleteGroup', { name: group.name }))) return;
     dispatch(deleteGroup(group.id));
     dispatch(updateYear({ ...parentYear, groups: parentYear.groups.filter(g => g !== group.name) }));
   };
 
   const handleDeleteSubgroup = (subgroup: StudentsSubgroup, parentGroup: StudentsGroup) => {
-    if (!confirm(`Delete subgroup "${subgroup.name}"?`)) return;
+    if (!confirm(t('students.confirmDeleteSubgroup', { name: subgroup.name }))) return;
     dispatch(deleteSubgroup(subgroup.id));
     dispatch(updateGroup({ ...parentGroup, subgroups: parentGroup.subgroups.filter(s => s !== subgroup.name) }));
   };
@@ -151,52 +158,52 @@ export function Students() {
   );
 
   const dialogTitles: Record<DialogMode, { title: string; description: string }> = {
-    year: { title: editingItem ? 'Edit Year' : 'Add Year', description: 'A year represents a cohort (e.g., "Grade 10", "Year 1")' },
-    group: { title: editingItem ? 'Edit Group' : 'Add Group', description: 'A group is a subdivision of a year (e.g., "Class A", "Section 1")' },
-    subgroup: { title: editingItem ? 'Edit Subgroup' : 'Add Subgroup', description: 'A subgroup is used for splitting classes (e.g., "Lab Group 1")' },
+    year: { title: editingItem ? t('students.dialog.yearEditTitle') : t('students.dialog.yearAddTitle'), description: t('students.dialog.yearDescription') },
+    group: { title: editingItem ? t('students.dialog.groupEditTitle') : t('students.dialog.groupAddTitle'), description: t('students.dialog.groupDescription') },
+    subgroup: { title: editingItem ? t('students.dialog.subgroupEditTitle') : t('students.dialog.subgroupAddTitle'), description: t('students.dialog.subgroupDescription') },
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Students"
-        description="Manage students organized by years, groups, and subgroups"
+        title={t('students.title')}
+        description={t('students.description')}
         icon={<GraduationCap className="h-6 w-6" />}
         actions={
           <Button onClick={() => openDialog('year')} className="gap-2 gradient-primary hover-lift">
             <Plus className="h-4 w-4" />
-            Add Year
+            {t('students.addYear')}
           </Button>
         }
       />
 
       {/* Statistics */}
       <div className="grid gap-4 md:grid-cols-3 stagger-children">
-        <StatCard title="Years" value={years.length} icon={<GraduationCap className="h-5 w-5" />} />
-        <StatCard title="Groups" value={groups.length} icon={<Users className="h-5 w-5" />} />
-        <StatCard title="Subgroups" value={subgroups.length} icon={<Users className="h-5 w-5" />} />
+        <StatCard title={t('students.stats.years')} value={years.length} icon={<GraduationCap className="h-5 w-5" />} />
+        <StatCard title={t('students.stats.groups')} value={groups.length} icon={<Users className="h-5 w-5" />} />
+        <StatCard title={t('students.stats.subgroups')} value={subgroups.length} icon={<Users className="h-5 w-5" />} />
       </div>
 
       {/* Search */}
       <div className="relative max-w-sm animate-slide-up">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search years..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        <Input placeholder={t('students.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
       </div>
 
       {/* Years List */}
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">{t('common.loading')}</div>
       ) : filteredYears.length === 0 ? (
         <Card className="animate-slide-up">
           <CardContent className="py-12">
             <EmptyState
               icon={<GraduationCap className="h-12 w-12" />}
-              title={searchQuery ? 'No Years Found' : 'No Student Years Yet'}
-              description={searchQuery ? 'No matching years found.' : 'Get started by adding your first student year.'}
+              title={searchQuery ? t('students.emptyTitleSearch') : t('students.emptyTitle')}
+              description={searchQuery ? t('students.emptyDescriptionSearch') : t('students.emptyDescription')}
               action={!searchQuery && (
                 <Button onClick={() => openDialog('year')} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Add Year
+                  {t('students.addYear')}
                 </Button>
               )}
             />
@@ -225,8 +232,8 @@ export function Students() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{year.numberOfStudents} students</Badge>
-                      <Badge variant="secondary">{yearGroups.length} groups</Badge>
+                      <Badge variant="outline">{t('students.studentsCount', { count: year.numberOfStudents })}</Badge>
+                      <Badge variant="secondary">{t('students.groupsCount', { count: yearGroups.length })}</Badge>
                       <Button variant="ghost" size="icon" onClick={() => openDialog('group', year.id)}><UserPlus className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => openDialog('year', undefined, year)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDeleteYear(year)}><Trash2 className="h-4 w-4" /></Button>
@@ -251,11 +258,11 @@ export function Students() {
                                   </button>
                                 )}
                                 <span className="font-medium text-foreground">{group.name}</span>
-                                <Badge variant="outline" className="text-xs">{group.numberOfStudents} students</Badge>
+                                <Badge variant="outline" className="text-xs">{t('students.studentsCount', { count: group.numberOfStudents })}</Badge>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Button variant="ghost" size="sm" onClick={() => openDialog('subgroup', group.id)}>
-                                  <UserPlus className="h-3 w-3 mr-1" />Subgroup
+                                  <UserPlus className="h-3 w-3 mr-1" />{t('students.subgroup')}
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog('group', year.id, group)}><Pencil className="h-3 w-3" /></Button>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteGroup(group, year)}><Trash2 className="h-3 w-3" /></Button>
@@ -288,7 +295,7 @@ export function Students() {
                 {isExpanded && yearGroups.length === 0 && (
                   <CardContent className="pt-0">
                     <div className="ml-8 py-2 text-sm text-muted-foreground italic">
-                      No groups yet. Click <UserPlus className="h-4 w-4 inline" /> to add a group.
+                      {t('students.noGroups')}
                     </div>
                   </CardContent>
                 )}
@@ -309,26 +316,41 @@ export function Students() {
             
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder={dialogMode === 'year' ? 'e.g., Year 1' : dialogMode === 'group' ? 'e.g., Class A' : 'e.g., Lab 1'} required />
+                <Label htmlFor="name">{t('common.name')} *</Label>
+                <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder={dialogMode === 'year' ? t('students.dialog.namePlaceholderYear') : dialogMode === 'group' ? t('students.dialog.namePlaceholderGroup') : t('students.dialog.namePlaceholderSubgroup')} required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="longName">Long Name</Label>
+                <Label htmlFor="longName">{t('common.longName')}</Label>
                 <Input id="longName" value={formData.longName} onChange={(e) => setFormData({ ...formData, longName: e.target.value })} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="numberOfStudents">Number of Students</Label>
+                <Label htmlFor="numberOfStudents">{t('students.dialog.numberOfStudents')}</Label>
                 <Input id="numberOfStudents" type="number" min="0" value={formData.numberOfStudents} onChange={(e) => setFormData({ ...formData, numberOfStudents: parseInt(e.target.value) || 0 })} />
               </div>
+              {dialogMode === 'group' && (
+                <div className="grid gap-2">
+                  <Label htmlFor="shift">{t('students.dialog.shift')}</Label>
+                  <select
+                    id="shift"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={formData.shift}
+                    onChange={(e) => setFormData({ ...formData, shift: (parseInt(e.target.value) || 0) as 0 | 1 | 2 })}
+                  >
+                    <option value={0}>{t('students.dialog.shiftNone')}</option>
+                    <option value={1}>{t('students.dialog.shift1')}</option>
+                    <option value={2}>{t('students.dialog.shift2')}</option>
+                  </select>
+                </div>
+              )}
               <div className="grid gap-2">
-                <Label htmlFor="comments">Comments</Label>
+                <Label htmlFor="comments">{t('common.comments')}</Label>
                 <Input id="comments" value={formData.comments} onChange={(e) => setFormData({ ...formData, comments: e.target.value })} />
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingItem ? 'Update' : 'Add'}</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{editingItem ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

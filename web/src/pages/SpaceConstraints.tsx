@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Search, Building2, Pencil } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Trash2, Search, Building2, Pencil } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,101 +15,32 @@ import type { SpaceConstraint, TimeSlot } from '@/types';
 
 // Constraint type definitions
 interface ConstraintTypeDef {
-  label: string;
-  description: string;
   category: string;
   fields: string[];
 }
 const SPACE_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
-  'BasicCompulsorySpace': {
-    label: 'Basic Compulsory Space',
-    description: 'Ensures rooms don\'t have overlapping activities. Required for valid timetables.',
-    category: 'basic',
-    fields: []
-  },
-  'RoomNotAvailableTimes': {
-    label: 'Room Not Available Times',
-    description: 'Specify times when a room is unavailable.',
-    category: 'room',
-    fields: ['room', 'times']
-  },
-  'ActivityPreferredRoom': {
-    label: 'Activity Preferred Room',
-    description: 'Set a preferred room for a specific activity.',
-    category: 'activity',
-    fields: ['activity', 'room', 'locked']
-  },
-  'ActivityPreferredRooms': {
-    label: 'Activity Preferred Rooms',
-    description: 'Set multiple preferred rooms for an activity (any can be used).',
-    category: 'activity',
-    fields: ['activity', 'rooms']
-  },
-  'SubjectPreferredRoom': {
-    label: 'Subject Preferred Room',
-    description: 'All activities for a subject should use this room.',
-    category: 'subject',
-    fields: ['subject', 'room']
-  },
-  'SubjectPreferredRooms': {
-    label: 'Subject Preferred Rooms',
-    description: 'All activities for a subject can use any of these rooms.',
-    category: 'subject',
-    fields: ['subject', 'rooms']
-  },
-  'SubjectActivityTagPreferredRoom': {
-    label: 'Subject + Activity Tag Preferred Room',
-    description: 'Activities with specific subject and activity tag should use this room.',
-    category: 'subject',
-    fields: ['subject', 'activityTag', 'room']
-  },
-  'SubjectActivityTagPreferredRooms': {
-    label: 'Subject + Activity Tag Preferred Rooms',
-    description: 'Activities with specific subject and activity tag can use any of these rooms.',
-    category: 'subject',
-    fields: ['subject', 'activityTag', 'rooms']
-  },
-  'TeacherHomeRoom': {
-    label: 'Teacher Home Room',
-    description: 'Define a home room for a teacher.',
-    category: 'teacher',
-    fields: ['teacher', 'room']
-  },
-  'TeacherHomeRooms': {
-    label: 'Teacher Home Rooms',
-    description: 'Define multiple home rooms for a teacher.',
-    category: 'teacher',
-    fields: ['teacher', 'rooms']
-  },
-  'StudentsSetHomeRoom': {
-    label: 'Students Home Room',
-    description: 'Define a home room for a student group.',
-    category: 'students',
-    fields: ['studentsSet', 'room']
-  },
-  'StudentsSetHomeRooms': {
-    label: 'Students Home Rooms',
-    description: 'Define multiple home rooms for a student group.',
-    category: 'students',
-    fields: ['studentsSet', 'rooms']
-  },
-  'ActivityTagPreferredRoom': {
-    label: 'Activity Tag Preferred Room',
-    description: 'All activities with this tag should use this room.',
-    category: 'activityTag',
-    fields: ['activityTag', 'room']
-  },
-  'ActivityTagPreferredRooms': {
-    label: 'Activity Tag Preferred Rooms',
-    description: 'All activities with this tag can use any of these rooms.',
-    category: 'activityTag',
-    fields: ['activityTag', 'rooms']
-  },
+  'BasicCompulsorySpace': { category: 'basic', fields: [] },
+  'RoomNotAvailableTimes': { category: 'room', fields: ['room', 'times'] },
+  'ActivityPreferredRoom': { category: 'activity', fields: ['activity', 'room', 'locked'] },
+  'ActivityPreferredRooms': { category: 'activity', fields: ['activity', 'rooms'] },
+  'SubjectPreferredRoom': { category: 'subject', fields: ['subject', 'room'] },
+  'SubjectPreferredRooms': { category: 'subject', fields: ['subject', 'rooms'] },
+  'SubjectActivityTagPreferredRoom': { category: 'subject', fields: ['subject', 'activityTag', 'room'] },
+  'SubjectActivityTagPreferredRooms': { category: 'subject', fields: ['subject', 'activityTag', 'rooms'] },
+  'TeacherHomeRoom': { category: 'teacher', fields: ['teacher', 'room'] },
+  'TeacherHomeRooms': { category: 'teacher', fields: ['teacher', 'rooms'] },
+  'StudentsSetHomeRoom': { category: 'students', fields: ['studentsSet', 'room'] },
+  'StudentsSetHomeRooms': { category: 'students', fields: ['studentsSet', 'rooms'] },
+  'ActivityTagPreferredRoom': { category: 'activityTag', fields: ['activityTag', 'room'] },
+  'ActivityTagPreferredRooms': { category: 'activityTag', fields: ['activityTag', 'rooms'] },
 };
 
 type SpaceConstraintTypeKey = keyof typeof SPACE_CONSTRAINT_TYPES;
 
 export function SpaceConstraints() {
+  const { t } = useTranslation();
+  const typeLabel = (key: string) => t(`spaceConstraints.types.${key}.label`, { defaultValue: key });
+  const typeDescription = (key: string) => t(`spaceConstraints.types.${key}.description`, { defaultValue: '' });
   const dispatch = useAppDispatch();
   const { spaceConstraints } = useAppSelector((state) => state.constraints);
   const { rooms } = useAppSelector((state) => state.rooms);
@@ -145,65 +77,67 @@ export function SpaceConstraints() {
   // Student options
   const studentOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
-    years.forEach(y => opts.push({ value: y.name, label: `${y.name} (Year)` }));
-    groups.forEach(g => opts.push({ value: g.name, label: `${g.name} (Group)` }));
+    years.forEach(y => opts.push({ value: y.name, label: t('activities.studentLabelYear', { name: y.name }) }));
+    groups.forEach(g => opts.push({ value: g.name, label: t('activities.studentLabelGroup', { name: g.name }) }));
     return opts;
-  }, [years, groups]);
+  }, [years, groups, t]);
 
   // Helper functions
   const getRoomDisplayName = (idOrName: string): string => {
     const room = rooms.find(r => r.id === idOrName || r.name === idOrName);
     if (room) return room.name;
-    return idOrName || 'Unknown';
+    return idOrName || t('spaceConstraints.unknown');
   };
 
   const getSubjectDisplayName = (idOrName: string): string => {
     const subject = subjects.find(s => s.id === idOrName || s.name === idOrName);
-    return subject?.name || idOrName || 'Unknown';
+    return subject?.name || idOrName || t('spaceConstraints.unknown');
   };
 
   const getActivityDisplayName = (id: string): string => {
     const activity = activities.find(a => a.id === id);
-    if (activity) return `${activity.subjectId} - ${activity.teacherIds.join(', ') || 'No teacher'} (${activity.duration}h)`;
+    if (activity) return t('timeConstraints.activityLabel', { subject: activity.subjectId, teachers: activity.teacherIds.join(', ') || t('timeConstraints.noTeacher'), duration: activity.duration });
     return id;
   };
 
   const getTeacherDisplayName = (idOrName: string): string => {
-    const teacher = teachers.find(t => t.id === idOrName || t.name === idOrName);
-    return teacher?.name || idOrName || 'Unknown';
+    const teacher = teachers.find(tt => tt.id === idOrName || tt.name === idOrName);
+    return teacher?.name || idOrName || t('spaceConstraints.unknown');
   };
 
   function getConstraintDescription(constraint: SpaceConstraint): string {
     const c = constraint as any;
     switch (constraint.type) {
       case 'BasicCompulsorySpace':
-        return 'Basic space validity constraint';
+        return t('spaceConstraints.descriptions.basic');
       case 'RoomNotAvailableTimes':
-        return `${getRoomDisplayName(c.roomId)}: ${c.times?.length || 0} unavailable slots`;
+        return t('spaceConstraints.descriptions.roomUnavail', { room: getRoomDisplayName(c.roomId), count: c.times?.length || 0 });
       case 'ActivityPreferredRoom':
-        return `Activity → ${getRoomDisplayName(c.roomId)}${c.permanentlyLocked ? ' (Locked)' : ''}`;
+        return c.permanentlyLocked
+          ? t('spaceConstraints.descriptions.activityToRoomLocked', { room: getRoomDisplayName(c.roomId) })
+          : t('spaceConstraints.descriptions.activityToRoom', { room: getRoomDisplayName(c.roomId) });
       case 'ActivityPreferredRooms':
-        return `Activity → ${c.roomIds?.length || 0} rooms`;
+        return t('spaceConstraints.descriptions.activityToRooms', { count: c.roomIds?.length || 0 });
       case 'SubjectPreferredRoom':
-        return `${getSubjectDisplayName(c.subjectId)} → ${getRoomDisplayName(c.roomId)}`;
+        return t('spaceConstraints.descriptions.subjectToRoom', { subject: getSubjectDisplayName(c.subjectId), room: getRoomDisplayName(c.roomId) });
       case 'SubjectPreferredRooms':
-        return `${getSubjectDisplayName(c.subjectId)} → ${c.roomIds?.length || 0} rooms`;
+        return t('spaceConstraints.descriptions.subjectToRooms', { subject: getSubjectDisplayName(c.subjectId), count: c.roomIds?.length || 0 });
       case 'SubjectActivityTagPreferredRoom':
-        return `${getSubjectDisplayName(c.subjectId)} + ${c.activityTagId} → ${getRoomDisplayName(c.roomId)}`;
+        return t('spaceConstraints.descriptions.subjectTagToRoom', { subject: getSubjectDisplayName(c.subjectId), tag: c.activityTagId, room: getRoomDisplayName(c.roomId) });
       case 'SubjectActivityTagPreferredRooms':
-        return `${getSubjectDisplayName(c.subjectId)} + ${c.activityTagId} → ${c.roomIds?.length || 0} rooms`;
+        return t('spaceConstraints.descriptions.subjectTagToRooms', { subject: getSubjectDisplayName(c.subjectId), tag: c.activityTagId, count: c.roomIds?.length || 0 });
       case 'TeacherHomeRoom':
-        return `${getTeacherDisplayName(c.teacherId)} → ${getRoomDisplayName(c.roomId)}`;
+        return t('spaceConstraints.descriptions.teacherToRoom', { teacher: getTeacherDisplayName(c.teacherId), room: getRoomDisplayName(c.roomId) });
       case 'TeacherHomeRooms':
-        return `${getTeacherDisplayName(c.teacherId)} → ${c.roomIds?.length || 0} rooms`;
+        return t('spaceConstraints.descriptions.teacherToRooms', { teacher: getTeacherDisplayName(c.teacherId), count: c.roomIds?.length || 0 });
       case 'StudentsSetHomeRoom':
-        return `${c.studentsSetId} → ${getRoomDisplayName(c.roomId)}`;
+        return t('spaceConstraints.descriptions.studentsToRoom', { students: c.studentsSetId, room: getRoomDisplayName(c.roomId) });
       case 'StudentsSetHomeRooms':
-        return `${c.studentsSetId} → ${c.roomIds?.length || 0} rooms`;
+        return t('spaceConstraints.descriptions.studentsToRooms', { students: c.studentsSetId, count: c.roomIds?.length || 0 });
       case 'ActivityTagPreferredRoom':
-        return `Tag "${c.activityTagId}" → ${getRoomDisplayName(c.roomId)}`;
+        return t('spaceConstraints.descriptions.tagToRoom', { tag: c.activityTagId, room: getRoomDisplayName(c.roomId) });
       case 'ActivityTagPreferredRooms':
-        return `Tag "${c.activityTagId}" → ${c.roomIds?.length || 0} rooms`;
+        return t('spaceConstraints.descriptions.tagToRooms', { tag: c.activityTagId, count: c.roomIds?.length || 0 });
       default:
         return '';
     }
@@ -214,12 +148,11 @@ export function SpaceConstraints() {
     if (!searchQuery) return spaceConstraints;
     const query = searchQuery.toLowerCase();
     return spaceConstraints.filter((c) => {
-      const typeInfo = SPACE_CONSTRAINT_TYPES[c.type as SpaceConstraintTypeKey];
-      const label = typeInfo?.label?.toLowerCase() || c.type.toLowerCase();
+      const label = typeLabel(c.type).toLowerCase();
       const desc = getConstraintDescription(c).toLowerCase();
       return label.includes(query) || desc.includes(query) || c.type.toLowerCase().includes(query);
     });
-  }, [spaceConstraints, searchQuery, rooms, subjects, teachers]);
+  }, [spaceConstraints, searchQuery, rooms, subjects, teachers, t]);
 
   // Pagination
   const {
@@ -347,15 +280,15 @@ export function SpaceConstraints() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this constraint?')) {
+    if (confirm(t('spaceConstraints.confirmDelete'))) {
       await dispatch(deleteSpaceConstraint(id));
     }
   };
 
   const toggleTimeSlot = (day: number, hour: number) => {
-    const exists = selectedTimes.some(t => t.day === day && t.hour === hour);
+    const exists = selectedTimes.some(ts => ts.day === day && ts.hour === hour);
     if (exists) {
-      setSelectedTimes(selectedTimes.filter(t => !(t.day === day && t.hour === hour)));
+      setSelectedTimes(selectedTimes.filter(ts => !(ts.day === day && ts.hour === hour)));
     } else {
       setSelectedTimes([...selectedTimes, { day, hour }]);
     }
@@ -389,16 +322,15 @@ export function SpaceConstraints() {
     return cats;
   }, []);
 
-  const typeInfo = SPACE_CONSTRAINT_TYPES[selectedType];
-  const fields = typeInfo?.fields || [];
+  const fields = SPACE_CONSTRAINT_TYPES[selectedType]?.fields || [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Space Constraints</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('spaceConstraints.title')}</h1>
           <p className="text-muted-foreground">
-            Define where activities can and cannot be scheduled ({spaceConstraints.length} total)
+            {t('spaceConstraints.description', { count: spaceConstraints.length })}
           </p>
         </div>
       </div>
@@ -406,100 +338,23 @@ export function SpaceConstraints() {
       {/* Add Constraint Section */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground">Add New Space Constraint</CardTitle>
-          <CardDescription className="text-muted-foreground">Select a constraint type to add</CardDescription>
+          <CardTitle className="text-foreground">{t('spaceConstraints.addTitle')}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t('spaceConstraints.addDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Basic Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Basic</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.basic.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
-                  {SPACE_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
+          {(['basic', 'room', 'activity', 'subject', 'activityTag', 'teacher', 'students'] as const).map((cat) => (
+            <div key={cat}>
+              <h3 className="text-sm font-medium text-secondary-foreground mb-2">{t(`spaceConstraints.categories.${cat}`)}</h3>
+              <div className="flex flex-wrap gap-2">
+                {constraintsByCategory[cat].map((type) => (
+                  <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
+                    {typeLabel(type)}
+                    <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Room Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Room Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.room.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
-                  {SPACE_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Activity Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Activity Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.activity.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
-                  {SPACE_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Subject Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Subject Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.subject.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
-                  {SPACE_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Activity Tag Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Activity Tag Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.activityTag.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
-                  {SPACE_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Teacher Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Teacher Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.teacher.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
-                  {SPACE_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Students Constraints */}
-          <div>
-            <h3 className="text-sm font-medium text-secondary-foreground mb-2">Students Constraints</h3>
-            <div className="flex flex-wrap gap-2">
-              {constraintsByCategory.students.map((type) => (
-                <Button key={type} variant="outline" size="sm" onClick={() => openAddDialog(type)}>
-                  {SPACE_CONSTRAINT_TYPES[type].label}
-                  <Badge variant="secondary" className="ml-2">{getConstraintCount(type)}</Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -507,7 +362,7 @@ export function SpaceConstraints() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search constraints..."
+          placeholder={t('spaceConstraints.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 bg-card border-border"
@@ -517,22 +372,22 @@ export function SpaceConstraints() {
       {/* Constraints List */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground">All Space Constraints</CardTitle>
+          <CardTitle className="text-foreground">{t('spaceConstraints.listTitle')}</CardTitle>
           <CardDescription className="text-muted-foreground">
-            {filteredConstraints.length} constraint(s) {searchQuery ? 'found' : 'defined'}
+            {t('spaceConstraints.listCount', { count: filteredConstraints.length, status: searchQuery ? t('spaceConstraints.statusFound') : t('spaceConstraints.statusDefined') })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredConstraints.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchQuery ? 'No constraints match your search.' : 'No space constraints added yet.'}
+              {searchQuery ? t('spaceConstraints.emptySearch') : t('spaceConstraints.empty')}
             </div>
           ) : (
             <>
               <div className="space-y-2">
                 {paginatedConstraints.map((constraint) => (
-                  <div 
-                    key={constraint.id} 
+                  <div
+                    key={constraint.id}
                     className="p-4 rounded-lg border border-border bg-card flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3 flex-1">
@@ -540,10 +395,10 @@ export function SpaceConstraints() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-medium text-foreground">
-                            {SPACE_CONSTRAINT_TYPES[constraint.type as SpaceConstraintTypeKey]?.label || constraint.type}
+                            {typeLabel(constraint.type)}
                           </span>
                           <Badge variant={constraint.active ? 'default' : 'secondary'}>
-                            {constraint.active ? 'Active' : 'Inactive'}
+                            {constraint.active ? t('common.active') : t('common.inactive')}
                           </Badge>
                           <Badge variant="outline" className="text-muted-foreground">
                             {constraint.weightPercentage}%
@@ -583,17 +438,19 @@ export function SpaceConstraints() {
         <DialogContent className="bg-card max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {dialogMode === 'edit' ? 'Edit' : 'Add'} {typeInfo?.label}
+              {dialogMode === 'edit'
+                ? t('spaceConstraints.dialog.editTitle', { label: typeLabel(selectedType) })
+                : t('spaceConstraints.dialog.addTitle', { label: typeLabel(selectedType) })}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {typeInfo?.description}
+              {typeDescription(selectedType)}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {/* Weight */}
             <div className="grid gap-2">
-              <Label className="text-secondary-foreground">Weight Percentage</Label>
+              <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.weight')}</Label>
               <Input
                 type="number"
                 min="0"
@@ -602,7 +459,7 @@ export function SpaceConstraints() {
                 onChange={(e) => setWeight(e.target.value)}
                 className="bg-background border-border"
               />
-              <p className="text-xs text-muted-foreground">100% = mandatory, lower = preferred</p>
+              <p className="text-xs text-muted-foreground">{t('spaceConstraints.dialog.weightHint')}</p>
             </div>
 
             {/* Active */}
@@ -614,19 +471,19 @@ export function SpaceConstraints() {
                 onChange={(e) => setActive(e.target.checked)}
                 className="h-4 w-4"
               />
-              <Label htmlFor="active" className="text-secondary-foreground">Active</Label>
+              <Label htmlFor="active" className="text-secondary-foreground">{t('spaceConstraints.dialog.active')}</Label>
             </div>
 
             {/* Single Room field */}
             {fields.includes('room') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Room</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.room')}</Label>
                 <select
                   value={roomId}
                   onChange={(e) => setRoomId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select a room</option>
+                  <option value="">{t('spaceConstraints.dialog.selectRoom')}</option>
                   {rooms.map((r) => (
                     <option key={r.id} value={r.name}>{r.name}{r.capacity ? ` [${r.capacity}]` : ''}</option>
                   ))}
@@ -637,10 +494,10 @@ export function SpaceConstraints() {
             {/* Multiple Rooms field */}
             {fields.includes('rooms') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Rooms ({selectedRoomIds.length} selected)</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.rooms', { count: selectedRoomIds.length })}</Label>
                 <div className="max-h-48 overflow-y-auto border border-border rounded-md bg-background p-2">
                   {rooms.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No rooms available</p>
+                    <p className="text-muted-foreground text-sm">{t('spaceConstraints.dialog.noRooms')}</p>
                   ) : (
                     rooms.map((r) => (
                       <div 
@@ -667,13 +524,13 @@ export function SpaceConstraints() {
             {/* Activity field */}
             {fields.includes('activity') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Activity</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.activity')}</Label>
                 <select
                   value={activityId}
                   onChange={(e) => setActivityId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select an activity</option>
+                  <option value="">{t('spaceConstraints.dialog.selectActivity')}</option>
                   {activities.map((a) => (
                     <option key={a.id} value={a.id}>{getActivityDisplayName(a.id)}</option>
                   ))}
@@ -684,13 +541,13 @@ export function SpaceConstraints() {
             {/* Subject field */}
             {fields.includes('subject') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Subject</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.subject')}</Label>
                 <select
                   value={subjectId}
                   onChange={(e) => setSubjectId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select a subject</option>
+                  <option value="">{t('spaceConstraints.dialog.selectSubject')}</option>
                   {subjects.map((s) => (
                     <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
@@ -701,13 +558,13 @@ export function SpaceConstraints() {
             {/* Activity Tag field */}
             {fields.includes('activityTag') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Activity Tag</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.activityTag')}</Label>
                 <select
                   value={activityTagId}
                   onChange={(e) => setActivityTagId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select an activity tag</option>
+                  <option value="">{t('spaceConstraints.dialog.selectActivityTag')}</option>
                   {activityTags.map((tag) => (
                     <option key={tag.id} value={tag.name}>{tag.name}</option>
                   ))}
@@ -718,15 +575,15 @@ export function SpaceConstraints() {
             {/* Teacher field */}
             {fields.includes('teacher') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Teacher</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.teacher')}</Label>
                 <select
                   value={teacherId}
                   onChange={(e) => setTeacherId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select a teacher</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.name}>{t.name}</option>
+                  <option value="">{t('spaceConstraints.dialog.selectTeacher')}</option>
+                  {teachers.map((tt) => (
+                    <option key={tt.id} value={tt.name}>{tt.name}</option>
                   ))}
                 </select>
               </div>
@@ -735,13 +592,13 @@ export function SpaceConstraints() {
             {/* Students Set field */}
             {fields.includes('studentsSet') && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Students Set</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.studentsSet')}</Label>
                 <select
                   value={studentsSetId}
                   onChange={(e) => setStudentsSetId(e.target.value)}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground"
                 >
-                  <option value="">Select a student group</option>
+                  <option value="">{t('spaceConstraints.dialog.selectStudentsSet')}</option>
                   {studentOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
@@ -760,7 +617,7 @@ export function SpaceConstraints() {
                   className="h-4 w-4"
                 />
                 <Label htmlFor="locked" className="text-secondary-foreground">
-                  Permanently Locked
+                  {t('spaceConstraints.dialog.locked')}
                 </Label>
               </div>
             )}
@@ -768,7 +625,7 @@ export function SpaceConstraints() {
             {/* Time Slots Grid */}
             {fields.includes('times') && days.length > 0 && hours.length > 0 && (
               <div className="grid gap-2">
-                <Label className="text-secondary-foreground">Time Slots ({selectedTimes.length} selected)</Label>
+                <Label className="text-secondary-foreground">{t('spaceConstraints.dialog.timeSlots', { count: selectedTimes.length })}</Label>
                 <div className="overflow-x-auto border border-border rounded-md bg-background p-2">
                   <table className="min-w-full">
                     <thead>
@@ -784,7 +641,7 @@ export function SpaceConstraints() {
                         <tr key={hourIdx}>
                           <td className="p-1 text-xs text-muted-foreground whitespace-nowrap">{h.name}</td>
                           {days.map((_, dayIdx) => {
-                            const isSelected = selectedTimes.some(t => t.day === dayIdx && t.hour === hourIdx);
+                            const isSelected = selectedTimes.some(ts => ts.day === dayIdx && ts.hour === hourIdx);
                             return (
                               <td key={dayIdx} className="p-1">
                                 <button
@@ -807,9 +664,9 @@ export function SpaceConstraints() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('common.cancel')}</Button>
             <Button onClick={handleSubmit}>
-              {dialogMode === 'edit' ? 'Update' : 'Add'} Constraint
+              {dialogMode === 'edit' ? t('spaceConstraints.dialog.submitEdit') : t('spaceConstraints.dialog.submitAdd')}
             </Button>
           </DialogFooter>
         </DialogContent>

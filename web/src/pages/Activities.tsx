@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Search, Calendar, Check, X, Tag, ChevronDown, ChevronRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { loadActivityTags, addActivityTag, updateActivityTag, deleteActivityTag 
 import type { Activity, ActivityTag } from '@/types';
 
 export function Activities() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { items: activities, loading } = useAppSelector((state) => state.activities);
   const teachers = useAppSelector((state) => state.teachers.items);
@@ -54,6 +56,8 @@ export function Activities() {
     duration: 1,
     nTotalStudents: 0,
     active: true,
+    shiftOverride: 0 as 0 | 1 | 2,
+    weekParity: 'both' as 'both' | 'numerator' | 'denominator',
   });
 
   useEffect(() => {
@@ -96,10 +100,10 @@ export function Activities() {
 
   const studentOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
-    years.forEach(y => opts.push({ value: y.name, label: `${y.name} (Year)` }));
-    groups.forEach(g => opts.push({ value: g.name, label: `${g.name} (Group)` }));
+    years.forEach(y => opts.push({ value: y.name, label: t('activities.studentLabelYear', { name: y.name }) }));
+    groups.forEach(g => opts.push({ value: g.name, label: t('activities.studentLabelGroup', { name: g.name }) }));
     return opts;
-  }, [years, groups]);
+  }, [years, groups, t]);
 
   // Activity Tag Functions
   const openNewTagDialog = () => {
@@ -132,7 +136,7 @@ export function Activities() {
   };
 
   const handleTagDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this activity tag?')) {
+    if (confirm(t('activities.tags.confirmDelete'))) {
       dispatch(deleteActivityTag(id));
     }
   };
@@ -140,7 +144,7 @@ export function Activities() {
   // Activity Functions
   const openNewDialog = () => {
     setEditingActivity(null);
-    setFormData({ subjectId: '', teacherIds: [], studentSetIds: [], activityTagIds: [], duration: 1, nTotalStudents: 0, active: true });
+    setFormData({ subjectId: '', teacherIds: [], studentSetIds: [], activityTagIds: [], duration: 1, nTotalStudents: 0, active: true, shiftOverride: 0, weekParity: 'both' });
     setIsDialogOpen(true);
   };
 
@@ -154,6 +158,8 @@ export function Activities() {
       duration: activity.duration,
       nTotalStudents: activity.nTotalStudents,
       active: activity.active,
+      shiftOverride: (activity.shiftOverride ?? 0) as 0 | 1 | 2,
+      weekParity: activity.weekParity ?? 'both',
     });
     setIsDialogOpen(true);
   };
@@ -169,16 +175,23 @@ export function Activities() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const { shiftOverride, weekParity, ...rest } = formData;
+    const payload = {
+      ...rest,
+      shiftOverride: shiftOverride === 0 ? undefined : shiftOverride,
+      weekParity: weekParity === 'both' ? undefined : weekParity,
+      totalDuration: formData.duration,
+    };
     if (editingActivity) {
-      dispatch(updateActivity({ ...editingActivity, ...formData, totalDuration: formData.duration }));
+      dispatch(updateActivity({ ...editingActivity, ...payload }));
     } else {
-      dispatch(addActivity({ id: uuidv4(), activityGroupId: 0, ...formData, totalDuration: formData.duration, computeNTotalStudents: true }));
+      dispatch(addActivity({ id: uuidv4(), activityGroupId: 0, ...payload, computeNTotalStudents: true }));
     }
     setIsDialogOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Delete this activity?')) {
+    if (confirm(t('activities.confirmDelete'))) {
       dispatch(deleteActivity(id));
     }
   };
@@ -190,13 +203,13 @@ export function Activities() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Activities"
-        description={`Manage activities (lessons) - ${activities.length} total, ${activities.filter(a => a.active).length} active`}
+        title={t('activities.title')}
+        description={t('activities.description', { total: activities.length, active: activities.filter(a => a.active).length })}
         icon={<Calendar className="h-6 w-6" />}
         actions={
           <Button onClick={openNewDialog} className="gap-2 gradient-primary hover-lift">
             <Plus className="h-4 w-4" />
-            Add Activity
+            {t('activities.addActivity')}
           </Button>
         }
       />
@@ -210,14 +223,14 @@ export function Activities() {
                 <Tag className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <CardTitle className="text-lg">Activity Tags</CardTitle>
-                <CardDescription>{activityTags.length} tag{activityTags.length !== 1 ? 's' : ''} defined</CardDescription>
+                <CardTitle className="text-lg">{t('activities.tags.sectionTitle')}</CardTitle>
+                <CardDescription>{t('activities.tags.sectionCount', { count: activityTags.length })}</CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openNewTagDialog(); }}>
                 <Plus className="mr-1 h-4 w-4" />
-                Add Tag
+                {t('activities.tags.addTag')}
               </Button>
               {tagsExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
             </div>
@@ -229,13 +242,13 @@ export function Activities() {
             {activityTags.length > 5 && (
               <div className="relative max-w-sm mb-4">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search tags..." value={tagSearchQuery} onChange={(e) => setTagSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
+                <Input placeholder={t('activities.tags.searchPlaceholder')} value={tagSearchQuery} onChange={(e) => setTagSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
               </div>
             )}
             
             {filteredTags.length === 0 ? (
               <p className="text-muted-foreground text-sm py-4 text-center">
-                {tagSearchQuery ? 'No tags match your search.' : 'No activity tags defined yet. Click "Add Tag" to create one.'}
+                {tagSearchQuery ? t('activities.tags.emptySearch') : t('activities.tags.empty')}
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -263,23 +276,23 @@ export function Activities() {
       {/* Search Activities */}
       <div className="relative max-w-sm animate-slide-up" style={{ animationDelay: '50ms' }}>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search activities..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        <Input placeholder={t('activities.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
       </div>
 
       {/* Activities List */}
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground animate-pulse-subtle">{t('common.loading')}</div>
       ) : filteredActivities.length === 0 ? (
         <Card className="animate-slide-up">
           <CardContent className="py-12">
             <EmptyState
               icon={<Calendar className="h-12 w-12" />}
-              title={searchQuery ? 'No Activities Found' : 'No Activities Yet'}
-              description={searchQuery ? 'No activities match your search.' : 'Get started by adding your first activity.'}
+              title={searchQuery ? t('activities.emptyTitleSearch') : t('activities.emptyTitle')}
+              description={searchQuery ? t('activities.emptyDescriptionSearch') : t('activities.emptyDescription')}
               action={!searchQuery && (
                 <Button onClick={openNewDialog} className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Add Activity
+                  {t('activities.addActivity')}
                 </Button>
               )}
             />
@@ -301,13 +314,13 @@ export function Activities() {
                         <div>
                           <CardTitle className="text-lg">{subject?.name || activity.subjectId}</CardTitle>
                           <CardDescription>
-                            Duration: {activity.duration} hour{activity.duration > 1 ? 's' : ''}
-                            {activity.teacherIds.length > 0 && ` • Teacher: ${activity.teacherIds.join(', ')}`}
+                            {t('activities.durationLine', { count: activity.duration })}
+                            {activity.teacherIds.length > 0 && t('activities.teacherLine', { name: activity.teacherIds.join(', ') })}
                           </CardDescription>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => toggleActive(activity)} title={activity.active ? 'Deactivate' : 'Activate'}>
+                        <Button variant="ghost" size="icon" onClick={() => toggleActive(activity)} title={activity.active ? t('activities.deactivate') : t('activities.activate')}>
                           {activity.active ? <Check className="h-4 w-4 text-success" /> : <X className="h-4 w-4 text-muted-foreground" />}
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(activity)}>
@@ -330,7 +343,7 @@ export function Activities() {
                           {t}
                         </Badge>
                       ))}
-                      {!activity.active && <Badge variant="destructive">Inactive</Badge>}
+                      {!activity.active && <Badge variant="destructive">{t('activities.inactiveBadge')}</Badge>}
                     </div>
                   </CardContent>
                 </Card>
@@ -346,36 +359,36 @@ export function Activities() {
         <DialogContent>
           <form onSubmit={handleTagSubmit}>
             <DialogHeader>
-              <DialogTitle>{editingTag ? 'Edit Activity Tag' : 'Add Activity Tag'}</DialogTitle>
-              <DialogDescription>Activity tags help categorize and filter activities</DialogDescription>
+              <DialogTitle>{editingTag ? t('activities.tags.editTitle') : t('activities.tags.addTitle')}</DialogTitle>
+              <DialogDescription>{t('activities.tags.description')}</DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="tagName">Name *</Label>
-                <Input id="tagName" value={tagFormData.name} onChange={(e) => setTagFormData({ ...tagFormData, name: e.target.value })} placeholder="e.g., Lab, Lecture" required />
+                <Label htmlFor="tagName">{t('common.name')} *</Label>
+                <Input id="tagName" value={tagFormData.name} onChange={(e) => setTagFormData({ ...tagFormData, name: e.target.value })} placeholder={t('activities.tags.namePlaceholder')} required />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="tagLongName">Long Name</Label>
+                <Label htmlFor="tagLongName">{t('common.longName')}</Label>
                 <Input id="tagLongName" value={tagFormData.longName} onChange={(e) => setTagFormData({ ...tagFormData, longName: e.target.value })} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="tagCode">Code</Label>
+                <Label htmlFor="tagCode">{t('common.code')}</Label>
                 <Input id="tagCode" value={tagFormData.code} onChange={(e) => setTagFormData({ ...tagFormData, code: e.target.value })} />
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="tagPrintable" checked={tagFormData.printable} onChange={(e) => setTagFormData({ ...tagFormData, printable: e.target.checked })} className="h-4 w-4" />
-                <Label htmlFor="tagPrintable">Printable on timetable</Label>
+                <Label htmlFor="tagPrintable">{t('activities.tags.printable')}</Label>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="tagComments">Comments</Label>
+                <Label htmlFor="tagComments">{t('common.comments')}</Label>
                 <Input id="tagComments" value={tagFormData.comments} onChange={(e) => setTagFormData({ ...tagFormData, comments: e.target.value })} />
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsTagDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingTag ? 'Update' : 'Add'}</Button>
+              <Button type="button" variant="outline" onClick={() => setIsTagDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{editingTag ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -386,35 +399,35 @@ export function Activities() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>{editingActivity ? 'Edit Activity' : 'Add Activity'}</DialogTitle>
-              <DialogDescription>{editingActivity ? 'Update activity details' : 'Create a new activity (lesson)'}</DialogDescription>
+              <DialogTitle>{editingActivity ? t('activities.dialog.editTitle') : t('activities.dialog.addTitle')}</DialogTitle>
+              <DialogDescription>{editingActivity ? t('activities.dialog.editDescription') : t('activities.dialog.addDescription')}</DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Subject *</Label>
+                <Label>{t('activities.dialog.subject')} *</Label>
                 <select required value={formData.subjectId} onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                  <option value="">Select subject</option>
+                  <option value="">{t('activities.dialog.selectSubject')}</option>
                   {subjects.map((s) => (
                     <option key={s.id} value={s.name}>{s.name}{s.code ? ` (${s.code})` : ''}</option>
                   ))}
                 </select>
               </div>
-              
+
               <div className="grid gap-2">
-                <Label>Teacher</Label>
+                <Label>{t('activities.dialog.teacher')}</Label>
                 <select value={formData.teacherIds[0] || ''} onChange={(e) => setFormData({ ...formData, teacherIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                  <option value="">Select teacher</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.name}>{t.name}{t.code ? ` (${t.code})` : ''}</option>
+                  <option value="">{t('activities.dialog.selectTeacher')}</option>
+                  {teachers.map((tt) => (
+                    <option key={tt.id} value={tt.name}>{tt.name}{tt.code ? ` (${tt.code})` : ''}</option>
                   ))}
                 </select>
               </div>
-              
+
               <div className="grid gap-2">
-                <Label>Students</Label>
+                <Label>{t('activities.dialog.students')}</Label>
                 <select value={formData.studentSetIds[0] || ''} onChange={(e) => setFormData({ ...formData, studentSetIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                  <option value="">Select students</option>
+                  <option value="">{t('activities.dialog.selectStudents')}</option>
                   {studentOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
@@ -423,7 +436,7 @@ export function Activities() {
 
               {activityTags.length > 0 && (
                 <div className="grid gap-2">
-                  <Label>Activity Tags</Label>
+                  <Label>{t('activities.dialog.tags')}</Label>
                   <div className="flex flex-wrap gap-2 p-3 rounded-md border border-border bg-card">
                     {activityTags.map((tag) => (
                       <Badge key={tag.id} variant={formData.activityTagIds.includes(tag.name) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleActivityTag(tag.name)}>
@@ -433,30 +446,57 @@ export function Activities() {
                       </Badge>
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground">Click tags to add/remove</p>
+                  <p className="text-xs text-muted-foreground">{t('activities.dialog.tagsHint')}</p>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Duration (hours) *</Label>
+                  <Label>{t('activities.dialog.duration')} *</Label>
                   <Input type="number" min="1" max="10" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Total Students</Label>
+                  <Label>{t('activities.dialog.totalStudents')}</Label>
                   <Input type="number" min="0" value={formData.nTotalStudents} onChange={(e) => setFormData({ ...formData, nTotalStudents: parseInt(e.target.value) || 0 })} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>{t('activities.dialog.shiftOverride')}</Label>
+                  <select
+                    value={formData.shiftOverride}
+                    onChange={(e) => setFormData({ ...formData, shiftOverride: (parseInt(e.target.value) || 0) as 0 | 1 | 2 })}
+                    className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground"
+                  >
+                    <option value={0}>{t('activities.dialog.shiftOverrideNone')}</option>
+                    <option value={1}>{t('activities.dialog.shift1')}</option>
+                    <option value={2}>{t('activities.dialog.shift2')}</option>
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>{t('activities.dialog.weekParity')}</Label>
+                  <select
+                    value={formData.weekParity}
+                    onChange={(e) => setFormData({ ...formData, weekParity: e.target.value as 'both' | 'numerator' | 'denominator' })}
+                    className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground"
+                  >
+                    <option value="both">{t('activities.dialog.weekParityBoth')}</option>
+                    <option value="numerator">{t('activities.dialog.weekParityNumerator')}</option>
+                    <option value="denominator">{t('activities.dialog.weekParityDenominator')}</option>
+                  </select>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="active" checked={formData.active} onChange={(e) => setFormData({ ...formData, active: e.target.checked })} className="h-4 w-4" />
-                <Label htmlFor="active">Active</Label>
+                <Label htmlFor="active">{t('activities.dialog.active')}</Label>
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingActivity ? 'Update' : 'Add'}</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{editingActivity ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

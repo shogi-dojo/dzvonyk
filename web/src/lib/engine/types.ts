@@ -11,6 +11,11 @@ export interface InternalActivity {
   subgroupIndices: number[];
   duration: number;
   active: boolean;
+  shiftOverride?: 1 | 2;
+  // 0 = every week (compatible with no-one on the same slot),
+  // 1 = numerator (може ділити слот з denominator),
+  // 2 = denominator.
+  weekParity: 0 | 1 | 2;
 }
 
 export interface TimeAllocation {

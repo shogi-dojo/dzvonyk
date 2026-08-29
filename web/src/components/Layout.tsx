@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
+import { useTranslation } from 'react-i18next';
+import {
   LayoutDashboard, Users2, BookOpen, GraduationCap, Calendar,
   Building2, Shield, Play, Grid3X3, Settings, Menu, X, Sparkles
 } from 'lucide-react';
@@ -17,29 +18,29 @@ interface LayoutProps {
 }
 
 interface NavItem {
-  name: string;
+  key: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  description?: string;
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard, description: 'Overview & stats' },
-  { name: 'Teachers', href: '/teachers', icon: Users2, description: 'Manage teachers' },
-  { name: 'Subjects', href: '/subjects', icon: BookOpen, description: 'Course subjects' },
-  { name: 'Students', href: '/students', icon: GraduationCap, description: 'Student groups' },
-  { name: 'Activities', href: '/activities', icon: Calendar, description: 'Lessons & classes' },
-  { name: 'Rooms', href: '/rooms', icon: Building2, description: 'Venues & spaces' },
-  { name: 'Constraints', href: '/constraints', icon: Shield, description: 'Rules & limits' },
-  { name: 'Generate', href: '/generate', icon: Play, description: 'Create timetable' },
-  { name: 'Timetable', href: '/timetable', icon: Grid3X3, description: 'View schedule' },
-  { name: 'Settings', href: '/settings', icon: Settings, description: 'Configuration' },
+  { key: 'dashboard', href: '/', icon: LayoutDashboard },
+  { key: 'teachers', href: '/teachers', icon: Users2 },
+  { key: 'subjects', href: '/subjects', icon: BookOpen },
+  { key: 'students', href: '/students', icon: GraduationCap },
+  { key: 'activities', href: '/activities', icon: Calendar },
+  { key: 'rooms', href: '/rooms', icon: Building2 },
+  { key: 'constraints', href: '/constraints', icon: Shield },
+  { key: 'generate', href: '/generate', icon: Play },
+  { key: 'timetable', href: '/timetable', icon: Grid3X3 },
+  { key: 'settings', href: '/settings', icon: Settings },
 ];
 
 export function Layout({ children }: LayoutProps) {
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.app.sidebarOpen);
   const location = useLocation();
+  const { t } = useTranslation();
 
   // Always set dark mode on mount
   useEffect(() => {
@@ -49,11 +50,11 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Skip to main content link for accessibility */}
-      <a 
-        href="#main-content" 
+      <a
+        href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded"
       >
-        Skip to main content
+        {t('app.skipToContent')}
       </a>
 
       {/* Mobile header */}
@@ -66,7 +67,7 @@ export function Layout({ children }: LayoutProps) {
           size="icon"
           onClick={() => dispatch(toggleSidebar())}
           className="hover-glow"
-          aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-label={sidebarOpen ? t('app.closeMenu') : t('app.openMenu')}
           aria-expanded={sidebarOpen}
         >
           {sidebarOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
@@ -75,7 +76,7 @@ export function Layout({ children }: LayoutProps) {
           <div className="p-2 rounded-lg gradient-primary">
             <Sparkles className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
           </div>
-          <span className="text-xl font-bold text-foreground">FET Web</span>
+          <span className="text-xl font-bold text-foreground">{t('app.name')}</span>
         </div>
       </header>
 
@@ -87,22 +88,22 @@ export function Layout({ children }: LayoutProps) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
         role="navigation"
-        aria-label="Main navigation"
+        aria-label={t('app.name')}
       >
         {/* Logo */}
         <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-border">
-          <Link to="/" className="flex items-center gap-3 group" aria-label="FET Web Home">
+          <Link to="/" className="flex items-center gap-3 group" aria-label={t('app.home')}>
             <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110">
               <Sparkles className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
             </div>
-            <span className="text-xl font-bold text-foreground">FET Web</span>
+            <span className="text-xl font-bold text-foreground">{t('app.name')}</span>
           </Link>
           <Button
             variant="ghost"
             size="icon"
             className="lg:hidden"
             onClick={() => dispatch(toggleSidebar())}
-            aria-label="Close navigation menu"
+            aria-label={t('app.closeMenu')}
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </Button>
@@ -114,7 +115,7 @@ export function Layout({ children }: LayoutProps) {
               const isActive = location.pathname === item.href;
               return (
                 <Link
-                  key={item.name}
+                  key={item.key}
                   to={item.href}
                   className={cn(
                     "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
@@ -135,9 +136,9 @@ export function Layout({ children }: LayoutProps) {
                     isActive ? "" : "group-hover:scale-110"
                   )} aria-hidden="true" />
                   <div className="flex-1">
-                    <div>{item.name}</div>
-                    {item.description && !isActive && (
-                      <div className="text-xs opacity-60 mt-0.5">{item.description}</div>
+                    <div>{t(`nav.${item.key}`)}</div>
+                    {!isActive && (
+                      <div className="text-xs opacity-60 mt-0.5">{t(`nav.${item.key}Desc`)}</div>
                     )}
                   </div>
                   {isActive && (
@@ -151,10 +152,10 @@ export function Layout({ children }: LayoutProps) {
           {/* Sidebar Footer */}
           <div className="p-4 mt-4 mx-4 rounded-lg bg-muted/50 border border-border">
             <p className="text-xs text-muted-foreground text-center">
-              FET Web v1.0
+              {t('app.name')} v1.0
             </p>
             <p className="text-xs text-muted-foreground text-center mt-1">
-              Free Educational Timetabling
+              {t('app.tagline')}
             </p>
           </div>
         </ScrollArea>

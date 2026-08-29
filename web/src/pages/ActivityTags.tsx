@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Search, Tag } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import { db } from '@/db';
 import type { ActivityTag } from '@/types';
 
 export function ActivityTags() {
+  const { t } = useTranslation();
   const [activityTags, setActivityTags] = useState<ActivityTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,12 +112,12 @@ export function ActivityTags() {
       setEditingTag(null);
     } catch (error) {
       console.error('Error saving activity tag:', error);
-      alert('Error saving activity tag');
+      alert(t('activityTags.saveError'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this activity tag?')) return;
+    if (!confirm(t('activityTags.confirmDelete'))) return;
     
     try {
       await db.activityTags.delete(id);
@@ -129,14 +131,14 @@ export function ActivityTags() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">Activity Tags</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">{t('activityTags.title')}</h1>
           <p className="text-muted-foreground dark:text-muted-foreground">
-            Manage activity tags for categorizing activities ({activityTags.length} total)
+            {t('activityTags.description', { count: activityTags.length })}
           </p>
         </div>
         <Button onClick={openNewDialog}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Activity Tag
+          {t('activityTags.addTag')}
         </Button>
       </div>
 
@@ -144,7 +146,7 @@ export function ActivityTags() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search activity tags..."
+          placeholder={t('activityTags.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
@@ -153,11 +155,11 @@ export function ActivityTags() {
 
       {/* Tags List */}
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground">{t('activityTags.loading')}</div>
       ) : filteredTags.length === 0 ? (
         <Card className="bg-card dark:bg-card border-border dark:border-border">
           <CardContent className="py-8 text-center text-muted-foreground">
-            {searchQuery ? 'No activity tags found matching your search.' : 'No activity tags added yet.'}
+            {searchQuery ? t('activityTags.emptySearch') : t('activityTags.empty')}
           </CardContent>
         </Card>
       ) : (
@@ -194,7 +196,7 @@ export function ActivityTags() {
                 <CardContent>
                   <div className="flex items-center gap-2">
                     <Badge variant={tag.printable ? 'default' : 'secondary'}>
-                      {tag.printable ? 'Printable' : 'Not Printable'}
+                      {tag.printable ? t('activityTags.printable') : t('activityTags.notPrintable')}
                     </Badge>
                   </div>
                   {tag.comments && (
@@ -216,27 +218,27 @@ export function ActivityTags() {
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle className="text-foreground dark:text-foreground">
-                {editingTag ? 'Edit Activity Tag' : 'Add Activity Tag'}
+                {editingTag ? t('activityTags.dialog.editTitle') : t('activityTags.dialog.addTitle')}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Activity tags help categorize and filter activities
+                {t('activityTags.dialog.description')}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name" className="text-foreground">Name *</Label>
+                <Label htmlFor="name" className="text-foreground">{t('common.name')} *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Lab, Lecture"
+                  placeholder={t('activityTags.dialog.namePlaceholder')}
                   required
                   className="bg-card dark:bg-background"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="longName" className="text-foreground">Long Name</Label>
+                <Label htmlFor="longName" className="text-foreground">{t('common.longName')}</Label>
                 <Input
                   id="longName"
                   value={formData.longName}
@@ -245,7 +247,7 @@ export function ActivityTags() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="code" className="text-foreground">Code</Label>
+                <Label htmlFor="code" className="text-foreground">{t('common.code')}</Label>
                 <Input
                   id="code"
                   value={formData.code}
@@ -261,10 +263,10 @@ export function ActivityTags() {
                   onChange={(e) => setFormData({ ...formData, printable: e.target.checked })}
                   className="h-4 w-4"
                 />
-                <Label htmlFor="printable" className="text-foreground">Printable on timetable</Label>
+                <Label htmlFor="printable" className="text-foreground">{t('activityTags.printableCheckbox')}</Label>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="comments" className="text-foreground">Comments</Label>
+                <Label htmlFor="comments" className="text-foreground">{t('common.comments')}</Label>
                 <Input
                   id="comments"
                   value={formData.comments}
@@ -273,12 +275,12 @@ export function ActivityTags() {
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button type="submit">{editingTag ? 'Update' : 'Add'}</Button>
+              <Button type="submit">{editingTag ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
