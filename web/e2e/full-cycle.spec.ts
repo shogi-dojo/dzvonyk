@@ -22,7 +22,7 @@ test.describe('Full Cycle & Timetable E2E', () => {
     // 2. Visit Generate page
     await page.goto('/#/generate');
     await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/налаштування генерації/i)).toBeVisible();
+    await expect(page.getByText(/генерація розкладу/i).first()).toBeVisible();
 
     // 3. Visit Timetable page
     await page.goto('/#/timetable');

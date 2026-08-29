@@ -242,8 +242,8 @@ export function Dashboard() {
       )}
 
       {/* Institution Card */}
-      <Card className="overflow-hidden animate-slide-up">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+      <Card className="overflow-hidden animate-slide-up relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
