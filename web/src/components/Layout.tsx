@@ -143,10 +143,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
         
         <ScrollArea className="h-[calc(100vh-4rem)]">
-          <div className="px-4 pt-3 pb-1">
-            <InstallPwaButton className="w-full justify-start text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20" />
-          </div>
-          <nav className="flex flex-col gap-1 p-4 pt-2" aria-label="Primary">
+          <nav className="flex flex-col gap-1 p-4" aria-label="Primary">
             {navigation.map((item, index) => {
               const isActive = location.pathname === item.href;
               return (
@@ -183,6 +180,10 @@ export function Layout({ children }: LayoutProps) {
                 </Link>
               );
             })}
+
+            <div className="pt-3 mt-2 border-t border-border">
+              <InstallPwaButton className="w-full justify-start text-xs h-10 bg-primary/5 hover:bg-primary/10 border-primary/20" />
+            </div>
           </nav>
         </ScrollArea>
       </aside>
