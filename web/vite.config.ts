@@ -3,6 +3,17 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+// Vendor packages grouped into stable, separately-cacheable chunks.
+const VENDOR_CHUNKS: Record<string, string[]> = {
+  react: ['react', 'react-dom', 'react-router-dom'],
+  redux: ['@reduxjs/toolkit', 'react-redux'],
+  i18n: ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+  db: ['dexie', 'dexie-react-hooks'],
+  zip: ['jszip'],
+  icons: ['lucide-react'],
+  validation: ['zod'],
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   server: {
@@ -70,6 +81,26 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split vendor code into stable, separately-cacheable chunks.
+        //
+        // Deliberately NOT route-level lazy loading: Дзвоник is offline-first
+        // (see the brief on Ukrainian power cuts), and a завуч who loses
+        // connectivity before first visiting a route would hit a chunk-load
+        // failure on the page they need. Every chunk here is still precached
+        // by Workbox up front, so offline behaviour is unchanged — this only
+        // means an app update no longer invalidates the vendor code too.
+        manualChunks(id) {
+          if (id.includes('node_modules/@radix-ui/')) return 'radix';
+          for (const [chunk, pkgs] of Object.entries(VENDOR_CHUNKS)) {
+            if (pkgs.some((pkg) => id.includes(`node_modules/${pkg}/`))) return chunk;
+          }
+        },
+      },
     },
   },
 })
