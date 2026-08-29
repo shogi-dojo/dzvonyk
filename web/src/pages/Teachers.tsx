@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, Search, Users2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users2, Clock } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +19,17 @@ import { Pagination, usePagination } from '@/components/ui/pagination';
 import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { loadTeachers, addTeacher, updateTeacher, deleteTeacher } from '@/store/slices/teachersSlice';
-import type { Teacher } from '@/types';
+import { addTimeConstraint, updateTimeConstraint, deleteTimeConstraint } from '@/store/slices/constraintsSlice';
+import { TimeGrid } from '@/components/TimeGrid';
+import type { Teacher, TimeSlot, TeacherNotAvailableTimesConstraint } from '@/types';
 
 export function Teachers() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { items: teachers, loading } = useAppSelector((state) => state.teachers);
+  const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
+  const rules = useAppSelector((state) => state.rules.current);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
@@ -36,9 +41,61 @@ export function Teachers() {
     comments: '',
   });
 
+  // Availability dialog state
+  const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
+  const [availabilityTeacher, setAvailabilityTeacher] = useState<Teacher | null>(null);
+  const [availabilityTimes, setAvailabilityTimes] = useState<TimeSlot[]>([]);
+
+  const days = rules?.daysOfTheWeek || [];
+  const hours = rules?.hoursOfTheDay || [];
+
   useEffect(() => {
     dispatch(loadTeachers());
   }, [dispatch]);
+
+  const teacherUnavailConstraint = useCallback(
+    (teacher: Teacher) => {
+      return timeConstraints.find(
+        (c) =>
+          c.type === 'TeacherNotAvailableTimes' &&
+          ((c as unknown as { teacherId: string }).teacherId === teacher.id ||
+            (c as unknown as { teacherId: string }).teacherId === teacher.name)
+      ) as TeacherNotAvailableTimesConstraint | undefined;
+    },
+    [timeConstraints]
+  );
+
+  const openAvailabilityDialog = (teacher: Teacher) => {
+    setAvailabilityTeacher(teacher);
+    const existing = teacherUnavailConstraint(teacher);
+    setAvailabilityTimes(existing?.times || []);
+    setIsAvailabilityOpen(true);
+  };
+
+  const handleSaveAvailability = async () => {
+    if (!availabilityTeacher) return;
+    const existing = teacherUnavailConstraint(availabilityTeacher);
+
+    if (availabilityTimes.length > 0) {
+      const constraint: TeacherNotAvailableTimesConstraint = {
+        id: existing?.id || uuidv4(),
+        type: 'TeacherNotAvailableTimes',
+        teacherId: availabilityTeacher.id,
+        times: availabilityTimes,
+        weightPercentage: 100,
+        active: true,
+        comments: '',
+      };
+      if (existing) {
+        await dispatch(updateTimeConstraint(constraint));
+      } else {
+        await dispatch(addTimeConstraint(constraint));
+      }
+    } else if (existing) {
+      await dispatch(deleteTimeConstraint(existing.id));
+    }
+    setIsAvailabilityOpen(false);
+  };
 
   const filteredTeachers = useMemo(() => {
     if (!searchQuery) return teachers;
@@ -172,17 +229,41 @@ export function Teachers() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     {teacher.targetNumberOfHours > 0 && (
                       <Badge variant="outline">{t('teachers.targetBadge', { count: teacher.targetNumberOfHours })}</Badge>
                     )}
                     {teacher.qualifiedSubjects.length > 0 && (
                       <Badge variant="secondary">{t('teachers.subjectsBadge', { count: teacher.qualifiedSubjects.length })}</Badge>
                     )}
+                    {(() => {
+                      const unavail = teacherUnavailConstraint(teacher);
+                      if (unavail && unavail.times.length > 0) {
+                        return (
+                          <Badge variant="outline" className="text-destructive border-destructive/30 bg-destructive/5 text-xs">
+                            {t('teachers.unavailableBadge', { count: unavail.times.length, defaultValue: `${unavail.times.length} нед. слотів` })}
+                          </Badge>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
+
+                  <div className="pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openAvailabilityDialog(teacher)}
+                      className="w-full text-xs gap-1.5 h-8 hover-lift"
+                    >
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t('teachers.availabilityButton', { defaultValue: 'Коли не може викладати' })}
+                    </Button>
+                  </div>
+
                   {teacher.comments && (
-                    <p className="mt-2 text-sm text-muted-foreground truncate">{teacher.comments}</p>
+                    <p className="mt-1 text-xs text-muted-foreground truncate">{teacher.comments}</p>
                   )}
                 </CardContent>
               </Card>
@@ -264,6 +345,51 @@ export function Teachers() {
               <Button type="submit">{editingTeacher ? t('common.update') : t('common.add')}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Teacher Availability Dialog */}
+      <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {availabilityTeacher
+                ? t('teachers.availabilityDialogTitle', {
+                    name: availabilityTeacher.name,
+                    defaultValue: `Коли вчитель не може: ${availabilityTeacher.name}`,
+                  })
+                : ''}
+            </DialogTitle>
+            <DialogDescription>
+              {t('teachers.availabilityDialogDesc', {
+                defaultValue: 'Позначте червоним хрестиком слоти (дні та години), коли викладач не може проводити уроки.',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {days.length > 0 && hours.length > 0 ? (
+            <div className="py-2">
+              <TimeGrid
+                selectedTimes={availabilityTimes}
+                onChange={setAvailabilityTimes}
+                days={days}
+                hours={hours}
+              />
+            </div>
+          ) : (
+            <div className="py-4 text-center text-sm text-muted-foreground">
+              {t('teachers.availabilityNoRules', { defaultValue: 'Спочатку налаштуйте дні та години в Налаштуваннях.' })}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsAvailabilityOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="button" onClick={handleSaveAvailability}>
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

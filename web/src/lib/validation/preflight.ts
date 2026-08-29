@@ -97,7 +97,13 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     if (!c.active) continue;
     const raw = c as unknown as { type: string; teacherId?: string; times?: unknown[] };
     if (raw.type === 'TeacherNotAvailableTimes' && raw.teacherId && Array.isArray(raw.times)) {
-      teacherUnavail.set(raw.teacherId, (teacherUnavail.get(raw.teacherId) ?? 0) + raw.times.length);
+      const tMatch = teachers.find((t) => t.id === raw.teacherId || t.name === raw.teacherId);
+      if (tMatch) {
+        teacherUnavail.set(tMatch.id, (teacherUnavail.get(tMatch.id) ?? 0) + raw.times.length);
+        teacherUnavail.set(tMatch.name, (teacherUnavail.get(tMatch.name) ?? 0) + raw.times.length);
+      } else {
+        teacherUnavail.set(raw.teacherId, (teacherUnavail.get(raw.teacherId) ?? 0) + raw.times.length);
+      }
     }
   }
 

@@ -5,7 +5,7 @@
 
 import type {
   Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
-  TimetableRules, StudentsSubgroup, StudentsGroup
+  TimetableRules, StudentsSubgroup, StudentsGroup, StudentsYear
 } from '../../types';
 import type {
   InternalActivity, TimeAllocation, RoomAllocation, ConflictInfo,
@@ -29,6 +29,7 @@ export class TimetableGenerator {
   private teachers: Teacher[];
   private subgroups: StudentsSubgroup[];
   private studentsGroups: StudentsGroup[];
+  private studentsYears: StudentsYear[];
   private rooms: Room[];
   private timeConstraints: TimeConstraint[];
   private spaceConstraints: SpaceConstraint[];
