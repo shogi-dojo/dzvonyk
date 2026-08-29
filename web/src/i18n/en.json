@@ -1125,5 +1125,13 @@
     "settingsDesc": "Manage participation in application improvement",
     "allowAnalytics": "Allow sending anonymous technical statistics",
     "privacyGuarantee": "Only technical metrics are collected (page loads, generation speed, export format). No school names, timetables, subjects, or teacher names are ever sent to analytics."
+  },
+  "history": {
+    "title": "Change History",
+    "undo": "Undo (Ctrl+Z)",
+    "redo": "Redo (Ctrl+Shift+Z)",
+    "empty": "Action history is empty",
+    "revert": "Revert",
+    "reverted": "State successfully restored"
   }
 }

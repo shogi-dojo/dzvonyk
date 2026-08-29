@@ -14,7 +14,9 @@ import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
 import { PageTransition } from './PageTransition';
 import { InstallPwaButton } from './InstallPwaButton';
 import { ConsentBanner } from './ConsentBanner';
+import { HistoryControls } from './HistoryDrawer';
 import { usePageTracking } from '@/hooks/usePageTracking';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { DONATE_URL } from '@/lib/links';
 
 interface LayoutProps {
@@ -44,6 +46,7 @@ const navigation: NavItem[] = [
 
 export function Layout({ children }: LayoutProps) {
   usePageTracking();
+  useKeyboardShortcuts();
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.app.sidebarOpen);
   const isDarkMode = useAppSelector((state) => state.app.isDarkMode);
@@ -93,6 +96,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <HistoryControls />
           <InstallPwaButton variant="ghost" size="icon" showText={false} className="h-9 w-9" />
           <Button
             variant="ghost"
@@ -125,6 +129,7 @@ export function Layout({ children }: LayoutProps) {
             <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
           </Link>
           <div className="flex items-center gap-1">
+            <HistoryControls />
             <Button
               variant="ghost"
               size="icon"

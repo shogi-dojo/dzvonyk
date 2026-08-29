@@ -86,7 +86,7 @@ export class WorkspaceManager {
    * Returns current active workspace and school
    */
   async getActiveContext(): Promise<ActiveWorkspaceContext> {
-    let activeState = await this.database.activeWorkspaceState.get('current');
+    const activeState = await this.database.activeWorkspaceState.get('current');
     if (!activeState) {
       return this.init();
     }
