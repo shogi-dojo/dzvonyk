@@ -462,38 +462,69 @@
 
 /* Print styles */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm;
   }
-  
-  .no-print {
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  }
+
+  aside,
+  header,
+  footer,
+  nav,
+  [role="navigation"],
+  .no-print,
+  button,
+  .btn,
+  input,
+  select,
+  .sidebar,
+  .toast,
+  [data-sonner-toaster] {
     display: none !important;
   }
-  
+
+  main,
+  #main-content,
+  .print-sheet,
+  .printable-area {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
   .print-only {
     display: block !important;
   }
-  
+
   .timetable-grid {
-    page-break-inside: avoid;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
-  
+
   .timetable-grid td,
   .timetable-grid th {
     border: 1px solid #333 !important;
-    padding: 8px !important;
-    background: white !important;
-    color: black !important;
+    padding: 4px 6px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
   }
-  
+
   .timetable-grid th {
-    background: #f5f0e8 !important;
-    font-weight: bold;
-  }
-  
-  .activity-cell {
-    background: #fff8e8 !important;
+    background: #f0f0f0 !important;
+    font-weight: bold !important;
   }
 }
 

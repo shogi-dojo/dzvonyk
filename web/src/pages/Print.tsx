@@ -18,6 +18,16 @@ import {
   buildAllClassesGrid,
   type CellData,
 } from '@/lib/timetableGrid';
+import {
+  printHtmlDocument,
+  generateClassPrintHtml,
+  generateTeacherPrintHtml,
+  generateAllClassesPrintHtml,
+  generateAllTeachersPrintHtml,
+  generateSummaryClassesMatrixPrintHtml,
+  generateSummaryTeachersMatrixPrintHtml,
+  generateTeacherWorkloadPrintHtml,
+} from '@/lib/printDocument';
 
 type ReportType =
   | 'class'
@@ -107,11 +117,13 @@ export function Print() {
     const subNameMap = new Map(subjects.map((s) => [s.name, s]));
     const roomMap = new Map(rooms.map((r) => [r.id, r]));
 
-    // cellMatrix: [day][hour][teacherIndex] -> CellData[]
+    const nDays = rules.nDaysPerWeek || rules.daysOfTheWeek?.length || 5;
+    const nHours = rules.nHoursPerDay || rules.hoursOfTheDay?.length || 8;
+
     const matrix: (CellData[] | null)[][][] = Array.from(
-      { length: rules.nDaysPerWeek },
+      { length: nDays },
       () =>
-        Array.from({ length: rules.nHoursPerDay }, () =>
+        Array.from({ length: nHours }, () =>
           Array.from({ length: sortedTeachers.length }, () => null)
         )
     );
@@ -140,7 +152,7 @@ export function Print() {
           act.teacherIds.includes(teacher.id) ||
           act.teacherIds.includes(teacher.name)
         ) {
-          if (p.day < rules.nDaysPerWeek && p.hour < rules.nHoursPerDay) {
+          if (p.day < nDays && p.hour < nHours) {
             const existing = matrix[p.day][p.hour][tIdx];
             if (existing) {
               existing.push(entry);
@@ -207,7 +219,79 @@ export function Print() {
   }, [reportType, sortedTeachers, activities, subjects]);
 
   const handlePrint = () => {
-    window.print();
+    if (!rules || !latestSolution) return;
+
+    if (reportType === 'class') {
+      if (!classGrid) return;
+      const html = generateClassPrintHtml(selectedClassId, classGrid, rules, { includeApproval, colorMode });
+      printHtmlDocument(html);
+    } else if (reportType === 'teacher') {
+      if (!teacherGrid) return;
+      const html = generateTeacherPrintHtml(selectedTeacherId, teacherGrid, rules, { includeApproval, colorMode });
+      printHtmlDocument(html);
+    } else if (reportType === 'summary-classes') {
+      const html = generateSummaryClassesMatrixPrintHtml({
+        solution: latestSolution,
+        rules,
+        activities,
+        teachers: sortedTeachers,
+        subjects,
+        groups: sortedGroups,
+        subgroups,
+        rooms,
+        options: { includeApproval, colorMode },
+      });
+      printHtmlDocument(html);
+    } else if (reportType === 'summary-teachers') {
+      const html = generateSummaryTeachersMatrixPrintHtml({
+        solution: latestSolution,
+        rules,
+        activities,
+        teachers: sortedTeachers,
+        subjects,
+        rooms,
+        options: { includeApproval, colorMode },
+      });
+      printHtmlDocument(html);
+    } else if (reportType === 'teacher-workload') {
+      const html = generateTeacherWorkloadPrintHtml({
+        rules,
+        teachers: sortedTeachers,
+        activities,
+        subjects,
+        options: { includeApproval, orientation: 'portrait' },
+      });
+      printHtmlDocument(html);
+    }
+  };
+
+  const handlePrintAllClasses = () => {
+    if (!rules || !latestSolution) return;
+    const html = generateAllClassesPrintHtml({
+      groups: sortedGroups,
+      solution: latestSolution,
+      rules,
+      activities,
+      teachers: sortedTeachers,
+      subjects,
+      rooms,
+      options: { includeApproval, colorMode },
+    });
+    printHtmlDocument(html);
+  };
+
+  const handlePrintAllTeachers = () => {
+    if (!rules || !latestSolution) return;
+    const html = generateAllTeachersPrintHtml({
+      teachers: sortedTeachers,
+      solution: latestSolution,
+      rules,
+      activities,
+      subjects,
+      rooms,
+      options: { includeApproval, colorMode },
+    });
+    printHtmlDocument(html);
   };
 
   if (!rules || !latestSolution) {
@@ -246,10 +330,20 @@ export function Print() {
               </p>
             </div>
           </div>
-          <Button onClick={handlePrint} className="gap-2 gradient-primary">
-            <Printer className="h-4 w-4" />
-            {t('print.printButton', { defaultValue: 'Роздрукувати (Ctrl+P)' })}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button onClick={handlePrint} className="gap-2 gradient-primary">
+              <Printer className="h-4 w-4" />
+              {t('print.printButton', { defaultValue: 'Роздрукувати звіт' })}
+            </Button>
+            <Button onClick={handlePrintAllClasses} variant="outline" className="gap-2">
+              <FileText className="h-4 w-4" />
+              {t('print.printAllClasses', { defaultValue: 'Друк усіх класів' })}
+            </Button>
+            <Button onClick={handlePrintAllTeachers} variant="outline" className="gap-2">
+              <Users className="h-4 w-4" />
+              {t('print.printAllTeachers', { defaultValue: 'Друк усіх учителів' })}
+            </Button>
+          </div>
         </div>
 
         <Card className="animate-slide-up">

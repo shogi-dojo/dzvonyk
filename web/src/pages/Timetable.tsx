@@ -24,6 +24,13 @@ import {
   findSolutionConflicts,
   type ViewType,
 } from '@/lib/timetableGrid';
+import {
+  printHtmlDocument,
+  generateClassPrintHtml,
+  generateTeacherPrintHtml,
+  generateSummaryClassesMatrixPrintHtml,
+  generateAllClassesPrintHtml,
+} from '@/lib/printDocument';
 import { addTimeConstraint, deleteTimeConstraint, updateTimeConstraint } from '@/store/slices/constraintsSlice';
 import type { ActivityPreferredStartingTimeConstraint } from '@/types';
 
@@ -313,7 +320,36 @@ export function Timetable() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!rules || !latestSolution) return;
+
+    if (viewType === 'all-classes') {
+      const html = generateSummaryClassesMatrixPrintHtml({
+        solution: latestSolution,
+        rules,
+        activities,
+        teachers,
+        subjects,
+        groups,
+        subgroups,
+        rooms,
+      });
+      printHtmlDocument(html);
+      return;
+    }
+
+    if (!timetableData) return;
+    const name = getSelectedDisplayName() || '';
+
+    if (viewType === 'teachers') {
+      const html = generateTeacherPrintHtml(name, timetableData, rules);
+      printHtmlDocument(html);
+    } else if (viewType === 'rooms') {
+      const html = generateClassPrintHtml(`Кабінет ${name}`, timetableData, rules);
+      printHtmlDocument(html);
+    } else {
+      const html = generateClassPrintHtml(name, timetableData, rules);
+      printHtmlDocument(html);
+    }
   };
 
   const generateTimetableHtml = useCallback((entityId: string, entityType: ViewType): string => {
@@ -333,73 +369,16 @@ export function Timetable() {
     let displayName = entityId;
     if (entityType === 'teachers') {
       displayName = teachers.find((tt) => tt.name === entityId || tt.id === entityId)?.name || entityId;
+      return generateTeacherPrintHtml(displayName, grid, rules);
     } else if (entityType === 'students') {
       displayName = studentHierarchy.find((i) => i.id === entityId)?.displayName || entityId;
+      return generateClassPrintHtml(displayName, grid, rules);
     } else if (entityType === 'rooms') {
       displayName = rooms.find((r) => r.name === entityId || r.id === entityId)?.name || entityId;
+      return generateClassPrintHtml(`Кабінет ${displayName}`, grid, rules);
     }
 
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${displayName} - ${rules.institutionName}</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; }
-    h1 { font-size: 18px; margin-bottom: 4px; }
-    h2 { font-size: 14px; color: #666; margin-top: 0; margin-bottom: 16px; font-weight: normal; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; vertical-align: top; font-size: 11px; }
-    th { background: #f0f0f0; }
-    .time-col { width: 70px; background: #fafafa; font-weight: bold; }
-    .cell-card { margin-bottom: 4px; padding: 4px; background: #eef2ff; border-radius: 4px; }
-    .subject { font-weight: bold; color: #1e40af; }
-    .subtext { color: #555; font-size: 10px; margin-top: 2px; }
-  </style>
-</head>
-<body>
-  <h1>${displayName}</h1>
-  <h2>${rules.institutionName}</h2>
-  <table>
-    <thead>
-      <tr>
-        <th class="time-col">Час</th>
-        ${rules.daysOfTheWeek.map((d) => `<th>${d.name}</th>`).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      ${rules.hoursOfTheDay
-        .map(
-          (hour, hIdx) => `
-        <tr>
-          <td class="time-col">${hour.name}</td>
-          ${rules.daysOfTheWeek
-            .map((_, dIdx) => {
-              const cell = grid[hIdx]?.[dIdx];
-              if (cell === 'spanned') return '';
-              if (!cell || cell.length === 0) return '<td></td>';
-              return `<td>
-                ${cell
-                  .map(
-                    (c) => `
-                  <div class="cell-card">
-                    <div class="subject">${c.subject}</div>
-                    ${c.teachers.length ? `<div class="subtext">${c.teachers.join(', ')}</div>` : ''}
-                    ${c.students.length ? `<div class="subtext">${c.students.join(', ')}</div>` : ''}
-                    ${c.room ? `<div class="subtext">${c.room}</div>` : ''}
-                  </div>`
-                  )
-                  .join('')}
-              </td>`;
-            })
-            .join('')}
-        </tr>`
-        )
-        .join('')}
-    </tbody>
-  </table>
-</body>
-</html>`;
+    return generateClassPrintHtml(displayName, grid, rules);
   }, [rules, latestSolution, activities, teachers, subjects, rooms, studentHierarchy]);
 
   const handleExport = () => {
