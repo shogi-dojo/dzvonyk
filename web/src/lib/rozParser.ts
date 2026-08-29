@@ -230,15 +230,17 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
   }
   const firstGrpOffset = firstVesKlasEntry.offset;
 
+  // A teacher record stores its full name followed by a short name; placeholder
+  // records ("Вакансія", "ЗБД") repeat the same text in both fields. Collapse only
+  // *consecutive* repeats — a global Set would silently merge two distinct teachers
+  // who happen to share a name and shift every teacher index after them.
   const rawTeachers: string[] = [];
-  const seenTeachers = new Set<string>();
   for (const item of allStrings) {
     if (item.offset > lastSubjOffset && item.offset < firstGrpOffset) {
       const s = item.text;
       if (s.includes(' ') || s === 'Вакансія' || s === 'ЗБД') {
-        if (!seenTeachers.has(s)) {
+        if (rawTeachers[rawTeachers.length - 1] !== s) {
           rawTeachers.push(s);
-          seenTeachers.add(s);
         }
       }
     }
@@ -397,6 +399,7 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
 
   const totalSets = rawClasses.length * groupsPerClass;
   const lessons: ParsedLesson[] = [];
+  let rejectedWindows = 0;
 
   for (let k = 0; k < rawWindows.length - 1; k++) {
     const lid = rawWindows[k].id167;
@@ -421,11 +424,28 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
         studentsIdx: payload.students,
         teacherIdx: payload.teacher,
       });
+    } else {
+      rejectedWindows++;
     }
   }
 
   if (lessons.length === 0) {
     throw new Error('Не знайдено жодного уроку у файлі');
+  }
+
+  // A record whose indices fall outside the entity lists means we misread the file —
+  // most likely an aSc build whose offsets differ from the one this parser was derived
+  // from. A handful is tolerable (trailing junk records match the signature too), but a
+  // large share means the decode is wrong, and importing a partial timetable silently
+  // would be worse than refusing the file.
+  if (rejectedWindows > lessons.length) {
+    throw new Error(
+      `Не вдалося розпізнати структуру файлу: відхилено ${rejectedWindows} із ${rejectedWindows + lessons.length} записів уроків. ` +
+        'Ймовірно, цю версію aSc TimeTables ще не підтримано.'
+    );
+  }
+  if (rejectedWindows > 0) {
+    warnings.push({ key: 'skippedLessons', params: { count: rejectedWindows } });
   }
 
   // 10. Build student years, groups, subgroups
@@ -511,6 +531,7 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
   const placements: ActivityPlacement[] = [];
   let totalHours = 0;
   let unplacedHours = 0;
+  let droppedCards = 0;
 
   for (const lesson of lessons) {
     totalHours += lesson.hours;
@@ -552,7 +573,14 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
 
     if (lesson.hours > lessonCards.length) {
       unplacedHours += lesson.hours - lessonCards.length;
+    } else if (lessonCards.length > lesson.hours) {
+      // More cards than declared hours: the extras are dropped by the zip above.
+      droppedCards += lessonCards.length - lesson.hours;
     }
+  }
+
+  if (droppedCards > 0) {
+    warnings.push({ key: 'droppedCards', params: { count: droppedCards } });
   }
 
   // 12. Detect two-shift schedule

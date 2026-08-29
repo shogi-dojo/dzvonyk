@@ -984,6 +984,8 @@
     "constraintsNotImported": "Обмеження вчителів та простору не імпортовано — перевірте доступність",
     "roomsNotImported": "Кабінети відсутні у файлі aSc",
     "unplacedHours": "{{count}} год уроків не розміщено в сітці aSc",
+    "skippedLessons": "Пропущено {{count}} нерозпізнаних записів уроків",
+    "droppedCards": "Пропущено {{count}} зайвих розміщень, що не відповідають навантаженню",
     "duplicateNamesResolved": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
     "sampleLessonsTitle": "Приклади розпізнаних уроків",
     "hoursSuffix": "год",

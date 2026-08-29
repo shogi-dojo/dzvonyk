@@ -972,6 +972,8 @@
     "constraintsNotImported": "Teacher and room constraints not imported — please check availability manually",
     "roomsNotImported": "No rooms defined in the aSc file",
     "unplacedHours": "{{count}} lesson hours not placed in the aSc grid",
+    "skippedLessons": "Skipped {{count}} unrecognised lesson records",
+    "droppedCards": "Dropped {{count}} extra placements that exceed the declared workload",
     "duplicateNamesResolved": "Found {{count}} duplicate names, suffixes added automatically",
     "sampleLessonsTitle": "Sample decoded lessons",
     "hoursSuffix": "h",

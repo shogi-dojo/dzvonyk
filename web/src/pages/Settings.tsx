@@ -284,13 +284,11 @@ export function Settings() {
   };
 
   const addHour = () => {
-    const nextHourIndex = hours.length;
-    const startHour = 8 + nextHourIndex;
-    const h1 = startHour.toString().padStart(2, '0');
-    const h2 = (startHour + 1).toString().padStart(2, '0');
-    const newHourName = `${h1}:00`;
-    const newHourLongName = `${h1}:00 - ${h2}:00`;
-    setHours([...hours, { name: newHourName, longName: newHourLongName }]);
+    const lastHour = hours.length > 0 ? hours[hours.length - 1].name : '07:00';
+    const [h] = lastHour.split(':').map(Number);
+    const nextHour = `${String((h + 1) % 24).padStart(2, '0')}:00`;
+    const nextHourEnd = `${String((h + 2) % 24).padStart(2, '0')}:00`;
+    setHours([...hours, { name: nextHour, longName: `${nextHour} - ${nextHourEnd}` }]);
   };
 
   const removeHour = (index: number) => {

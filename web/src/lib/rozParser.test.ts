@@ -392,4 +392,64 @@ describe('rozParser', () => {
     expect(res.report.counts.lessons).toBe(1);
     expect(res.file.activities).toHaveLength(2);
   });
+
+  it('should warn rather than silently drop unrecognised lesson records', () => {
+    const res = parseROZFile(
+      new SyntheticRozBuilder()
+        .setSubjects(['Математика'])
+        .setTeachers(['Сисова Оксана'])
+        .setClasses(['5-А'])
+        .addLesson(1, 2, 0, 0, 0)
+        .addLesson(2, 2, 99, 99, 99)
+        .addCard(1, 1, 1)
+        .addCard(1, 2, 1)
+        .build()
+    );
+    expect(res.report.warnings.find((w) => w.key === 'skippedLessons')?.params?.count).toBe(1);
+  });
+
+  it('should refuse a file whose lesson records are mostly unrecognised', () => {
+    const builder = new SyntheticRozBuilder()
+      .setSubjects(['Математика'])
+      .setTeachers(['Сисова Оксана'])
+      .setClasses(['5-А'])
+      .addLesson(1, 2, 0, 0, 0);
+    for (let i = 2; i <= 6; i++) builder.addLesson(i, 2, 99, 99, 99);
+
+    expect(() => parseROZFile(builder.build())).toThrow(/не вдалося розпізнати структуру файлу/i);
+  });
+
+  it('should warn when a lesson carries more cards than declared hours', () => {
+    const res = parseROZFile(
+      new SyntheticRozBuilder()
+        .setSubjects(['Математика'])
+        .setTeachers(['Сисова Оксана'])
+        .setClasses(['5-А'])
+        .addLesson(1, 1, 0, 0, 0)
+        .addCard(1, 1, 1)
+        .addCard(1, 2, 3)
+        .build()
+    );
+    expect(res.report.warnings.find((w) => w.key === 'droppedCards')?.params?.count).toBe(1);
+    expect(res.placements).toHaveLength(1);
+  });
+
+  it('should keep two distinct teachers who share a name instead of shifting indices', () => {
+    const res = parseROZFile(
+      new SyntheticRozBuilder()
+        .setSubjects(['Математика'])
+        .setTeachers(['Ткачук Ігор', 'Грибок Лариса', 'Ткачук Ігор'])
+        .setClasses(['5-А'])
+        .addLesson(1, 1, 0, 0, 2)
+        .addCard(1, 1, 1)
+        .build()
+    );
+    expect(res.file.teachers.map((t) => t.name)).toEqual([
+      'Ткачук Ігор',
+      'Грибок Лариса',
+      'Ткачук Ігор (2)',
+    ]);
+    // The lesson references teacher index 2, which must still resolve to the last entry.
+    expect(res.file.activities[0].teacherIds).toEqual(['Ткачук Ігор (2)']);
+  });
 });
