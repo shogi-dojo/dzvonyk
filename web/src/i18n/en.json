@@ -30,7 +30,9 @@
     "print": "Print & Reports",
     "printDesc": "Print schedules & reports",
     "settings": "Settings",
-    "settingsDesc": "Configuration"
+    "settingsDesc": "Configuration",
+    "about": "About",
+    "aboutDesc": "Info & updates"
   },
   "footer": {
     "aboutLead": "Offline school timetable planner for the vice-principal.",

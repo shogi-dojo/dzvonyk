@@ -9,3 +9,4 @@ export { Generate } from './Generate';
 export { Timetable } from './Timetable';
 export { Print } from './Print';
 export { Settings } from './Settings';
+export { About } from './About';

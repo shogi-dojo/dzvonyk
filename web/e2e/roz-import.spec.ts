@@ -41,7 +41,7 @@ test.describe('ROZ Import & Dashboard Buttons E2E', () => {
 
   test('Dashboard action buttons are clickable and not blocked by overlay', async ({ page }) => {
     await page.goto('/#/');
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
     // Verify "Новий розклад" button is clickable and navigates to settings
     const newScheduleBtn = page.getByRole('link', { name: /новий розклад/i });
@@ -51,7 +51,7 @@ test.describe('ROZ Import & Dashboard Buttons E2E', () => {
 
     // Return to dashboard
     await page.goto('/#/');
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
     // Verify "Згенерувати" button is clickable and navigates to generate
     const generateBtn = page.getByRole('link', { name: 'Згенерувати', exact: true });
@@ -62,7 +62,7 @@ test.describe('ROZ Import & Dashboard Buttons E2E', () => {
 
   test('Full E2E: Import .roz file -> Preview Dialog -> Confirm -> Timetable & Print', async ({ page }) => {
     await page.goto('/#/');
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
     // Upload .roz file via file chooser or file input
     const fileInput = page.locator('input[accept=".roz"]');
@@ -88,11 +88,11 @@ test.describe('ROZ Import & Dashboard Buttons E2E', () => {
 
     // Verify navigation to timetable
     await page.goto('/#/timetable');
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
     // Verify navigation to print
     await page.goto('/#/print');
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Гімназія Тестова').first()).toBeVisible();
   });
 });

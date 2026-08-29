@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users2, BookOpen, GraduationCap, Calendar,
-  Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Bell, Sun, Moon
+  Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Bell, Sun, Moon, Info
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
 import { PageTransition } from './PageTransition';
-import { Footer } from './Footer';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -35,6 +34,7 @@ const navigation: NavItem[] = [
   { key: 'timetable', href: '/timetable', icon: Grid3X3 },
   { key: 'print', href: '/print', icon: Printer },
   { key: 'settings', href: '/settings', icon: Settings },
+  { key: 'about', href: '/about', icon: Info },
 ];
 
 export function Layout({ children }: LayoutProps) {
@@ -177,16 +177,6 @@ export function Layout({ children }: LayoutProps) {
               );
             })}
           </nav>
-          
-          {/* Sidebar Footer */}
-          <div className="p-4 mt-4 mx-4 rounded-lg bg-muted/50 border border-border">
-            <p className="text-xs text-muted-foreground text-center">
-              {t('app.name')} v1.0
-            </p>
-            <p className="text-xs text-muted-foreground text-center mt-1">
-              {t('app.tagline')}
-            </p>
-          </div>
         </ScrollArea>
       </aside>
 
@@ -213,9 +203,6 @@ export function Layout({ children }: LayoutProps) {
             </PageTransition>
           </div>
         </main>
-        
-        {/* Footer */}
-        <Footer />
       </div>
     </div>
   );

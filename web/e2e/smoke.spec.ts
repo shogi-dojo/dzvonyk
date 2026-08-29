@@ -13,8 +13,8 @@ test.describe('Дзвоник smoke tests', () => {
   test('app loads', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('body')).toBeVisible();
-    // Layout footer should render on every page.
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    // Layout main content should render on every page.
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
   });
 
   test('all routes render without crashing', async ({ page }) => {
@@ -30,16 +30,17 @@ test.describe('Дзвоник smoke tests', () => {
       '/#/timetable',
       '/#/print',
       '/#/settings',
+      '/#/about',
     ];
     for (const route of routes) {
       await page.goto(route);
-      await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     }
   });
 
   test('Settings: create new rules reveals institution field', async ({ page }) => {
     await page.goto('/#/settings');
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
     // Two create-new buttons may exist (header + empty state); click the first.
     const createBtn = page.getByRole('button', { name: /створити/i }).first();
