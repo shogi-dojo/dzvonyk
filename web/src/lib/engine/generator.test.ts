@@ -314,4 +314,21 @@ describe('TimetableGenerator', () => {
       expect(result.timeAllocations[0].hour).toBeLessThanOrEqual(3);
     });
   });
+
+  describe('teacher gaps', () => {
+    it('counts only empty periods between the first and last lesson', () => {
+      const generator = new TimetableGenerator(createTestRules(1, 5), [], [createTestTeacher('T1')], [], [], [], []);
+      const internal = generator as unknown as {
+        initialize: () => void;
+        teachersTimetable: number[][];
+        countTeacherGapsOnDay: (teacherIdx: number, day: number) => number;
+      };
+      internal.initialize();
+      internal.teachersTimetable[0] = [-1, 0, -1, 1, -1];
+      expect(internal.countTeacherGapsOnDay(0, 0)).toBe(1);
+
+      internal.teachersTimetable[0] = [-1, 0, 1, -1, -1];
+      expect(internal.countTeacherGapsOnDay(0, 0)).toBe(0);
+    });
+  });
 });

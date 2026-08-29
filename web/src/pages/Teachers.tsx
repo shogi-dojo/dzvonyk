@@ -21,6 +21,7 @@ import { useAppDispatch, useAppSelector } from '@/hooks';
 import { loadTeachers, addTeacher, updateTeacher, deleteTeacher } from '@/store/slices/teachersSlice';
 import { addTimeConstraint, updateTimeConstraint, deleteTimeConstraint } from '@/store/slices/constraintsSlice';
 import { TimeGrid } from '@/components/TimeGrid';
+import { calculateTeacherAssignedLoad } from '@/lib/validation/preflight';
 import type { Teacher, TimeSlot, TeacherNotAvailableTimesConstraint } from '@/types';
 
 export function Teachers() {
@@ -29,6 +30,7 @@ export function Teachers() {
   const { items: teachers, loading } = useAppSelector((state) => state.teachers);
   const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
   const rules = useAppSelector((state) => state.rules.current);
+  const activities = useAppSelector((state) => state.activities.items);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -48,6 +50,10 @@ export function Teachers() {
 
   const days = rules?.daysOfTheWeek || [];
   const hours = rules?.hoursOfTheDay || [];
+  const assignedLoads = useMemo(
+    () => calculateTeacherAssignedLoad(teachers, activities),
+    [teachers, activities]
+  );
 
   useEffect(() => {
     dispatch(loadTeachers());
@@ -231,9 +237,18 @@ export function Teachers() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    {teacher.targetNumberOfHours > 0 && (
-                      <Badge variant="outline">{t('teachers.targetBadge', { count: teacher.targetNumberOfHours })}</Badge>
-                    )}
+                    {(() => {
+                      const assigned = assignedLoads.get(teacher.id) || assignedLoads.get(teacher.name) || 0;
+                      const mismatch = teacher.targetNumberOfHours > 0 && assigned !== teacher.targetNumberOfHours;
+                      return (
+                        <Badge
+                          variant={mismatch ? 'destructive' : 'outline'}
+                          title={mismatch ? t('teachers.loadMismatch') : undefined}
+                        >
+                          {t('teachers.assignedVsTarget', { assigned, target: teacher.targetNumberOfHours })}
+                        </Badge>
+                      );
+                    })()}
                     {teacher.qualifiedSubjects.length > 0 && (
                       <Badge variant="secondary">{t('teachers.subjectsBadge', { count: teacher.qualifiedSubjects.length })}</Badge>
                     )}

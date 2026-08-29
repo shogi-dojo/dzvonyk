@@ -72,9 +72,13 @@ export class TimetableGenerator {
   private teacherMaxDaysPerWeek: Map<number, number> = new Map();
   private teacherMinDaysPerWeek: Map<number, number> = new Map();
   private teacherMaxGapsPerDay: Map<number, number> = new Map();
+  private teacherMaxGapsPerWeek: Map<number, number> = new Map();
+  private teacherMinHoursDaily: Map<number, number> = new Map();
   private allTeachersMaxHoursDaily: number = -1;
+  private allTeachersMaxGapsPerDay: number = -1;
   private studentsMaxHoursDaily: Map<number, number> = new Map();
   private studentsMaxGapsPerDay: Map<number, number> = new Map();
+  private studentsMaxGapsPerWeek: Map<number, number> = new Map();
   private minDaysBetweenActivities: { activityIndices: number[]; minDays: number; consecutiveIfSameDay: boolean }[] = [];
   private activityPreferredStartingTime: Map<number, { day: number; hour: number; locked: boolean }> = new Map();
   
@@ -399,6 +403,28 @@ export class TimetableGenerator {
           break;
         }
 
+        case 'TeacherMaxGapsPerWeek': {
+          const gapsTeacherIdx = this.findTeacherIndex(c.teacherId);
+          if (gapsTeacherIdx >= 0 && c.maxGaps !== undefined) {
+            this.teacherMaxGapsPerWeek.set(gapsTeacherIdx, c.maxGaps);
+          }
+          break;
+        }
+
+        case 'TeachersMaxGapsPerDay':
+          if (c.maxGaps !== undefined) {
+            this.allTeachersMaxGapsPerDay = c.maxGaps;
+          }
+          break;
+
+        case 'TeacherMinHoursDaily': {
+          const minHoursTeacherIdx = this.findTeacherIndex(c.teacherId);
+          if (minHoursTeacherIdx >= 0 && c.minHours !== undefined) {
+            this.teacherMinHoursDaily.set(minHoursTeacherIdx, c.minHours);
+          }
+          break;
+        }
+
         case 'TeacherMinDaysPerWeek': {
           const minDaysTeacherIdx = this.findTeacherIndex(c.teacherId);
           if (minDaysTeacherIdx >= 0 && c.minDays !== undefined) {
@@ -412,6 +438,15 @@ export class TimetableGenerator {
             const gapsSubgroupIdxs = this.resolveStudentSetIndices(c.studentsSetId);
             for (const idx of gapsSubgroupIdxs) {
               this.studentsMaxGapsPerDay.set(idx, c.maxGaps);
+            }
+          }
+          break;
+
+        case 'StudentsSetMaxGapsPerWeek':
+          if (c.maxGaps !== undefined) {
+            const gapsSubgroupIdxs = this.resolveStudentSetIndices(c.studentsSetId);
+            for (const idx of gapsSubgroupIdxs) {
+              this.studentsMaxGapsPerWeek.set(idx, c.maxGaps);
             }
           }
           break;
@@ -627,6 +662,42 @@ export class TimetableGenerator {
     return (last - first + 1) - occupied;
   }
 
+  private countTeacherGapsOnDay(teacherIdx: number, day: number): number {
+    const row = this.teachersTimetable[teacherIdx];
+    if (!row) return 0;
+    let first = -1;
+    let last = -1;
+    for (let h = 0; h < this.nHoursPerDay; h++) {
+      const slot = timeSlot(day, h, this.nHoursPerDay);
+      if (row[slot] >= 0) {
+        if (first < 0) first = h;
+        last = h;
+      }
+    }
+    if (first < 0 || last <= first) return 0;
+    let occupied = 0;
+    for (let h = first; h <= last; h++) {
+      if (row[timeSlot(day, h, this.nHoursPerDay)] >= 0) occupied++;
+    }
+    return (last - first + 1) - occupied;
+  }
+
+  private countTeacherGapsPerWeek(teacherIdx: number): number {
+    let gaps = 0;
+    for (let day = 0; day < this.nDaysPerWeek; day++) {
+      gaps += this.countTeacherGapsOnDay(teacherIdx, day);
+    }
+    return gaps;
+  }
+
+  private countStudentGapsPerWeek(subgroupIdx: number): number {
+    let gaps = 0;
+    for (let day = 0; day < this.nDaysPerWeek; day++) {
+      gaps += this.countStudentGapsOnDay(subgroupIdx, day);
+    }
+    return gaps;
+  }
+
   private getStudentHoursOnDay(subgroupIdx: number, day: number): number {
     let hours = 0;
     for (let h = 0; h < this.nHoursPerDay; h++) {
@@ -838,6 +909,39 @@ export class TimetableGenerator {
           score += 40;
         }
       }
+
+      const minHours = this.teacherMinHoursDaily.get(teacherIdx);
+      if (minHours !== undefined) {
+        const beforeDeficit = currentHours > 0 ? Math.max(0, minHours - currentHours) : 0;
+        const afterHours = currentHours + activity.duration;
+        const afterDeficit = Math.max(0, minHours - afterHours);
+        score += 30 * (afterDeficit - beforeDeficit);
+      }
+
+      const maxGapsDay = this.teacherMaxGapsPerDay.get(teacherIdx) ?? this.allTeachersMaxGapsPerDay;
+      const maxGapsWeek = this.teacherMaxGapsPerWeek.get(teacherIdx);
+      if (maxGapsDay >= 0 || maxGapsWeek !== undefined) {
+        const row = this.teachersTimetable[teacherIdx];
+        if (row) {
+          const marks: number[] = [];
+          for (let h = hour; h < hour + activity.duration; h++) {
+            const candidateSlot = timeSlot(day, h, this.nHoursPerDay);
+            if (row[candidateSlot] < 0) {
+              row[candidateSlot] = activity.index;
+              marks.push(candidateSlot);
+            }
+          }
+          if (maxGapsDay >= 0) {
+            const gaps = this.countTeacherGapsOnDay(teacherIdx, day);
+            if (gaps > maxGapsDay) score += 60 * (gaps - maxGapsDay);
+          }
+          if (maxGapsWeek !== undefined) {
+            const gaps = this.countTeacherGapsPerWeek(teacherIdx);
+            if (gaps > maxGapsWeek) score += 60 * (gaps - maxGapsWeek);
+          }
+          for (const candidateSlot of marks) row[candidateSlot] = -1;
+        }
+      }
     }
     
     // Prefer slots that maintain student max hours daily
@@ -853,7 +957,8 @@ export class TimetableGenerator {
       // then restoring. Cheaper than a fresh evaluator pass and matches how
       // the other soft checks look at prospective placement.
       const maxGaps = this.studentsMaxGapsPerDay.get(subgroupIdx);
-      if (maxGaps !== undefined) {
+      const maxGapsWeek = this.studentsMaxGapsPerWeek.get(subgroupIdx);
+      if (maxGaps !== undefined || maxGapsWeek !== undefined) {
         const row = this.subgroupsTimetable[subgroupIdx];
         if (row) {
           const marks: number[] = [];
@@ -862,8 +967,12 @@ export class TimetableGenerator {
             if (row[s] < 0) { row[s] = activity.index; marks.push(s); }
           }
           const gaps = this.countStudentGapsOnDay(subgroupIdx, day);
+          if (maxGaps !== undefined && gaps > maxGaps) score += 60 * (gaps - maxGaps);
+          if (maxGapsWeek !== undefined) {
+            const weeklyGaps = this.countStudentGapsPerWeek(subgroupIdx);
+            if (weeklyGaps > maxGapsWeek) score += 60 * (weeklyGaps - maxGapsWeek);
+          }
           for (const s of marks) row[s] = -1;
-          if (gaps > maxGaps) score += 60 * (gaps - maxGaps);
         }
       }
     }

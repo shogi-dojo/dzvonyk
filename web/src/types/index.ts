@@ -344,6 +344,7 @@ export type ConstraintFields = {
   readonly maxDays?: number;
   readonly minDays?: number;
   readonly maxHours?: number;
+  readonly minHours?: number;
   readonly maxGaps?: number;
   readonly day?: number;
   readonly hour?: number;

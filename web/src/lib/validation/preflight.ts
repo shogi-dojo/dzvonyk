@@ -50,6 +50,30 @@ export interface PreflightInput {
 // exceeding it. 90 % load is where FET's heuristic starts to struggle.
 const WARN_LOAD_RATIO = 0.9;
 
+/** Assigned weekly hours keyed by both teacher id and teacher name. */
+export function calculateTeacherAssignedLoad(
+  teachers: Teacher[],
+  activities: Activity[]
+): Map<string, number> {
+  const result = new Map<string, number>();
+  const teacherByReference = new Map<string, Teacher>();
+  for (const teacher of teachers) {
+    teacherByReference.set(teacher.id, teacher);
+    teacherByReference.set(teacher.name, teacher);
+  }
+  for (const activity of activities) {
+    if (!activity.active) continue;
+    for (const reference of activity.teacherIds) {
+      const teacher = teacherByReference.get(reference);
+      const id = teacher?.id || reference;
+      const next = (result.get(id) || 0) + activity.duration;
+      result.set(id, next);
+      if (teacher) result.set(teacher.name, next);
+    }
+  }
+  return result;
+}
+
 export function runPreflight(input: PreflightInput): PreflightResult {
   const blocking: PreflightIssue[] = [];
   const warnings: PreflightIssue[] = [];
@@ -175,15 +199,11 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   }
 
   // ---- Per-teacher load ----
-  const perTeacherLoad = new Map<string, number>();
-  for (const a of active) {
-    for (const tid of a.teacherIds) {
-      perTeacherLoad.set(tid, (perTeacherLoad.get(tid) ?? 0) + a.duration);
-    }
-  }
+  const perTeacherLoad = calculateTeacherAssignedLoad(teachers, active);
   const teacherById = new Map(teachers.map((t) => [t.id, t]));
 
   for (const [tid, load] of perTeacherLoad) {
+    if (teachers.some((teacher) => teacher.name === tid && teacher.id !== tid)) continue;
     const t = teacherById.get(tid);
     const name = t?.name ?? tid;
     const unavail = teacherUnavail.get(tid) ?? 0;

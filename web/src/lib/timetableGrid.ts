@@ -9,6 +9,7 @@ export interface CellData {
   room?: string;
   duration: number;
   activityTags: string[];
+  weekParity?: Activity['weekParity'];
   locked?: boolean;
   conflicts?: string[];
 }
@@ -117,6 +118,10 @@ export function findSolutionConflicts(
       const a2End = p2.hour + (a2.duration || 1);
       const overlaps = Math.max(p1.hour, p2.hour) < Math.min(a1End, a2End);
       if (!overlaps) continue;
+      if (
+        (a1.weekParity === 'numerator' && a2.weekParity === 'denominator') ||
+        (a1.weekParity === 'denominator' && a2.weekParity === 'numerator')
+      ) continue;
 
       // 1. Teacher clash
       const commonTeachers = a1.teacherIds.filter((t1) =>
@@ -407,6 +412,7 @@ export function buildTimetableGrid(params: {
       room: roomObj?.name,
       duration: activity.duration || 1,
       activityTags: activity.activityTagIds || [],
+      weekParity: activity.weekParity,
       locked: lockedActivityIds.has(activity.id),
       conflicts: conflictsMap.get(activity.id),
     };
@@ -507,6 +513,7 @@ export function buildAllClassesGrid(params: {
       room: roomObj?.name,
       duration: activity.duration || 1,
       activityTags: activity.activityTagIds || [],
+      weekParity: activity.weekParity,
       locked: lockedActivityIds.has(activity.id),
       conflicts: conflictsMap.get(activity.id),
     };

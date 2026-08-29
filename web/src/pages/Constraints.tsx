@@ -30,9 +30,13 @@ const TIME_CONSTRAINT_TYPES: Record<string, ConstraintTypeDef> = {
   'TeacherNotAvailableTimes': { category: 'teacher', fields: ['teacher', 'times'] },
   'TeacherMaxDaysPerWeek': { category: 'teacher', fields: ['teacher', 'maxDays'] },
   'TeacherMinDaysPerWeek': { category: 'teacher', fields: ['teacher', 'minDays'] },
+  'TeacherMaxGapsPerWeek': { category: 'teacher', fields: ['teacher', 'maxGaps'] },
+  'TeacherMaxGapsPerDay': { category: 'teacher', fields: ['teacher', 'maxGaps'] },
   'TeacherMaxHoursDaily': { category: 'teacher', fields: ['teacher', 'maxHours'] },
+  'TeacherMinHoursDaily': { category: 'teacher', fields: ['teacher', 'minHours'] },
   'StudentsSetNotAvailableTimes': { category: 'students', fields: ['studentsSet', 'times'] },
   'StudentsSetMaxHoursDaily': { category: 'students', fields: ['studentsSet', 'maxHours'] },
+  'StudentsSetMaxGapsPerWeek': { category: 'students', fields: ['studentsSet', 'maxGaps'] },
   'StudentsSetMaxGapsPerDay': { category: 'students', fields: ['studentsSet', 'maxGaps'] },
   'MinDaysBetweenActivities': { category: 'activity', fields: ['activities', 'minDays'] },
   'ActivityPreferredStartingTime': { category: 'activity', fields: ['activity', 'day', 'hour', 'locked'] },
@@ -74,9 +78,11 @@ export function Constraints() {
   const [teacherId, setTeacherId] = useState('');
   const [studentsSetId, setStudentsSetId] = useState('');
   const [selectedActivityId, setSelectedActivityId] = useState('');
+  const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [maxDays, setMaxDays] = useState('5');
   const [minDays, setMinDays] = useState('3');
   const [maxHours, setMaxHours] = useState('8');
+  const [minHours, setMinHours] = useState('2');
   const [maxGaps, setMaxGaps] = useState('1');
   const [selectedDay, setSelectedDay] = useState(0);
   const [selectedHour, setSelectedHour] = useState(0);
@@ -111,6 +117,7 @@ export function Constraints() {
     const a = activities.find(act => act.id === id);
     return a ? t('constraints.activityLabel', { subject: a.subjectId, teachers: a.teacherIds.join(', ') || t('constraints.noTeacher') }) : id ?? '';
   };
+  const getStudentsName = (id?: string) => studentOptions.find((option) => option.value === id)?.label.trim() ?? id ?? '';
 
   const filteredTimeConstraints = useMemo(() => {
     if (!searchQuery) return timeConstraints;
@@ -131,7 +138,7 @@ export function Constraints() {
 
   const resetForm = () => {
     setWeight('100'); setActive(true); setTeacherId(''); setStudentsSetId('');
-    setSelectedActivityId(''); setMaxDays('5'); setMinDays('3'); setMaxHours('8'); setMaxGaps('1');
+    setSelectedActivityId(''); setSelectedActivityIds([]); setMaxDays('5'); setMinDays('3'); setMaxHours('8'); setMinHours('2'); setMaxGaps('1');
     setSelectedDay(0); setSelectedHour(0); setSelectedTimes([]); setRoomId(''); setSubjectId('');
     setLockedPin(false);
   };
@@ -151,9 +158,9 @@ export function Constraints() {
     setSelectedTimeType(c.type); setWeight(String(c.weightPercentage)); setActive(c.active);
     const any = c as ConstraintFields;
     setTeacherId(any.teacherId || ''); setStudentsSetId(any.studentsSetId || '');
-    setSelectedActivityId(any.activityId || ''); setMaxDays(String(any.maxDays || 5));
+    setSelectedActivityId(any.activityId || ''); setSelectedActivityIds(any.activityIds || []); setMaxDays(String(any.maxDays || 5));
     setMinDays(String(any.minDays || 3));
-    setMaxHours(String(any.maxHours || 8)); setMaxGaps(String(any.maxGaps ?? 1));
+    setMaxHours(String(any.maxHours || 8)); setMinHours(String(any.minHours || 2)); setMaxGaps(String(any.maxGaps ?? 1));
     setSelectedDay(any.day || 0); setSelectedHour(any.hour || 0);
     setSelectedTimes(any.times || []);
     setLockedPin(Boolean(any.permanentlyLocked ?? any.locked ?? false));
@@ -179,10 +186,14 @@ export function Constraints() {
       case 'TeacherMaxDaysPerWeek': constraint = { ...base, type: 'TeacherMaxDaysPerWeek', teacherId, maxDays: parseInt(maxDays) } as TimeConstraint; break;
       case 'TeacherMinDaysPerWeek': constraint = { ...base, type: 'TeacherMinDaysPerWeek', teacherId, minDays: parseInt(minDays) } as TimeConstraint; break;
       case 'TeacherMaxHoursDaily': constraint = { ...base, type: 'TeacherMaxHoursDaily', teacherId, maxHours: parseInt(maxHours) } as TimeConstraint; break;
+      case 'TeacherMinHoursDaily': constraint = { ...base, type: 'TeacherMinHoursDaily', teacherId, minHours: parseInt(minHours) } as TimeConstraint; break;
+      case 'TeacherMaxGapsPerWeek': constraint = { ...base, type: 'TeacherMaxGapsPerWeek', teacherId, maxGaps: parseInt(maxGaps) } as TimeConstraint; break;
+      case 'TeacherMaxGapsPerDay': constraint = { ...base, type: 'TeacherMaxGapsPerDay', teacherId, maxGaps: parseInt(maxGaps) } as TimeConstraint; break;
       case 'StudentsSetNotAvailableTimes': constraint = { ...base, type: 'StudentsSetNotAvailableTimes', studentsSetId, times: selectedTimes } as TimeConstraint; break;
       case 'StudentsSetMaxHoursDaily': constraint = { ...base, type: 'StudentsSetMaxHoursDaily', studentsSetId, maxHours: parseInt(maxHours) } as TimeConstraint; break;
       case 'StudentsSetMaxGapsPerDay': constraint = { ...base, type: 'StudentsSetMaxGapsPerDay', studentsSetId, maxGaps: parseInt(maxGaps) } as TimeConstraint; break;
-      case 'MinDaysBetweenActivities': constraint = { ...base, type: 'MinDaysBetweenActivities', activityIds: [selectedActivityId], minDays: parseInt(maxDays) } as TimeConstraint; break;
+      case 'StudentsSetMaxGapsPerWeek': constraint = { ...base, type: 'StudentsSetMaxGapsPerWeek', studentsSetId, maxGaps: parseInt(maxGaps) } as TimeConstraint; break;
+      case 'MinDaysBetweenActivities': constraint = { ...base, type: 'MinDaysBetweenActivities', activityIds: selectedActivityIds, minDays: parseInt(minDays), consecutiveIfSameDay: false } as TimeConstraint; break;
       case 'ActivityPreferredStartingTime':
         constraint = {
           ...base,
@@ -227,9 +238,14 @@ export function Constraints() {
       case 'TeacherMaxDaysPerWeek': return t('constraints.descriptions.teacherMaxDays', { teacher: getTeacherName(any.teacherId), count: any.maxDays });
       case 'TeacherMinDaysPerWeek': return t('constraints.descriptions.teacherMinDays', { teacher: getTeacherName(any.teacherId), count: any.minDays });
       case 'TeacherMaxHoursDaily': return t('constraints.descriptions.teacherMaxHours', { teacher: getTeacherName(any.teacherId), count: any.maxHours });
-      case 'StudentsSetNotAvailableTimes': return t('constraints.descriptions.studentsSlots', { students: any.studentsSetId, count: any.times?.length || 0 });
-      case 'StudentsSetMaxHoursDaily': return t('constraints.descriptions.studentsMaxHours', { students: any.studentsSetId, count: any.maxHours });
-      case 'StudentsSetMaxGapsPerDay': return t('constraints.descriptions.studentsMaxGaps', { students: any.studentsSetId, count: any.maxGaps });
+      case 'TeacherMinHoursDaily': return t('constraints.descriptions.teacherMinHours', { teacher: getTeacherName(any.teacherId), count: any.minHours });
+      case 'TeacherMaxGapsPerWeek': return t('constraints.descriptions.teacherMaxGapsWeek', { teacher: getTeacherName(any.teacherId), count: any.maxGaps });
+      case 'TeacherMaxGapsPerDay': return t('constraints.descriptions.teacherMaxGapsDay', { teacher: getTeacherName(any.teacherId), count: any.maxGaps });
+      case 'StudentsSetNotAvailableTimes': return t('constraints.descriptions.studentsSlots', { students: getStudentsName(any.studentsSetId), count: any.times?.length || 0 });
+      case 'StudentsSetMaxHoursDaily': return t('constraints.descriptions.studentsMaxHours', { students: getStudentsName(any.studentsSetId), count: any.maxHours });
+      case 'StudentsSetMaxGapsPerDay': return t('constraints.descriptions.studentsMaxGaps', { students: getStudentsName(any.studentsSetId), count: any.maxGaps });
+      case 'StudentsSetMaxGapsPerWeek': return t('constraints.descriptions.studentsMaxGapsWeek', { students: getStudentsName(any.studentsSetId), count: any.maxGaps });
+      case 'MinDaysBetweenActivities': return t('constraints.descriptions.minDaysBetween', { count: any.activityIds?.length || 0, days: any.minDays });
       case 'ActivityPreferredStartingTime':
         return `${getActivityName(any.activityId)}: ${t('constraints.descriptions.activityAt', { day: (any.day ?? 0) + 1, hour: (any.hour ?? 0) + 1 })}${any.permanentlyLocked ? ' (🔒)' : ''}`;
       default: return '';
@@ -284,12 +300,19 @@ export function Constraints() {
           <Card className="animate-slide-up">
             <CardHeader><CardTitle>{t('constraints.addTimeTitle')}</CardTitle><CardDescription>{t('constraints.selectType')}</CardDescription></CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(TIME_CONSTRAINT_TYPES).map(([key]) => (
-                  <Button key={key} variant="outline" size="sm" onClick={() => openAddTimeDialog(key)}>
-                    {typeLabel(key)}
-                    <Badge variant="secondary" className="ml-2">{timeConstraints.filter(c => c.type === key).length}</Badge>
-                  </Button>
+              <div className="space-y-4">
+                {['basic', 'teacher', 'students', 'activity'].map((category) => (
+                  <div key={category}>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{t(`constraints.categories.${category}`)}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(TIME_CONSTRAINT_TYPES).filter(([, info]) => info.category === category).map(([key]) => (
+                        <Button key={key} variant="outline" size="sm" onClick={() => openAddTimeDialog(key)}>
+                          {typeLabel(key)}
+                          <Badge variant="secondary" className="ml-2">{timeConstraints.filter(c => c.type === key).length}</Badge>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </CardContent>
@@ -439,6 +462,25 @@ export function Constraints() {
                 </div>
               )}
 
+              {fields.includes('activities') && (
+                <div className="grid gap-2">
+                  <Label>{t('constraints.dialog.activities', { count: selectedActivityIds.length })}</Label>
+                  <div className="max-h-52 space-y-1 overflow-y-auto rounded-md border border-border p-2">
+                    {activities.map((activity) => (
+                      <label key={activity.id} className="flex cursor-pointer items-start gap-2 rounded p-2 hover:bg-muted/50">
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4"
+                          checked={selectedActivityIds.includes(activity.id)}
+                          onChange={() => setSelectedActivityIds((current) => current.includes(activity.id) ? current.filter((id) => id !== activity.id) : [...current, activity.id])}
+                        />
+                        <span className="text-sm">{activity.subjectId} — {activity.teacherIds.join(', ') || t('constraints.noTeacher')}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {fields.includes('room') && (
                 <div className="grid gap-2">
                   <Label>{t('constraints.dialog.room')}</Label>
@@ -470,6 +512,13 @@ export function Constraints() {
                 <div className="grid gap-2">
                   <Label>{t('constraints.dialog.maxHours')}</Label>
                   <Input type="number" min="1" max="12" value={maxHours} onChange={(e) => setMaxHours(e.target.value)} />
+                </div>
+              )}
+
+              {fields.includes('minHours') && (
+                <div className="grid gap-2">
+                  <Label>{t('constraints.dialog.minHours')}</Label>
+                  <Input type="number" min="1" max="12" value={minHours} onChange={(e) => setMinHours(e.target.value)} />
                 </div>
               )}
 

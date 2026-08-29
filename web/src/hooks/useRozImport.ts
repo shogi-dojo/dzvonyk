@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
 import { useAppDispatch } from './useAppDispatch';
+import { useAppSelector } from './useAppSelector';
 import { setRules } from '../store/slices/rulesSlice';
 import { setTeachers } from '../store/slices/teachersSlice';
 import { setSubjects } from '../store/slices/subjectsSlice';
@@ -28,6 +29,7 @@ function serializeDates<T>(obj: T): T {
 
 export function useRozImport() {
   const dispatch = useAppDispatch();
+  const configuredHours = useAppSelector((state) => state.rules.current?.hoursOfTheDay || []);
   const [preview, setPreview] = useState<RozImportResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function useRozImport() {
     setError(null);
     try {
       const buffer = await file.arrayBuffer();
-      const result = parseROZFile(buffer);
+      const result = parseROZFile(buffer, configuredHours);
       setPreview(result);
       return true;
     } catch (err) {
@@ -47,7 +49,7 @@ export function useRozImport() {
     } finally {
       setImporting(false);
     }
-  }, []);
+  }, [configuredHours]);
 
   const confirm = useCallback(async () => {
     if (!preview) return;

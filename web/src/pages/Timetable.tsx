@@ -9,7 +9,7 @@ import {
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
 import { useAppSelector, useAppDispatch } from '@/hooks';
@@ -304,6 +304,12 @@ export function Timetable() {
       }, 100);
     }
   };
+
+  const weekParityLabel = (parity?: 'both' | 'numerator' | 'denominator') => parity === 'numerator'
+    ? t('activities.dialog.weekParityNumerator')
+    : parity === 'denominator'
+      ? t('activities.dialog.weekParityDenominator')
+      : '';
 
   const handleChangeSelection = () => {
     setShowGrid(false);
@@ -809,8 +815,8 @@ export function Timetable() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[650px]">
-                <div className="p-4">
+              <ScrollArea type="always" className="h-[650px] pb-2">
+                <div className="min-w-max p-4">
                   {viewType === 'all-classes' && allClassesData ? (
                     /* All Classes Combined Table */
                     <table className="w-full border-collapse timetable-grid text-xs" role="grid" aria-label="All Classes Timetable">
@@ -905,6 +911,11 @@ export function Timetable() {
                                           )}
                                           {cell.room && (
                                             <div className="text-[10px] text-muted-foreground truncate">{cell.room}</div>
+                                          )}
+                                          {cell.weekParity && cell.weekParity !== 'both' && (
+                                            <Badge variant="outline" className="mt-1 text-[10px] py-0 px-1">
+                                              {weekParityLabel(cell.weekParity)}
+                                            </Badge>
                                           )}
                                           {hasConflict && (
                                             <div className="text-[10px] text-destructive font-semibold flex items-center gap-1 mt-0.5">
@@ -1056,6 +1067,11 @@ export function Timetable() {
                                               ))}
                                             </div>
                                           )}
+                                          {cell.weekParity && cell.weekParity !== 'both' && (
+                                            <Badge variant="outline" className="mt-1.5 text-[10px]">
+                                              {weekParityLabel(cell.weekParity)}
+                                            </Badge>
+                                          )}
                                           {hasConflict && (
                                             <div className="mt-1.5 p-1 rounded bg-destructive/20 text-destructive text-[11px] font-medium flex items-center gap-1">
                                               <AlertTriangle className="h-3 w-3 shrink-0" />
@@ -1074,6 +1090,7 @@ export function Timetable() {
                     </table>
                   ) : null}
                 </div>
+                <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </CardContent>
           </Card>

@@ -46,6 +46,7 @@ export function Activities() {
   
   // Activities section state
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [formData, setFormData] = useState({
@@ -200,6 +201,31 @@ export function Activities() {
     dispatch(updateActivity({ ...activity, active: !activity.active }));
   };
 
+  const toggleSelectedActivity = (activityId: string) => {
+    setSelectedActivityIds((current) => {
+      const next = new Set(current);
+      if (next.has(activityId)) next.delete(activityId);
+      else next.add(activityId);
+      return next;
+    });
+  };
+
+  const applyBulkWeekParity = (weekParity: 'both' | 'numerator' | 'denominator') => {
+    activities.filter((activity) => selectedActivityIds.has(activity.id)).forEach((activity) => {
+      dispatch(updateActivity({
+        ...activity,
+        weekParity: weekParity === 'both' ? undefined : weekParity,
+      }));
+    });
+    setSelectedActivityIds(new Set());
+  };
+
+  const weekParityLabel = (weekParity: Activity['weekParity']) => weekParity === 'numerator'
+    ? t('activities.dialog.weekParityNumerator')
+    : weekParity === 'denominator'
+      ? t('activities.dialog.weekParityDenominator')
+      : t('activities.dialog.weekParityBoth');
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -274,9 +300,29 @@ export function Activities() {
       </Card>
 
       {/* Search Activities */}
-      <div className="relative max-w-sm animate-slide-up" style={{ animationDelay: '50ms' }}>
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder={t('activities.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+      <div className="flex flex-wrap items-center gap-3 animate-slide-up" style={{ animationDelay: '50ms' }}>
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder={t('activities.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
+        {selectedActivityIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
+            <Badge variant="secondary">{t('activities.bulkSelected', { count: selectedActivityIds.size })}</Badge>
+            <select
+              defaultValue=""
+              aria-label={t('activities.bulkWeekParity')}
+              onChange={(event) => {
+                if (event.target.value) applyBulkWeekParity(event.target.value as 'both' | 'numerator' | 'denominator');
+              }}
+              className="h-8 rounded-md border border-border bg-card px-2 text-sm"
+            >
+              <option value="">{t('activities.bulkWeekParity')}</option>
+              <option value="both">{t('activities.dialog.weekParityBoth')}</option>
+              <option value="numerator">{t('activities.dialog.weekParityNumerator')}</option>
+              <option value="denominator">{t('activities.dialog.weekParityDenominator')}</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Activities List */}
@@ -308,6 +354,13 @@ export function Activities() {
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          aria-label={t('activities.selectActivity', { subject: subject?.name || activity.subjectId })}
+                          checked={selectedActivityIds.has(activity.id)}
+                          onChange={() => toggleSelectedActivity(activity.id)}
+                          className="h-4 w-4 shrink-0"
+                        />
                         <div className={`p-2 rounded-lg ${activity.active ? 'bg-primary/10' : 'bg-muted'}`}>
                           <Calendar className={`h-5 w-5 ${activity.active ? 'text-primary' : 'text-muted-foreground'}`} />
                         </div>
@@ -343,6 +396,9 @@ export function Activities() {
                           {t}
                         </Badge>
                       ))}
+                      <Badge variant={activity.weekParity ? 'default' : 'outline'}>
+                        {weekParityLabel(activity.weekParity)}
+                      </Badge>
                       {!activity.active && <Badge variant="destructive">{t('activities.inactiveBadge')}</Badge>}
                     </div>
                   </CardContent>

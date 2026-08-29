@@ -119,7 +119,7 @@ function generateHours(count: number): Hour[] {
     const h2 = (startHour + i + 1).toString().padStart(2, '0');
     hours.push({
       name: `${h1}:00`,
-      longName: `${h1}:00 - ${h2}:00`,
+      longName: `${h1}:00 – ${h2}:00`,
     });
   }
   return hours;
@@ -209,7 +209,10 @@ function deduplicateNames(names: string[]): { resolved: string[]; duplicateCount
 /**
  * Parse an aSc .roz file buffer into dzvonyk data structures
  */
-export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
+export function parseROZFile(
+  bytes: ArrayBuffer | Uint8Array,
+  configuredHours: Hour[] = []
+): RozImportResult {
   const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const warnings: RozWarning[] = [];
@@ -557,12 +560,21 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
 
   const activities: Activity[] = [];
   const placements: ActivityPlacement[] = [];
+  const teacherLoads = new Map<number, number>();
+  const teacherSubjects = new Map<number, Set<number>>();
   let totalHours = 0;
   let unplacedHours = 0;
   let droppedCards = 0;
 
   for (const lesson of lessons) {
     totalHours += lesson.hours;
+    teacherLoads.set(
+      lesson.teacherIdx,
+      (teacherLoads.get(lesson.teacherIdx) || 0) + lesson.hours
+    );
+    const qualified = teacherSubjects.get(lesson.teacherIdx) || new Set<number>();
+    qualified.add(lesson.subjectIdx);
+    teacherSubjects.set(lesson.teacherIdx, qualified);
     const lessonCards = cardsByLesson.get(lesson.id) || [];
     const actGroupId = lesson.hours > 1 ? lesson.id : 0;
     const teacherName = teachers[lesson.teacherIdx];
@@ -632,7 +644,13 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
 
   const allPeriods = cards.map((c) => c.period);
   const maxPeriod = allPeriods.length > 0 ? Math.max(...allPeriods) : 9;
-  const hoursOfTheDay = generateHours(Math.max(9, maxPeriod));
+  const hourCount = Math.max(9, maxPeriod);
+  const hoursOfTheDay = configuredHours.length >= hourCount
+    ? configuredHours.slice(0, hourCount).map((hour) => ({
+        ...hour,
+        longName: hour.longName || hour.name,
+      }))
+    : generateHours(hourCount);
 
   // Determine shifts:
   // Check if some classes with cards never use period 1 while using maxPeriod (e.g. 9)
@@ -698,13 +716,15 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
     };
   });
 
-  const teacherObjects: Teacher[] = teachers.map((name) => ({
+  const teacherObjects: Teacher[] = teachers.map((name, teacherIdx) => ({
     id: uuidv4(),
     name,
     longName: name,
     code: '',
-    targetNumberOfHours: 0,
-    qualifiedSubjects: [],
+    targetNumberOfHours: teacherLoads.get(teacherIdx) || 0,
+    qualifiedSubjects: Array.from(teacherSubjects.get(teacherIdx) || [])
+      .map((subjectIdx) => subjects[subjectIdx])
+      .filter(Boolean),
     comments: '',
   }));
 
