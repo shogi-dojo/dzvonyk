@@ -1,16 +1,6 @@
 import '@testing-library/jest-dom';
+import 'fake-indexeddb/auto';
 import { vi } from 'vitest';
-
-// Mock IndexedDB for tests
-const indexedDB = {
-  open: vi.fn(),
-  deleteDatabase: vi.fn(),
-};
-
-Object.defineProperty(window, 'indexedDB', {
-  value: indexedDB,
-  writable: true,
-});
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
