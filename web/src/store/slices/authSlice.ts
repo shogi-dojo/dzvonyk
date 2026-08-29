@@ -5,6 +5,9 @@ import {
   checkRedirectAuthResult,
   type AuthUserProfile,
 } from '@/lib/firebase/auth';
+import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { historyManager } from '@/lib/history';
+import { loadWorkspaceContext } from './workspaceSlice';
 
 interface AuthState {
   user: AuthUserProfile | null;
@@ -33,8 +36,11 @@ export const signInWithGoogleThunk = createAsyncThunk(
   }
 );
 
-export const signOutThunk = createAsyncThunk('auth/signOut', async () => {
+export const signOutThunk = createAsyncThunk('auth/signOut', async (_, { dispatch }) => {
   await signOutUser();
+  const context = await workspaceManager.resetToGuest();
+  await historyManager.init(context.workspace.id);
+  await dispatch(loadWorkspaceContext()).unwrap();
 });
 
 const authSlice = createSlice({
@@ -42,12 +48,8 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setUser: (state, action: PayloadAction<AuthUserProfile | null>) => {
-      const wasGuest = !state.user && action.payload !== null;
       state.user = action.payload;
       state.loading = false;
-      if (wasGuest) {
-        state.showMigrationDialog = true;
-      }
     },
     setShowMigrationDialog: (state, action: PayloadAction<boolean>) => {
       state.showMigrationDialog = action.payload;
@@ -65,6 +67,7 @@ const authSlice = createSlice({
       .addCase(signInWithGoogleThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        state.showMigrationDialog = true;
       })
       .addCase(signInWithGoogleThunk.rejected, (state, action) => {
         state.loading = false;
@@ -73,6 +76,13 @@ const authSlice = createSlice({
       .addCase(signOutThunk.fulfilled, (state) => {
         state.user = null;
         state.showMigrationDialog = false;
+      })
+      .addCase(initAuthThunk.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = action.payload;
+          state.showMigrationDialog = true;
+        }
+        state.loading = false;
       });
   },
 });

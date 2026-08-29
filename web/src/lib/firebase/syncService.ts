@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { firestore, storage } from './client';
+import { deleteObject, getDownloadURL, listAll, ref, uploadString } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
+import { firestore, storage, functions } from './client';
 import { db, type FETDatabase } from '@/db';
 import type {
   AcademicYearWorkspace,
@@ -40,6 +41,40 @@ export class SyncService {
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
     };
+  }
+
+  /**
+   * Imports private school/workspace metadata for a returning user. Snapshot
+   * bodies remain in Storage and are pulled only for the selected workspace.
+   */
+  public async hydrateCloudWorkspaces(uid: string): Promise<AcademicYearWorkspace[]> {
+    const schoolsSnapshot = await getDocs(collection(firestore, `users/${uid}/schools`));
+    const hydrated: AcademicYearWorkspace[] = [];
+
+    for (const schoolDocument of schoolsSnapshot.docs) {
+      const school = schoolDocument.data() as School;
+      await this.database.schools.put(school);
+
+      const workspacesSnapshot = await getDocs(
+        collection(firestore, `users/${uid}/schools/${schoolDocument.id}/workspaces`)
+      );
+      for (const workspaceDocument of workspacesSnapshot.docs) {
+        const remoteWorkspace = workspaceDocument.data() as AcademicYearWorkspace;
+        const localWorkspace = await this.database.workspaces.get(remoteWorkspace.id);
+
+        if (!localWorkspace) {
+          await this.database.workspaces.put({
+            ...remoteWorkspace,
+            // Zero marks a newly discovered workspace as needing its first pull.
+            localRevision: 0,
+            cloudRevision: 0,
+          });
+        }
+        hydrated.push(remoteWorkspace);
+      }
+    }
+
+    return hydrated;
   }
 
   private setStatus(status: SyncStatus) {
@@ -110,15 +145,31 @@ export class SyncService {
 
       const remoteData = remoteDocSnap.data() as AcademicYearWorkspace;
       const remoteRevision = remoteData.cloudRevision || 1;
-      const localRevision = workspace.localRevision;
+      const baseRevision = workspace.cloudRevision || 0;
+      const localIsDirty = workspace.localRevision > baseRevision;
+      const remoteIsAhead = remoteRevision > baseRevision;
 
-      if (localRevision > remoteRevision) {
+      if (localIsDirty && remoteIsAhead) {
+        // Both devices changed since the last common revision. Preserve the
+        // local copy as a conflict version before materialising the remote one.
+        await workspaceManager.saveSnapshotVersion(
+          workspace.id,
+          'conflict',
+          `Конфлікт синхронізації ${new Date().toLocaleString('uk-UA')}`
+        );
+        await this.pullFromCloud(effectiveUid, context.school.id, workspace.id, remoteRevision);
+        this.setStatus('conflict');
+        trackEvent('cloud_sync', { action: 'conflict', status: 'success' });
+        return 'conflict';
+      }
+
+      if (localIsDirty) {
         // 2. Local is ahead -> push to cloud
-        await this.pushToCloud(effectiveUid, context.school, workspace);
+        await this.pushToCloud(effectiveUid, context.school, workspace, remoteRevision);
         this.setStatus('synced');
         trackEvent('cloud_sync', { action: 'push', status: 'success' });
         return 'synced';
-      } else if (remoteRevision > localRevision) {
+      } else if (remoteIsAhead) {
         // 3. Remote is ahead -> pull from cloud
         await this.pullFromCloud(effectiveUid, context.school.id, workspace.id, remoteRevision);
         this.setStatus('synced');
@@ -145,7 +196,8 @@ export class SyncService {
   private async pushToCloud(
     uid: string,
     school: School,
-    workspace: AcademicYearWorkspace
+    workspace: AcademicYearWorkspace,
+    remoteRevision = 0
   ): Promise<void> {
     // 1. Create full snapshot envelope
     const envelope = await createSnapshotEnvelope(this.database, {
@@ -155,7 +207,7 @@ export class SyncService {
     });
 
     const serialized = serializeSnapshotEnvelope(envelope);
-    const newRevision = (workspace.cloudRevision || 0) + 1;
+    const newRevision = remoteRevision + 1;
 
     // 2. Upload to Cloud Storage
     const storagePath = `snapshots/${uid}/${workspace.id}/rev_${newRevision}.json`;
@@ -211,7 +263,9 @@ export class SyncService {
     const envelope = deserializeSnapshotEnvelope(jsonText);
 
     // Restore to database
-    await restoreSnapshotEnvelopeToDatabase(this.database, envelope);
+    await this.database.withoutTimetableMutationTracking(() =>
+      restoreSnapshotEnvelopeToDatabase(this.database, envelope)
+    );
 
     const now = new Date().toISOString();
     await this.database.workspaces.update(workspaceId, {
@@ -226,24 +280,22 @@ export class SyncService {
    * Deletes a cloud workspace and all its storage snapshots
    */
   public async deleteCloudWorkspace(uid: string, schoolId: string, workspaceId: string): Promise<void> {
+    const snapshots = await listAll(ref(storage, `snapshots/${uid}/${workspaceId}`));
+    await Promise.all(snapshots.items.map((snapshot) => deleteObject(snapshot)));
     const workspaceRef = doc(firestore, `users/${uid}/schools/${schoolId}/workspaces/${workspaceId}`);
     await deleteDoc(workspaceRef);
   }
 
   /**
-   * Deletes all cloud data for a user (called during account deletion)
+   * Permanently deletes Firestore, Storage and the Firebase Auth identity via
+   * the trusted callable function. Client-side rules cannot delete Auth users
+   * or recursively guarantee storage cleanup.
    */
-  public async deleteAllUserCloudData(uid: string): Promise<void> {
-    const schoolsRef = collection(firestore, `users/${uid}/schools`);
-    const schoolDocs = await getDocs(schoolsRef);
-
-    for (const sDoc of schoolDocs.docs) {
-      const workspacesRef = collection(firestore, `users/${uid}/schools/${sDoc.id}/workspaces`);
-      const wsDocs = await getDocs(workspacesRef);
-      for (const wDoc of wsDocs.docs) {
-        await deleteDoc(wDoc.ref);
-      }
-      await deleteDoc(sDoc.ref);
+  public async deleteCurrentUserAccount(): Promise<void> {
+    const deleteAccount = httpsCallable<void, { success: boolean }>(functions, 'deleteUserAccount');
+    const result = await deleteAccount();
+    if (!result.data.success) {
+      throw new Error('Account deletion did not complete.');
     }
   }
 }

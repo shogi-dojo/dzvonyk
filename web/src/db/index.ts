@@ -3,7 +3,7 @@
  * IndexedDB storage using Dexie.js for offline-first PWA support
  */
 
-import Dexie, { type Table } from 'dexie';
+import Dexie, { type Table, type Transaction } from 'dexie';
 import type {
   TimetableRules,
   Teacher,
@@ -22,7 +22,26 @@ import type {
   AcademicYearWorkspace,
   WorkspaceVersionMetadata,
   HistoryEntry,
+  EntityChange,
 } from '../types';
+
+const TIMETABLE_TABLE_NAMES = [
+  'rules',
+  'teachers',
+  'subjects',
+  'activityTags',
+  'studentsYears',
+  'studentsGroups',
+  'studentsSubgroups',
+  'activities',
+  'buildings',
+  'rooms',
+  'timeConstraints',
+  'spaceConstraints',
+  'solutions',
+] as const;
+
+export type TimetableMutationListener = (changes: EntityChange<unknown>[]) => void | Promise<void>;
 
 export interface ActiveWorkspaceStateDoc {
   id: string; // 'current'
@@ -45,6 +64,9 @@ export const GUEST_SCHOOL_ID = 'guest-school-default';
 export const GUEST_WORKSPACE_ID = 'guest-workspace-default';
 
 export class FETDatabase extends Dexie {
+  private timetableMutationListeners = new Set<TimetableMutationListener>();
+  private pendingTransactionChanges = new WeakMap<Transaction, Map<string, EntityChange<unknown>>>();
+  private mutationTrackingSuppressionDepth = 0;
   // Active materialised timetable tables
   rules!: Table<TimetableRules, string>;
   teachers!: Table<Teacher, string>;
@@ -138,6 +160,94 @@ export class FETDatabase extends Dexie {
         activeRevision: 1,
       });
     });
+
+    this.installTimetableMutationHooks();
+  }
+
+  private installTimetableMutationHooks(): void {
+    for (const tableName of TIMETABLE_TABLE_NAMES) {
+      const table = this.table<Record<string, unknown>, string>(tableName);
+      const isTrackingEnabled = () => this.mutationTrackingSuppressionDepth === 0;
+      const queueUpdate = (
+        transaction: Transaction,
+        key: string,
+        previous: unknown,
+        next: unknown
+      ) => this.queueTimetableMutation(transaction, tableName, key, previous, next);
+
+      table.hook('creating', (primaryKey, object, transaction) => {
+        if (this.mutationTrackingSuppressionDepth > 0) return;
+        const key = String(primaryKey ?? object.id);
+        this.queueTimetableMutation(transaction, tableName, key, null, object);
+      });
+
+      table.hook('updating', function (_modifications, primaryKey, oldObject, transaction) {
+        if (!isTrackingEnabled()) return;
+        // Dexie exposes the fully materialised object after a successful update.
+        // Keep the transaction-level batch intact so cascading edits remain one undo step.
+        this.onsuccess = (updatedObject) => {
+          queueUpdate(transaction, String(primaryKey), oldObject, updatedObject);
+        };
+      });
+
+      table.hook('deleting', (primaryKey, object, transaction) => {
+        if (this.mutationTrackingSuppressionDepth > 0) return;
+        this.queueTimetableMutation(transaction, tableName, String(primaryKey), object, null);
+      });
+    }
+  }
+
+  private queueTimetableMutation(
+    transaction: Transaction,
+    table: string,
+    key: string,
+    previous: unknown | null,
+    next: unknown | null
+  ): void {
+    let changes = this.pendingTransactionChanges.get(transaction);
+    if (!changes) {
+      changes = new Map();
+      this.pendingTransactionChanges.set(transaction, changes);
+      transaction.on('complete', () => {
+        const completed = this.pendingTransactionChanges.get(transaction);
+        this.pendingTransactionChanges.delete(transaction);
+        if (!completed?.size) return;
+
+        const materialChanges = [...completed.values()].filter(
+          (change) => JSON.stringify(change.prev) !== JSON.stringify(change.next)
+        );
+        if (!materialChanges.length) return;
+
+        for (const listener of this.timetableMutationListeners) {
+          void Promise.resolve(listener(materialChanges)).catch((error) => {
+            console.warn('[FETDatabase] Timetable mutation listener failed:', error);
+          });
+        }
+      });
+    }
+
+    const id = `${table}:${key}`;
+    const existing = changes.get(id);
+    changes.set(id, {
+      table,
+      key,
+      prev: existing ? existing.prev : previous,
+      next,
+    });
+  }
+
+  public subscribeToTimetableMutations(listener: TimetableMutationListener): () => void {
+    this.timetableMutationListeners.add(listener);
+    return () => this.timetableMutationListeners.delete(listener);
+  }
+
+  public async withoutTimetableMutationTracking<T>(operation: () => Promise<T>): Promise<T> {
+    this.mutationTrackingSuppressionDepth += 1;
+    try {
+      return await operation();
+    } finally {
+      this.mutationTrackingSuppressionDepth -= 1;
+    }
   }
 
   // Helper methods for managing data

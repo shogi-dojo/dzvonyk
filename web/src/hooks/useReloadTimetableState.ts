@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useAppDispatch } from '@/hooks';
 import { db } from '@/db';
-import { setRules } from '@/store/slices/rulesSlice';
+import { clearRules, setRules } from '@/store/slices/rulesSlice';
 import { setTeachers } from '@/store/slices/teachersSlice';
 import { setSubjects } from '@/store/slices/subjectsSlice';
 import { setActivities } from '@/store/slices/activitiesSlice';
@@ -42,6 +42,8 @@ export function useReloadTimetableState() {
 
       if (rules.length > 0) {
         dispatch(setRules(rules[0] as unknown as Parameters<typeof setRules>[0]));
+      } else {
+        dispatch(clearRules());
       }
       dispatch(setTeachers(teachers));
       dispatch(setSubjects(subjects));

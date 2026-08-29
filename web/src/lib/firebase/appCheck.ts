@@ -1,4 +1,4 @@
-import { initializeAppCheck, ReCaptchaV3Provider, CustomProvider, type AppCheck } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
 import type { FirebaseApp } from 'firebase/app';
 
 let appCheckInstance: AppCheck | null = null;
@@ -16,7 +16,7 @@ export function setupAppCheck(app: FirebaseApp): AppCheck | null {
     const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
     const win = window as unknown as WindowWithAppCheck;
 
-    if (isDev) {
+    if (isDev && siteKey) {
       // In dev/localhost, enable debug token if not already set
       if (!win.FIREBASE_APPCHECK_DEBUG_TOKEN) {
         win.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
@@ -26,17 +26,6 @@ export function setupAppCheck(app: FirebaseApp): AppCheck | null {
     if (siteKey) {
       appCheckInstance = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider(siteKey),
-        isTokenAutoRefreshEnabled: true,
-      });
-    } else if (isDev) {
-      // Dev mode debug provider for monitor mode
-      appCheckInstance = initializeAppCheck(app, {
-        provider: new CustomProvider({
-          getToken: async () => ({
-            token: 'debug-token-placeholder',
-            expireTimeMillis: Date.now() + 3600000,
-          }),
-        }),
         isTokenAutoRefreshEnabled: true,
       });
     }

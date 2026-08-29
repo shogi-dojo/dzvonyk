@@ -65,16 +65,19 @@ export function AccountSettingsCard() {
     }
   };
 
+  const handleSignOut = async () => {
+    await dispatch(signOutThunk()).unwrap();
+    await reloadState();
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
     setIsDeleting(true);
     try {
-      // 1. Delete all user cloud data
-      await syncService.deleteAllUserCloudData(user.uid);
-      // 2. Sign out
+      // The callable function recursively removes Firestore and Storage data,
+      // then deletes the Firebase Auth identity with Admin SDK privileges.
+      await syncService.deleteCurrentUserAccount();
       await dispatch(signOutThunk()).unwrap();
-      // 3. Reset local database
-      await workspaceRepository.resetWorkspace();
       await reloadState();
       setIsDeleteDialogOpen(false);
     } catch (err) {
@@ -126,7 +129,7 @@ export function AccountSettingsCard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => dispatch(signOutThunk())}
+                  onClick={handleSignOut}
                   className="text-xs h-8 gap-1.5"
                 >
                   <LogOut className="h-3.5 w-3.5" />

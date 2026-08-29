@@ -8,10 +8,18 @@ service firebase.storage {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    match /snapshots/{uid}/{allPaths=**} {
+    match /snapshots/{uid}/{workspaceId}/{fileName} {
       allow read: if isOwner(uid);
       allow create, update: if isOwner(uid)
-        && request.resource.size <= 10 * 1024 * 1024;
+        && fileName.matches('rev_[0-9]+[.]json')
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType == 'application/json'
+        && request.resource.metadata.keys().hasOnly([
+          'workspaceId', 'schoolId', 'revision'
+        ])
+        && request.resource.metadata.workspaceId == workspaceId
+        && request.resource.metadata.schoolId is string
+        && request.resource.metadata.revision is string;
       allow delete: if isOwner(uid);
     }
 

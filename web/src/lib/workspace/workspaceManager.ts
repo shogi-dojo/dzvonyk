@@ -109,6 +109,38 @@ export class WorkspaceManager {
   }
 
   /**
+   * Marks the materialised timetable as newer than its last cloud snapshot.
+   * This is called by the database mutation journal after each committed edit.
+   */
+  async markActiveWorkspaceChanged(): Promise<AcademicYearWorkspace | null> {
+    const activeState = await this.database.activeWorkspaceState.get('current');
+    if (!activeState) return null;
+
+    const workspace = await this.database.workspaces.get(activeState.currentWorkspaceId);
+    if (!workspace) return null;
+
+    const nextRevision = Math.max(workspace.localRevision, workspace.cloudRevision || 0) + 1;
+    const updatedWorkspace: AcademicYearWorkspace = {
+      ...workspace,
+      localRevision: nextRevision,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.database.transaction(
+      'rw',
+      [this.database.workspaces, this.database.activeWorkspaceState],
+      async () => {
+        await this.database.workspaces.put(updatedWorkspace);
+        await this.database.activeWorkspaceState.update('current', {
+          activeRevision: nextRevision,
+        });
+      }
+    );
+
+    return updatedWorkspace;
+  }
+
+  /**
    * Switches active materialised workspace
    */
   async switchWorkspace(targetWorkspaceId: string): Promise<ActiveWorkspaceContext> {
@@ -139,40 +171,42 @@ export class WorkspaceManager {
     const targetVersions = await this.listVersions(targetWorkspaceId);
     const latestTargetVersion = targetVersions[0];
 
-    if (latestTargetVersion?.snapshotEnvelope) {
-      await restoreSnapshotEnvelopeToDatabase(this.database, latestTargetVersion.snapshotEnvelope);
-    } else {
-      // Empty workspace initialization
-      await this.database.clearAllData();
-      const rulesId = uuidv4();
-      const defaultRules: TimetableRules = {
-        id: rulesId,
-        mode: 0,
-        institutionName: targetSchool.name,
-        nDaysPerWeek: 5,
-        nHoursPerDay: 7,
-        daysOfTheWeek: [
-          { name: 'Monday', longName: 'Monday' },
-          { name: 'Tuesday', longName: 'Tuesday' },
-          { name: 'Wednesday', longName: 'Wednesday' },
-          { name: 'Thursday', longName: 'Thursday' },
-          { name: 'Friday', longName: 'Friday' },
-        ],
-        hoursOfTheDay: [
-          { name: '08:30', longName: '08:30 - 09:15' },
-          { name: '09:25', longName: '09:25 - 10:10' },
-          { name: '10:20', longName: '10:20 - 11:05' },
-          { name: '11:20', longName: '11:20 - 12:05' },
-          { name: '12:20', longName: '12:20 - 13:05' },
-          { name: '13:15', longName: '13:15 - 14:00' },
-          { name: '14:10', longName: '14:10 - 14:55' },
-        ],
-        modified: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      await this.database.rules.put(defaultRules);
-    }
+    await this.database.withoutTimetableMutationTracking(async () => {
+      if (latestTargetVersion?.snapshotEnvelope) {
+        await restoreSnapshotEnvelopeToDatabase(this.database, latestTargetVersion.snapshotEnvelope);
+      } else {
+        // Empty workspace initialization
+        await this.database.clearAllData();
+        const rulesId = uuidv4();
+        const defaultRules: TimetableRules = {
+          id: rulesId,
+          mode: 0,
+          institutionName: targetSchool.name,
+          nDaysPerWeek: 5,
+          nHoursPerDay: 7,
+          daysOfTheWeek: [
+            { name: 'Monday', longName: 'Monday' },
+            { name: 'Tuesday', longName: 'Tuesday' },
+            { name: 'Wednesday', longName: 'Wednesday' },
+            { name: 'Thursday', longName: 'Thursday' },
+            { name: 'Friday', longName: 'Friday' },
+          ],
+          hoursOfTheDay: [
+            { name: '08:30', longName: '08:30 - 09:15' },
+            { name: '09:25', longName: '09:25 - 10:10' },
+            { name: '10:20', longName: '10:20 - 11:05' },
+            { name: '11:20', longName: '11:20 - 12:05' },
+            { name: '12:20', longName: '12:20 - 13:05' },
+            { name: '13:15', longName: '13:15 - 14:00' },
+            { name: '14:10', longName: '14:10 - 14:55' },
+          ],
+          modified: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await this.database.rules.put(defaultRules);
+      }
+    });
 
     // 3. Update active workspace state
     await this.database.activeWorkspaceState.put({
@@ -311,6 +345,42 @@ export class WorkspaceManager {
   }
 
   /**
+   * Removes signed-in workspace data from this browser while preserving the
+   * login-less guest workspace and its last local snapshot.
+   */
+  async resetToGuest(): Promise<ActiveWorkspaceContext> {
+    await this.init();
+    const current = await this.getActiveContext();
+    if (current.workspace.id !== GUEST_WORKSPACE_ID) {
+      await this.switchWorkspace(GUEST_WORKSPACE_ID);
+    }
+
+    await this.database.transaction(
+      'rw',
+      [
+        this.database.schools,
+        this.database.workspaces,
+        this.database.workspaceSnapshots,
+        this.database.history,
+        this.database.syncQueue,
+      ],
+      async () => {
+        await this.database.schools.filter((school) => school.id !== GUEST_SCHOOL_ID).delete();
+        await this.database.workspaces.filter((workspace) => workspace.id !== GUEST_WORKSPACE_ID).delete();
+        await this.database.workspaceSnapshots
+          .filter((snapshot) => snapshot.workspaceId !== GUEST_WORKSPACE_ID)
+          .delete();
+        await this.database.history
+          .filter((entry) => entry.workspaceId !== GUEST_WORKSPACE_ID)
+          .delete();
+        await this.database.syncQueue.clear();
+      }
+    );
+
+    return this.getActiveContext();
+  }
+
+  /**
    * Lists all schools
    */
   async listSchools(): Promise<School[]> {
@@ -355,11 +425,12 @@ export class WorkspaceManager {
     const now = new Date().toISOString();
     const id = uuidv4();
     const serialized = JSON.stringify(envelope);
+    const workspace = await this.database.workspaces.get(workspaceId);
 
     const versionDoc: WorkspaceVersionMetadata = {
       id,
       workspaceId,
-      revision: envelope.schemaVersion,
+      revision: workspace?.localRevision ?? 1,
       type,
       name,
       createdAt: now,

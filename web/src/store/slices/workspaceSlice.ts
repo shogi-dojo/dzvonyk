@@ -6,6 +6,9 @@ import type {
   SyncStatus,
 } from '@/types';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { historyManager } from '@/lib/history';
+import { trackEvent } from '@/lib/analytics';
+import { syncService } from '@/lib/firebase/syncService';
 
 interface WorkspaceState {
   activeSchool: School | null;
@@ -36,7 +39,7 @@ export const loadWorkspaceContext = createAsyncThunk(
   async () => {
     const context = await workspaceManager.init();
     const schools = await workspaceManager.listSchools();
-    const workspaces = await workspaceManager.listWorkspaces(context.school.id);
+    const workspaces = await workspaceManager.listWorkspaces();
     const versions = await workspaceManager.listVersions(context.workspace.id);
 
     return {
@@ -54,7 +57,9 @@ export const switchWorkspaceAction = createAsyncThunk(
   'workspace/switch',
   async (workspaceId: string) => {
     const context = await workspaceManager.switchWorkspace(workspaceId);
-    const workspaces = await workspaceManager.listWorkspaces(context.school.id);
+    await historyManager.init(context.workspace.id);
+    trackEvent('workspace_switched', { is_cloud: Boolean(context.school.ownerUid) });
+    const workspaces = await workspaceManager.listWorkspaces();
     const versions = await workspaceManager.listVersions(context.workspace.id);
 
     return {
@@ -69,12 +74,22 @@ export const switchWorkspaceAction = createAsyncThunk(
 
 export const createSchoolAction = createAsyncThunk(
   'workspace/createSchool',
-  async ({ name, shortName }: { name: string; shortName?: string }) => {
-    const school = await workspaceManager.createSchool(name, shortName);
+  async ({ name, shortName }: { name: string; shortName?: string }, { getState }) => {
+    const state = getState() as { auth: { user: { uid: string } | null } };
+    const school = await workspaceManager.createSchool(name, shortName, state.auth.user?.uid);
+    const newSchoolWorkspaces = await workspaceManager.listWorkspaces(school.id);
+    const firstWorkspace = newSchoolWorkspaces[0];
+    const context = firstWorkspace
+      ? await workspaceManager.switchWorkspace(firstWorkspace.id)
+      : await workspaceManager.getActiveContext();
+    await historyManager.init(context.workspace.id);
+    if (state.auth.user) {
+      await syncService.syncActiveWorkspace(state.auth.user.uid);
+    }
     const schools = await workspaceManager.listSchools();
-    const workspaces = await workspaceManager.listWorkspaces(school.id);
+    const workspaces = await workspaceManager.listWorkspaces();
 
-    return { school, schools, workspaces };
+    return { school, workspace: context.workspace, schools, workspaces, isGuest: context.isGuest };
   }
 );
 
@@ -95,18 +110,16 @@ export const createWorkspaceAction = createAsyncThunk(
       cloneFromWorkspaceId,
       cloneStructureOnly,
     });
-    const workspaces = await workspaceManager.listWorkspaces(schoolId);
+    const workspaces = await workspaceManager.listWorkspaces();
     return { workspace, workspaces };
   }
 );
 
 export const deleteWorkspaceAction = createAsyncThunk(
   'workspace/deleteWorkspace',
-  async (workspaceId: string, { getState }) => {
+  async (workspaceId: string) => {
     await workspaceManager.deleteWorkspace(workspaceId);
-    const state = getState() as { workspace: WorkspaceState };
-    const currentSchoolId = state.workspace.activeSchool?.id;
-    const workspaces = await workspaceManager.listWorkspaces(currentSchoolId);
+    const workspaces = await workspaceManager.listWorkspaces();
     const activeContext = await workspaceManager.getActiveContext();
 
     return {
@@ -196,6 +209,8 @@ const workspaceSlice = createSlice({
       .addCase(createSchoolAction.fulfilled, (state, action) => {
         state.schools = action.payload.schools;
         state.activeSchool = action.payload.school;
+        state.activeWorkspace = action.payload.workspace;
+        state.isGuest = action.payload.isGuest;
         state.workspaces = action.payload.workspaces;
       })
       // Create workspace

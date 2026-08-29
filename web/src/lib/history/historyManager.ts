@@ -2,8 +2,9 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Table } from 'dexie';
 import { db, GUEST_WORKSPACE_ID, type FETDatabase } from '@/db';
 import type { HistoryEntry, EntityChange, WorkspaceSnapshotData } from '@/types';
-import { workspaceRepository } from '@/lib/workspace/workspaceRepository';
 import { restoreSnapshotDataToDatabase } from '@/lib/workspace/snapshotCodec';
+import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { syncService } from '@/lib/firebase/syncService';
 import { trackEvent } from '@/lib/analytics';
 
 export const MAX_HISTORY_ENTRIES = 100;
@@ -19,11 +20,32 @@ export class HistoryManager {
   constructor(database: FETDatabase = db) {
     this.database = database;
 
-    // Connect automatically to workspace repository mutations
-    workspaceRepository.registerMutationHook(async (description, undoChanges, redoChanges) => {
-      if (this.isApplyingHistory) return;
-      await this.recordAction(description, undoChanges, redoChanges);
+    // Observe the database itself so edits made by every screen participate in
+    // history and cloud sync, including legacy call sites that write to Dexie directly.
+    this.database.subscribeToTimetableMutations(async (changes) => {
+      if (!this.isApplyingHistory) {
+        await this.recordAction(
+          this.describeChanges(changes),
+          changes.map((change) => ({ ...change, prev: change.next, next: change.prev })),
+          changes
+        );
+      }
+
+      await workspaceManager.markActiveWorkspaceChanged();
+      syncService.triggerAutoSync();
     });
+  }
+
+  private describeChanges(changes: EntityChange<unknown>[]): string {
+    if (changes.length === 1) {
+      const change = changes[0];
+      const record = (change.next ?? change.prev) as { name?: unknown } | null;
+      const label = typeof record?.name === 'string' ? `: ${record.name}` : '';
+      if (change.prev === null) return `Додано${label}`;
+      if (change.next === null) return `Видалено${label}`;
+      return `Змінено${label}`;
+    }
+    return `Оновлено дані розкладу (${changes.length})`;
   }
 
   /**

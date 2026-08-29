@@ -30,13 +30,10 @@ export const deleteUserAccount = onCall(async (request) => {
   const userRef = firestore.collection('users').doc(uid);
   await firestore.recursiveDelete(userRef);
 
-  // 2. Delete user storage files if bucket exists
-  try {
-    const bucket = storage.bucket();
-    await bucket.deleteFiles({ prefix: `snapshots/${uid}/` });
-  } catch (err) {
-    console.warn(`Storage cleanup notice for ${uid}:`, err);
-  }
+  // 2. Delete user storage files. Do not swallow failures: keeping the Auth
+  // identity lets the user safely retry instead of orphaning private data.
+  const bucket = storage.bucket();
+  await bucket.deleteFiles({ prefix: `snapshots/${uid}/` });
 
   // 3. Delete user from Firebase Authentication
   await admin.auth().deleteUser(uid);

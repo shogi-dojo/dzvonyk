@@ -24,7 +24,7 @@ export function WorkspaceSelector() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const reloadState = useReloadTimetableState();
-  const { activeSchool, activeWorkspace, workspaces, isGuest } = useAppSelector(
+  const { activeSchool, activeWorkspace, schools, workspaces, isGuest } = useAppSelector(
     (state) => state.workspace
   );
 
@@ -113,27 +113,37 @@ export function WorkspaceSelector() {
               aria-hidden="true"
             />
             <div className="absolute left-0 mt-2 w-72 rounded-xl bg-card border border-border shadow-2xl p-2 z-50 animate-scale-in text-xs">
-              <div className="px-2 py-1.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
-                {t('workspace.academicYears', 'Навчальні роки')}
-              </div>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {workspaces.map((ws) => (
-                  <button
-                    key={ws.id}
-                    onClick={() => handleSwitch(ws.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-                      ws.id === activeWorkspace?.id
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'hover:bg-muted/80 text-foreground'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 truncate">
-                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                      {ws.label}
-                    </span>
-                    {ws.id === activeWorkspace?.id && <Check className="h-3.5 w-3.5" />}
-                  </button>
-                ))}
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {schools.map((school) => {
+                  const schoolWorkspaces = workspaces.filter((ws) => ws.schoolId === school.id);
+                  if (schoolWorkspaces.length === 0) return null;
+                  return (
+                    <div key={school.id}>
+                      <div className="px-2 py-1 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] truncate">
+                        {school.name}
+                      </div>
+                      <div className="space-y-1">
+                        {schoolWorkspaces.map((ws) => (
+                          <button
+                            key={ws.id}
+                            onClick={() => handleSwitch(ws.id)}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-colors text-left ${
+                              ws.id === activeWorkspace?.id
+                                ? 'bg-primary/10 text-primary font-medium'
+                                : 'hover:bg-muted/80 text-foreground'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2 truncate">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                              {ws.label}
+                            </span>
+                            {ws.id === activeWorkspace?.id && <Check className="h-3.5 w-3.5" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="border-t border-border mt-2 pt-2 space-y-1">

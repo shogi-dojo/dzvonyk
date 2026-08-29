@@ -4,6 +4,7 @@ import { LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide
 import { Button } from './ui/button';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { signInWithGoogleThunk, signOutThunk } from '@/store/slices/authSlice';
+import { useReloadTimetableState } from '@/hooks/useReloadTimetableState';
 
 export function GoogleIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -34,6 +35,7 @@ export function UserProfileButton() {
   const { user, loading } = useAppSelector((state) => state.auth);
   const syncStatus = useAppSelector((state) => state.workspace.syncStatus);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const reloadTimetableState = useReloadTimetableState();
 
   const handleSignIn = async () => {
     try {
@@ -46,6 +48,7 @@ export function UserProfileButton() {
   const handleSignOut = async () => {
     setDropdownOpen(false);
     await dispatch(signOutThunk()).unwrap();
+    await reloadTimetableState();
   };
 
   if (!user) {

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { db } from '@/db';
+import { db, GUEST_WORKSPACE_ID } from '@/db';
 import { historyManager, MAX_HISTORY_ENTRIES } from './historyManager';
 import { workspaceRepository } from '@/lib/workspace/workspaceRepository';
+import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import type { Teacher, Subject } from '@/types';
 
 const mockTeacher: Teacher = {
@@ -35,6 +36,21 @@ describe('Persistent Undo and Redo Journal', () => {
     expect(historyManager.canRedo()).toBe(false);
     expect(historyManager.getUndoStack()).toHaveLength(1);
     expect(historyManager.getUndoStack()[0].description).toContain('Григорій Сковорода');
+  });
+
+  it('records direct Dexie mutations used by existing screens and marks the workspace dirty', async () => {
+    const context = await workspaceManager.init();
+    await historyManager.init(context.workspace.id);
+    const beforeRevision = context.workspace.localRevision;
+
+    await db.teachers.put(mockTeacher);
+
+    expect(historyManager.canUndo()).toBe(true);
+    expect(historyManager.getUndoStack()[0].description).toContain('Григорій Сковорода');
+    await vi.waitFor(async () => {
+      const workspace = await db.workspaces.get(GUEST_WORKSPACE_ID);
+      expect(workspace?.localRevision).toBeGreaterThan(beforeRevision);
+    });
   });
 
   it('performs undo and redo with database restoration', async () => {

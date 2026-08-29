@@ -64,9 +64,9 @@ export function About() {
             <div className="p-4 rounded-lg bg-secondary/50 border border-border/80 flex items-start gap-3">
               <Lock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-sm text-foreground">100% Конфіденційно</h3>
+                <h3 className="font-semibold text-sm text-foreground">Приватність за вибором</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Усі розклади, вчителі та учні зберігаються виключно у вашому браузері (IndexedDB). Дані не передаються на зовнішні сервери.
+                  Без входу дані залишаються у вашому браузері. Після входу через Google вибрані робочі простори приватно синхронізуються з Firebase.
                 </p>
               </div>
             </div>

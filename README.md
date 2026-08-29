@@ -45,7 +45,7 @@ here:
 
 - Not writing a new scheduling solver.
 - Not porting FET's GUI or its constraint taxonomy verbatim.
-- No backend, no accounts, no cloud sync. Local-first is deliberate.
+- Local-first remains the default; optional Google sign-in adds private Firebase backup and multi-device sync.
 - No relicensing away from AGPL.
 
 ## Credits

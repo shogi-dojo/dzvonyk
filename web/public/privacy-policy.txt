@@ -2,7 +2,7 @@
                         FET WEB - PRIVACY POLICY
 ================================================================================
 
-Last Updated: 2024
+Last Updated: 2026-08-30
 
 1. INTRODUCTION
 -------------------------------------------------------------------------------
@@ -12,20 +12,22 @@ educational timetabling web application.
 
 2. DATA COLLECTION & STORAGE
 -------------------------------------------------------------------------------
-FET Web operates as a client-side application. All data processing occurs
-locally in your web browser using IndexedDB storage.
+The application is local-first. Without signing in, timetable data is stored
+in IndexedDB in your browser and scheduling computations run on your device.
 
-We DO NOT:
-- Collect personal information
-- Store data on remote servers
-- Use tracking cookies
-- Share data with third parties
-- Perform analytics on your usage
+If you choose Google sign-in, we receive the account identifier, email,
+display name, and profile photo supplied by Google Authentication. Your named
+schools, academic-year workspaces, and encrypted-in-transit timetable snapshot
+files are stored in private Firebase Firestore and Cloud Storage paths assigned
+to your account. Both personal Google accounts and Google Workspace accounts
+may be used.
 
-We DO:
-- Store timetable data locally in your browser
-- Allow you to import/export your own data files
-- Process all computations on your device
+Optional usage analytics are disabled until you explicitly consent. When
+enabled, Firebase Analytics receives technical events such as page routes,
+generation duration, import type, and export format. Event parameters are
+filtered to exclude names, email addresses, user IDs, file names, school data,
+teacher data, and timetable contents. Advertising storage and ad
+personalisation remain disabled.
 
 3. LOCAL DATA STORAGE
 -------------------------------------------------------------------------------
@@ -35,10 +37,15 @@ Your timetable data, including:
 - Room configurations
 - Generated timetables
 
-...is stored exclusively in your browser's IndexedDB. This data:
-- Never leaves your device unless you explicitly export it
-- Can be cleared at any time using browser settings or the app's reset feature
-- Is not accessible to us or any third party
+...is stored in your browser's IndexedDB. For signed-in cloud workspaces, a
+snapshot is also uploaded to Firebase so it can be restored on your other
+devices. Each signed-in user can access only their own Firebase paths under
+the application's security rules.
+
+Local data can be cleared from the app or browser settings. Signing out clears
+signed-in workspace data from the local browser. Account deletion removes the
+user's Firestore documents, Storage snapshots, and Firebase Authentication
+identity through a server-side deletion operation.
 
 4. DATA EXPORT
 -------------------------------------------------------------------------------
@@ -47,14 +54,18 @@ locally and saved directly to your device. No data transmission occurs.
 
 5. THIRD-PARTY SERVICES
 -------------------------------------------------------------------------------
-FET Web may use content delivery networks (CDNs) to serve static assets.
-These services may log access requests per their own privacy policies.
+The hosted app uses Google Firebase for Authentication, Firestore, Cloud
+Storage, Hosting, Cloud Functions, App Check, and (only after consent)
+Analytics. Google processes related technical data according to its own terms
+and privacy documentation. Static hosting and network providers may retain
+standard access and security logs.
 
 6. COOKIES
 -------------------------------------------------------------------------------
-FET Web does not use cookies for tracking or advertising purposes.
-Essential browser storage (IndexedDB, localStorage) is used solely for
-application functionality.
+The app does not use advertising cookies. IndexedDB and localStorage are used
+for application state, saved workspaces, consent choice, and offline support.
+Google Authentication and Firebase may use essential browser storage needed
+for authentication, security, and service delivery.
 
 7. CHILDREN'S PRIVACY
 -------------------------------------------------------------------------------
@@ -68,6 +79,8 @@ You have complete control over your data:
 - Export: Download your data at any time
 - Delete: Clear all data using the Reset function or browser settings
 - Portability: Export and import data in standard formats
+- Withdraw analytics consent: Disable anonymous usage analytics in Settings
+- Account deletion: Permanently remove cloud data and the sign-in identity
 
 9. CHANGES TO THIS POLICY
 -------------------------------------------------------------------------------
@@ -80,6 +93,5 @@ FET Web is open-source software based on FET (Free Educational Timetabling).
 For questions about this privacy policy, please visit the project repository.
 
 ================================================================================
-                     This software respects your privacy.
-                     Your data stays on YOUR device.
+               Local by default; private cloud sync by choice.
 ================================================================================

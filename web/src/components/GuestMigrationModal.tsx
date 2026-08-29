@@ -15,6 +15,7 @@ import { setShowMigrationDialog } from '@/store/slices/authSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { loadWorkspaceContext } from '@/store/slices/workspaceSlice';
 import { db } from '@/db';
+import { syncService } from '@/lib/firebase/syncService';
 
 export function GuestMigrationModal() {
   const { t } = useTranslation();
@@ -46,6 +47,7 @@ export function GuestMigrationModal() {
         );
         // 4. Switch to the newly created user workspace
         await workspaceManager.switchWorkspace(targetWs.id);
+        await syncService.syncActiveWorkspace(user.uid);
       }
 
       await dispatch(loadWorkspaceContext()).unwrap();
@@ -64,6 +66,7 @@ export function GuestMigrationModal() {
       const workspaces = await workspaceManager.listWorkspaces(school.id);
       if (workspaces[0]) {
         await workspaceManager.switchWorkspace(workspaces[0].id);
+        await syncService.syncActiveWorkspace(user.uid);
       }
       await dispatch(loadWorkspaceContext()).unwrap();
     } catch (err) {

@@ -8,9 +8,12 @@ import { setActivities } from '@/store/slices/activitiesSlice';
 import { setRooms, setBuildings } from '@/store/slices/roomsSlice';
 import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constraintsSlice';
 import { setStudents } from '@/store/slices/studentsSlice';
-import { loadWorkspaceContext } from '@/store/slices/workspaceSlice';
-import { setUser, initAuthThunk } from '@/store/slices/authSlice';
+import { loadWorkspaceContext, setSyncStatus } from '@/store/slices/workspaceSlice';
+import { setUser, setShowMigrationDialog, initAuthThunk } from '@/store/slices/authSlice';
 import { subscribeToAuthState } from '@/lib/firebase/auth';
+import { historyManager } from '@/lib/history';
+import { syncService } from '@/lib/firebase/syncService';
+import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { db } from '@/db';
 
 interface AppInitializerProps {
@@ -40,8 +43,35 @@ export function AppInitializer({ children }: AppInitializerProps) {
   useEffect(() => {
     // 1. Initialize Auth redirect check and auth subscription
     dispatch(initAuthThunk());
-    const unsubscribeAuth = subscribeToAuthState((user) => {
+    const unsubscribeAuth = subscribeToAuthState(async (user) => {
       dispatch(setUser(user));
+      if (!user) return;
+
+      try {
+        const cloudWorkspaces = await syncService.hydrateCloudWorkspaces(user.uid);
+        if (cloudWorkspaces.length === 0) return;
+
+        dispatch(setShowMigrationDialog(false));
+        const current = await workspaceManager.getActiveContext();
+        const currentBelongsToUser = current.school.ownerUid === user.uid;
+        const targetWorkspace = currentBelongsToUser
+          ? current.workspace
+          : cloudWorkspaces[0];
+
+        if (targetWorkspace.id !== current.workspace.id) {
+          await workspaceManager.switchWorkspace(targetWorkspace.id);
+        }
+        await syncService.syncActiveWorkspace(user.uid);
+        const context = await dispatch(loadWorkspaceContext()).unwrap();
+        await historyManager.init(context.activeWorkspace.id);
+        await loadAllData();
+      } catch (error) {
+        // Offline startup still uses the complete local workspace.
+        console.warn('Cloud workspace bootstrap notice:', error);
+      }
+    });
+    const unsubscribeSync = syncService.subscribeStatus((status) => {
+      dispatch(setSyncStatus(status));
     });
     async function loadAllData() {
       try {
@@ -49,7 +79,8 @@ export function AppInitializer({ children }: AppInitializerProps) {
         
         // Initialize and load workspace context
         try {
-          await dispatch(loadWorkspaceContext()).unwrap();
+          const context = await dispatch(loadWorkspaceContext()).unwrap();
+          await historyManager.init(context.activeWorkspace.id);
         } catch (wsErr) {
           console.warn('Workspace initialization notice:', wsErr);
         }
@@ -112,6 +143,7 @@ export function AppInitializer({ children }: AppInitializerProps) {
 
     return () => {
       unsubscribeAuth();
+      unsubscribeSync();
     };
   }, [dispatch]);
 

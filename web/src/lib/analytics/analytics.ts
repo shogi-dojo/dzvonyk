@@ -1,4 +1,11 @@
-import { getAnalytics, isSupported, logEvent, setConsent, type Analytics } from 'firebase/analytics';
+import {
+  getAnalytics,
+  isSupported,
+  logEvent,
+  setAnalyticsCollectionEnabled,
+  setConsent,
+  type Analytics,
+} from 'firebase/analytics';
 import { app } from '../firebase/client';
 import type { AnalyticsEventMap, ConsentStatus } from './types';
 
@@ -66,6 +73,7 @@ export async function initAnalytics(): Promise<Analytics | null> {
   if (consent === 'granted') {
     try {
       analyticsInstance = getAnalytics(app);
+      setAnalyticsCollectionEnabled(analyticsInstance, true);
     } catch (err) {
       console.warn('[Analytics] Initialization error:', err);
     }
@@ -98,11 +106,15 @@ export async function setConsentStatus(status: ConsentStatus): Promise<void> {
     if (supported && !analyticsInstance) {
       try {
         analyticsInstance = getAnalytics(app);
+        setAnalyticsCollectionEnabled(analyticsInstance, true);
       } catch (err) {
         console.warn('[Analytics] Analytics activation error:', err);
       }
     }
   } else {
+    if (analyticsInstance) {
+      setAnalyticsCollectionEnabled(analyticsInstance, false);
+    }
     analyticsInstance = null;
   }
 
