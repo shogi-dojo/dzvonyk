@@ -27,8 +27,8 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, icon, actions }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4 animate-slide-down">
-      <div className="flex items-center gap-4">
+    <div className="flex min-w-0 flex-col gap-4 animate-slide-down sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-center gap-4">
         {icon && (
           <div className="p-3 rounded-xl bg-primary/10 text-primary animate-scale-in">
             {icon}
@@ -46,7 +46,7 @@ export function PageHeader({ title, description, icon, actions }: PageHeaderProp
         </div>
       </div>
       {actions && (
-        <div className="flex items-center gap-2 animate-slide-in-right">
+        <div className="flex max-w-full flex-wrap items-center gap-2 animate-slide-in-right sm:max-w-none sm:justify-end">
           {actions}
         </div>
       )}

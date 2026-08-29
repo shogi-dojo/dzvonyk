@@ -42,6 +42,17 @@ export const addActivities = createAsyncThunk(
   }
 );
 
+export const replaceActivities = createAsyncThunk(
+  'activities/replaceMany',
+  async ({ deleteIds, activities }: { deleteIds: string[]; activities: Activity[] }) => {
+    await db.transaction('rw', db.activities, async () => {
+      if (deleteIds.length > 0) await db.activities.bulkDelete(deleteIds);
+      if (activities.length > 0) await db.activities.bulkAdd(activities);
+    });
+    return { deleteIds, activities };
+  }
+);
+
 export const updateActivity = createAsyncThunk(
   'activities/update',
   async (activity: Activity) => {
@@ -100,6 +111,11 @@ const activitiesSlice = createSlice({
       })
       .addCase(addActivities.fulfilled, (state, action) => {
         state.items.push(...action.payload);
+      })
+      .addCase(replaceActivities.fulfilled, (state, action) => {
+        const deleted = new Set(action.payload.deleteIds);
+        state.items = state.items.filter((activity) => !deleted.has(activity.id));
+        state.items.push(...action.payload.activities);
       })
       .addCase(updateActivity.fulfilled, (state, action) => {
         const index = state.items.findIndex(a => a.id === action.payload.id);
