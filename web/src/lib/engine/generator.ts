@@ -202,8 +202,8 @@ export class TimetableGenerator {
   }
 
   private initialize(): void {
-    this.nDaysPerWeek = this.rules.nDaysPerWeek;
-    this.nHoursPerDay = this.rules.nHoursPerDay;
+    this.nDaysPerWeek = this.rules.nDaysPerWeek || this.rules.daysOfTheWeek?.length || 5;
+    this.nHoursPerDay = this.rules.nHoursPerDay || this.rules.hoursOfTheDay?.length || 8;
     this.nHoursPerWeek = this.nDaysPerWeek * this.nHoursPerDay;
     
     // Register implicit subgroups for groups that have no subgroups

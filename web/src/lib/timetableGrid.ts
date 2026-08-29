@@ -357,8 +357,11 @@ export function buildTimetableGrid(params: {
 
   if (!solution || !rules) return null;
 
-  const grid: GridCell[][] = Array.from({ length: rules.nHoursPerDay }, () =>
-    Array(rules.nDaysPerWeek).fill(null)
+  const nDays = rules.nDaysPerWeek || rules.daysOfTheWeek?.length || 5;
+  const nHours = rules.nHoursPerDay || rules.hoursOfTheDay?.length || 8;
+
+  const grid: GridCell[][] = Array.from({ length: nHours }, () =>
+    Array(nDays).fill(null)
   );
 
   const actMap = new Map(activities.map((a) => [a.id, a]));
@@ -419,7 +422,7 @@ export function buildTimetableGrid(params: {
       conflicts: conflictsMap.get(activity.id),
     };
 
-    if (placement.hour < rules.nHoursPerDay && placement.day < rules.nDaysPerWeek) {
+    if (placement.hour < nHours && placement.day < nDays) {
       const currentCell = grid[placement.hour][placement.day];
       if (Array.isArray(currentCell)) {
         currentCell.push(entry);
@@ -429,7 +432,7 @@ export function buildTimetableGrid(params: {
 
       for (let h = 1; h < (activity.duration || 1); h++) {
         const spanHour = placement.hour + h;
-        if (spanHour < rules.nHoursPerDay) {
+        if (spanHour < nHours) {
           grid[spanHour][placement.day] = 'spanned';
         }
       }
@@ -458,29 +461,30 @@ export interface AllClassesGrid {
 export function buildAllClassesGrid(params: {
   solution: TimetableSolution | null;
   rules: TimetableRules | null;
-  activities: Activity[];
+  activities?: Activity[];
   teachers?: Teacher[];
-  subjects: Subject[];
-  groups: StudentsGroup[];
+  subjects?: Subject[];
+  groups?: StudentsGroup[];
   subgroups?: StudentsSubgroup[];
-  rooms: Room[];
+  rooms?: Room[];
   lockedActivityIds?: Set<string>;
   conflictsMap?: Map<string, string[]>;
 }): AllClassesGrid | null {
   const {
     solution,
     rules,
-    activities,
-    teachers: _teachers,
-    subjects,
-    groups,
-    subgroups: _subgroups,
-    rooms,
+    activities = [],
+    subjects = [],
+    groups = [],
+    rooms = [],
     lockedActivityIds = new Set(),
     conflictsMap = new Map(),
   } = params;
 
   if (!solution || !rules) return null;
+
+  const nDays = rules.nDaysPerWeek || rules.daysOfTheWeek?.length || 5;
+  const nHours = rules.nHoursPerDay || rules.hoursOfTheDay?.length || 8;
 
   const sortedGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name, 'uk', { numeric: true }));
   const actMap = new Map(activities.map((a) => [a.id, a]));
@@ -490,9 +494,9 @@ export function buildAllClassesGrid(params: {
 
   // Index placements by [day][hour][groupIndex]
   const cellMatrix: (CellData[] | null)[][][] = Array.from(
-    { length: rules.nDaysPerWeek },
+    { length: nDays },
     () =>
-      Array.from({ length: rules.nHoursPerDay }, () =>
+      Array.from({ length: nHours }, () =>
         Array.from({ length: sortedGroups.length }, () => null)
       )
   );
@@ -526,7 +530,7 @@ export function buildAllClassesGrid(params: {
         return false;
       });
 
-      if (isTarget && placement.day < rules.nDaysPerWeek && placement.hour < rules.nHoursPerDay) {
+      if (isTarget && placement.day < nDays && placement.hour < nHours) {
         const existing = cellMatrix[placement.day][placement.hour][gIdx];
         if (existing) {
           existing.push(entry);
