@@ -31,6 +31,7 @@ export function Generate() {
   const teachers = useAppSelector((state) => state.teachers.items);
   const subgroups = useAppSelector((state) => state.students.subgroups);
   const studentsGroups = useAppSelector((state) => state.students.groups);
+  const studentsYears = useAppSelector((state) => state.students.years);
   const { rooms } = useAppSelector((state) => state.rooms);
   const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
   const spaceConstraints = useAppSelector((state) => state.constraints.spaceConstraints);
@@ -45,7 +46,6 @@ export function Generate() {
   useEffect(() => {
     return () => {
       workerRef.current?.terminate();
-      workerRef.current = null;
     };
   }, []);
 
@@ -83,14 +83,21 @@ export function Generate() {
 
     for (const conflict of result.conflicts) dispatch(addConflict(conflict.reason));
 
+    const activeActivities = activities.filter((a) => a.active);
+    const roomMap = new Map(result.roomAllocations.map((ra) => [ra.activityIndex, ra.roomIndex]));
+
     const newSolution: TimetableSolution = {
       id: crypto.randomUUID(),
       rulesId: rules.id,
-      placements: result.timeAllocations.map((ta) => ({
-        activityId: activities[ta.activityIndex]?.id || '',
-        day: ta.day,
-        hour: ta.hour,
-      })),
+      placements: result.timeAllocations.map((ta) => {
+        const roomIdx = roomMap.get(ta.activityIndex);
+        return {
+          activityId: activeActivities[ta.activityIndex]?.id || '',
+          day: ta.day,
+          hour: ta.hour,
+          roomId: roomIdx !== undefined && roomIdx >= 0 ? rooms[roomIdx]?.id : undefined,
+        };
+      }),
       conflicts: result.conflicts.map((c) => c.reason),
       isComplete: result.success,
       generatedAt: timestamp,
@@ -172,6 +179,7 @@ export function Generate() {
         teachers,
         subgroups: subgroups || [],
         studentsGroups,
+        studentsYears,
         rooms,
         timeConstraints,
         spaceConstraints,

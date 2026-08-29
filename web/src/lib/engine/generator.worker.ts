@@ -7,7 +7,7 @@
 
 import type {
   Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
-  TimetableRules, StudentsSubgroup, StudentsGroup,
+  TimetableRules, StudentsSubgroup, StudentsGroup, StudentsYear,
 } from '../../types';
 import type {
   GenerationConfig, GenerationResult, ConflictInfo,
@@ -20,6 +20,7 @@ export interface WorkerStartPayload {
   teachers: Teacher[];
   subgroups: StudentsSubgroup[];
   studentsGroups?: StudentsGroup[];
+  studentsYears?: StudentsYear[];
   rooms: Room[];
   timeConstraints: TimeConstraint[];
   spaceConstraints: SpaceConstraint[];
@@ -51,13 +52,14 @@ self.onmessage = async (event: MessageEvent<WorkerInMessage>) => {
 
   if (msg.type === 'start') {
     stopRequested = false;
-    const { rules, activities, teachers, subgroups, studentsGroups, rooms, timeConstraints, spaceConstraints, config } = msg.payload;
+    const { rules, activities, teachers, subgroups, studentsGroups, studentsYears, rooms, timeConstraints, spaceConstraints, config } = msg.payload;
 
     try {
       currentGenerator = new TimetableGenerator(
         rules, activities, teachers, subgroups, rooms,
         timeConstraints, spaceConstraints, config,
         studentsGroups ?? [],
+        studentsYears ?? [],
       );
 
       const result = await currentGenerator.generate({

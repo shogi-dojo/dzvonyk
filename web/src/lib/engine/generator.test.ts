@@ -233,5 +233,85 @@ describe('TimetableGenerator', () => {
       // Should complete or abort without error
       expect(result).toBeDefined();
     });
+
+    it('should resolve class to its member subgroups and prevent double-booking', async () => {
+      const rules = createTestRules(1, 2); // 1 day, 2 hours
+      const t1 = createTestTeacher('T1');
+      const t2 = createTestTeacher('T2');
+      const sg1 = createTestSubgroup('5-А 1 група');
+      const sg2 = createTestSubgroup('5-А 2 група');
+      const group5A = {
+        id: 'group-5-A',
+        name: '5-А',
+        numberOfStudents: 30,
+        type: 2 as const,
+        subgroups: ['5-А 1 група', '5-А 2 група'],
+      };
+
+      // Activity 1 targets whole class 5-А (duration 2 -> takes both hours 0 and 1)
+      const a1 = createTestActivity('a1', 'T1', 'Ukr', ['5-А'], 2);
+      // Activity 2 targets subgroup 5-А 1 група (duration 1)
+      // Since a1 takes 2 hours on a 2-hour grid, a2 CANNOT be placed at the same time without clash
+      const a2 = createTestActivity('a2', 'T2', 'Eng', ['5-А 1 група'], 1);
+
+      const generator = new TimetableGenerator(
+        rules,
+        [a1, a2],
+        [t1, t2],
+        [sg1, sg2],
+        [],
+        [],
+        [],
+        undefined,
+        [group5A]
+      );
+
+      const result = await generator.generate();
+      // Since total hours needed = 3, but grid is only 2 hours, exactly 1 activity can be placed (a1=2h or a2=1h)
+      expect(result.placedActivities).toBeLessThan(3);
+      expect(result.success).toBe(false);
+    });
+
+    it('should enforce shifts for groups correctly', async () => {
+      const rules: TimetableRules = {
+        ...createTestRules(1, 4), // 1 day, 4 hours: 0, 1, 2, 3
+        shifts: {
+          shift1: { firstHour: 0, lastHour: 1 },
+          shift2: { firstHour: 2, lastHour: 3 },
+        },
+      };
+
+      const t1 = createTestTeacher('T1');
+      const sg1 = createTestSubgroup('7-А 1 група');
+      const group7A = {
+        id: 'group-7-A',
+        name: '7-А',
+        numberOfStudents: 30,
+        type: 2 as const,
+        subgroups: ['7-А 1 група'],
+        shift: 2 as const, // Shift 2 only: hours 2 and 3
+      };
+
+      const a1 = createTestActivity('a1', 'T1', 'Math', ['7-А'], 1);
+
+      const generator = new TimetableGenerator(
+        rules,
+        [a1],
+        [t1],
+        [sg1],
+        [],
+        [],
+        [],
+        undefined,
+        [group7A]
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      expect(result.timeAllocations).toHaveLength(1);
+      // Must be placed in shift 2 (hour 2 or 3)
+      expect(result.timeAllocations[0].hour).toBeGreaterThanOrEqual(2);
+      expect(result.timeAllocations[0].hour).toBeLessThanOrEqual(3);
+    });
   });
 });

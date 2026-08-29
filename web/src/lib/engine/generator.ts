@@ -110,13 +110,15 @@ export class TimetableGenerator {
     timeConstraints: TimeConstraint[],
     spaceConstraints: SpaceConstraint[],
     config?: Partial<GenerationConfig>,
-    studentsGroups: StudentsGroup[] = []
+    studentsGroups: StudentsGroup[] = [],
+    studentsYears: StudentsYear[] = []
   ) {
     this.rules = rules;
     this.activities = activities.filter(a => a.active);
     this.teachers = teachers;
-    this.subgroups = subgroups || [];
+    this.subgroups = [...(subgroups || [])];
     this.studentsGroups = studentsGroups || [];
+    this.studentsYears = studentsYears || [];
     this.rooms = rooms;
     this.timeConstraints = timeConstraints.filter(c => c.active);
     this.spaceConstraints = spaceConstraints.filter(c => c.active);
@@ -141,6 +143,55 @@ export class TimetableGenerator {
     return -1;
   }
 
+  private resolveStudentSetIndices(idOrName: string): number[] {
+    // 1. Direct subgroup match (by id or name)
+    const directIdx = this.findSubgroupIndex(idOrName);
+    if (directIdx >= 0) {
+      return [directIdx];
+    }
+
+    // 2. Group match (by id or name)
+    const group = this.studentsGroups.find((g) => g.id === idOrName || g.name === idOrName);
+    if (group) {
+      const indices: number[] = [];
+      for (const sgIdOrName of group.subgroups) {
+        const idx = this.findSubgroupIndex(sgIdOrName);
+        if (idx >= 0 && !indices.includes(idx)) {
+          indices.push(idx);
+        }
+      }
+      if (indices.length > 0) {
+        return indices;
+      }
+      const implicitIdx =
+        this.findSubgroupIndex(group.name) >= 0
+          ? this.findSubgroupIndex(group.name)
+          : this.findSubgroupIndex(group.id);
+      if (implicitIdx >= 0) {
+        return [implicitIdx];
+      }
+    }
+
+    // 3. Year match (by id or name)
+    const year = this.studentsYears.find((y) => y.id === idOrName || y.name === idOrName);
+    if (year) {
+      const indices: number[] = [];
+      for (const gIdOrName of year.groups) {
+        const gIndices = this.resolveStudentSetIndices(gIdOrName);
+        for (const idx of gIndices) {
+          if (!indices.includes(idx)) {
+            indices.push(idx);
+          }
+        }
+      }
+      if (indices.length > 0) {
+        return indices;
+      }
+    }
+
+    return [];
+  }
+
   private findRoomIndex(idOrName: string): number {
     let idx = this.roomIdToIndex.get(idOrName);
     if (idx !== undefined) return idx;
@@ -153,6 +204,22 @@ export class TimetableGenerator {
     this.nDaysPerWeek = this.rules.nDaysPerWeek;
     this.nHoursPerDay = this.rules.nHoursPerDay;
     this.nHoursPerWeek = this.nDaysPerWeek * this.nHoursPerDay;
+    
+    // Register implicit subgroups for groups that have no subgroups
+    for (const g of this.studentsGroups) {
+      if (g.subgroups.length === 0) {
+        const hasIdx = this.findSubgroupIndex(g.id) >= 0 || this.findSubgroupIndex(g.name) >= 0;
+        if (!hasIdx) {
+          this.subgroups.push({
+            id: g.id,
+            name: g.name,
+            numberOfStudents: g.numberOfStudents,
+            type: 3,
+            comments: '',
+          });
+        }
+      }
+    }
     
     // Build index mappings for both id and name
     this.teachers.forEach((t, i) => {
@@ -177,9 +244,15 @@ export class TimetableGenerator {
         .map(idOrName => this.findTeacherIndex(idOrName))
         .filter(idx => idx >= 0);
       
-      const subgroupIndices = a.studentSetIds
-        .map(idOrName => this.findSubgroupIndex(idOrName))
-        .filter(idx => idx >= 0);
+      const subgroupIndices: number[] = [];
+      for (const idOrName of a.studentSetIds) {
+        const resolved = this.resolveStudentSetIndices(idOrName);
+        for (const idx of resolved) {
+          if (!subgroupIndices.includes(idx)) {
+            subgroupIndices.push(idx);
+          }
+        }
+      }
       
       const parity: 0 | 1 | 2 =
         a.weekParity === 'numerator' ? 1 :
@@ -225,15 +298,19 @@ export class TimetableGenerator {
     this.tabuTimes = new Array(this.config.tabuSize).fill(-1);
     this.tabuIndex = 0;
 
-    // Precompute per-subgroup shift (from parent group). Group→subgroups uses
-    // the group.subgroups id list; if a subgroup isn't in any group, no shift.
+    // Precompute per-subgroup shift (from parent group)
     this.subgroupShift.clear();
     for (const g of this.studentsGroups) {
       if (!g.shift) continue;
-      for (const sgId of g.subgroups) {
-        const sgIdx = this.subgroupIdToIndex.get(sgId);
-        if (sgIdx !== undefined) this.subgroupShift.set(sgIdx, g.shift);
+      for (const sgIdOrName of g.subgroups) {
+        const sgIdx = this.findSubgroupIndex(sgIdOrName);
+        if (sgIdx >= 0) this.subgroupShift.set(sgIdx, g.shift);
       }
+      const gIdx =
+        this.findSubgroupIndex(g.name) >= 0
+          ? this.findSubgroupIndex(g.name)
+          : this.findSubgroupIndex(g.id);
+      if (gIdx >= 0) this.subgroupShift.set(gIdx, g.shift);
     }
     this.shift1Range = this.rules.shifts?.shift1 ?? null;
     this.shift2Range = this.rules.shifts?.shift2 ?? null;
@@ -325,30 +402,36 @@ export class TimetableGenerator {
           break;
 
         case 'StudentsSetMaxGapsPerDay':
-          const gapsSubgroupIdx = this.findSubgroupIndex(c.studentsSetId);
-          if (gapsSubgroupIdx >= 0 && c.maxGaps !== undefined) {
-            this.studentsMaxGapsPerDay.set(gapsSubgroupIdx, c.maxGaps);
+          if (c.maxGaps !== undefined) {
+            const gapsSubgroupIdxs = this.resolveStudentSetIndices(c.studentsSetId);
+            for (const idx of gapsSubgroupIdxs) {
+              this.studentsMaxGapsPerDay.set(idx, c.maxGaps);
+            }
           }
           break;
           
         case 'StudentsSetNotAvailableTimes':
-          const subgroupIdx = this.findSubgroupIndex(c.studentsSetId);
-          if (subgroupIdx >= 0 && c.times) {
-            if (!this.studentsNotAvailable.has(subgroupIdx)) {
-              this.studentsNotAvailable.set(subgroupIdx, new Set());
-            }
-            for (const time of c.times) {
-              this.studentsNotAvailable.get(subgroupIdx)!.add(
-                timeSlot(time.day, time.hour, this.nHoursPerDay)
-              );
+          if (c.times) {
+            const notAvailSubgroupIdxs = this.resolveStudentSetIndices(c.studentsSetId);
+            for (const idx of notAvailSubgroupIdxs) {
+              if (!this.studentsNotAvailable.has(idx)) {
+                this.studentsNotAvailable.set(idx, new Set());
+              }
+              for (const time of c.times) {
+                this.studentsNotAvailable.get(idx)!.add(
+                  timeSlot(time.day, time.hour, this.nHoursPerDay)
+                );
+              }
             }
           }
           break;
           
         case 'StudentsSetMaxHoursDaily':
-          const maxHoursSubgroupIdx = this.findSubgroupIndex(c.studentsSetId);
-          if (maxHoursSubgroupIdx >= 0 && c.maxHours !== undefined) {
-            this.studentsMaxHoursDaily.set(maxHoursSubgroupIdx, c.maxHours);
+          if (c.maxHours !== undefined) {
+            const maxHoursSubgroupIdxs = this.resolveStudentSetIndices(c.studentsSetId);
+            for (const idx of maxHoursSubgroupIdxs) {
+              this.studentsMaxHoursDaily.set(idx, c.maxHours);
+            }
           }
           break;
           

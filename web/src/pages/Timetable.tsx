@@ -61,8 +61,7 @@ export function Timetable() {
   const [bulkProgress, setBulkProgress] = useState<BulkExportProgress | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
-  const solutions = useLiveQuery(() => db.solutions.toArray());
-  const latestSolution = solutions?.[solutions.length - 1];
+  const latestSolution = useLiveQuery(() => db.solutions.orderBy('generatedAt').reverse().first());
 
   const studentHierarchy = useMemo(() => {
     const hierarchy: StudentHierarchyItem[] = [];
