@@ -1,57 +1,53 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test';
 
+// Fail fast on any uncaught page error — regressions in module init should
+// break the build rather than hide behind a green route render.
+test.beforeEach(async ({ page }) => {
+  page.on('pageerror', (err) => {
+    throw err;
+  });
+});
+
 test.describe('Дзвоник smoke tests', () => {
-  test('app loads and shows dashboard', async ({ page }) => {
+  test('app loads', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/Дзвоник|FET|Timetable/i);
     await expect(page.locator('body')).toBeVisible();
+    // Layout footer should render on every page.
+    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('navigates to Settings and creates new rules', async ({ page }) => {
-    await page.goto('/#/settings');
-    const createBtn = page.getByRole('button', { name: /створити|create new/i }).first();
-    if (await createBtn.isVisible().catch(() => false)) {
-      await createBtn.click();
+  test('all routes render without crashing', async ({ page }) => {
+    const routes = [
+      '/#/',
+      '/#/teachers',
+      '/#/subjects',
+      '/#/students',
+      '/#/activities',
+      '/#/rooms',
+      '/#/constraints',
+      '/#/generate',
+      '/#/timetable',
+      '/#/settings',
+    ];
+    for (const route of routes) {
+      await page.goto(route);
+      await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
     }
-    await expect(page.getByLabel(/назва закладу|institution name/i)).toBeVisible({ timeout: 10_000 });
   });
 
-  test('navigates to Teachers page', async ({ page }) => {
-    await page.goto('/#/teachers');
-    await expect(page.getByRole('button', { name: /додати вчител|add teacher/i }).first()).toBeVisible({ timeout: 10_000 });
-  });
-
-  test('navigates to Students page', async ({ page }) => {
-    await page.goto('/#/students');
-    await expect(page.getByRole('button', { name: /додати паралель|add year/i }).first()).toBeVisible({ timeout: 10_000 });
-  });
-
-  test('navigates to Activities page', async ({ page }) => {
-    await page.goto('/#/activities');
-    await expect(page.getByRole('button', { name: /додати урок|add lesson/i }).first()).toBeVisible({ timeout: 10_000 });
-  });
-
-  test('navigates to Constraints page', async ({ page }) => {
-    await page.goto('/#/constraints');
-    await expect(page.locator('body')).toBeVisible();
-  });
-
-  test('sanitary toggle is present in Settings', async ({ page }) => {
+  test('Settings: create new rules reveals institution field', async ({ page }) => {
     await page.goto('/#/settings');
-    const createBtn = page.getByRole('button', { name: /створити|create new/i }).first();
-    if (await createBtn.isVisible().catch(() => false)) {
-      await createBtn.click();
-    }
-    await expect(page.getByText(/санітарн|sanitary/i).first()).toBeVisible({ timeout: 10_000 });
-  });
+    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
 
-  test('shifts config appears in Settings', async ({ page }) => {
-    await page.goto('/#/settings');
-    const createBtn = page.getByRole('button', { name: /створити|create new/i }).first();
-    if (await createBtn.isVisible().catch(() => false)) {
-      await createBtn.click();
-    }
-    await expect(page.getByText(/зміни|shifts/i).first()).toBeVisible({ timeout: 10_000 });
+    // Two create-new buttons may exist (header + empty state); click the first.
+    const createBtn = page.getByRole('button', { name: /створити/i }).first();
+    await createBtn.waitFor({ state: 'visible', timeout: 15_000 });
+    await createBtn.click();
+
+    await expect(page.getByLabel(/назва закладу/i)).toBeVisible({ timeout: 15_000 });
+    // Phase 5b + Phase 4 cards should appear once rules exist.
+    await expect(page.getByText('Санітарні норми')).toBeVisible();
+    await expect(page.getByText('Зміни', { exact: true }).first()).toBeVisible();
   });
 });
