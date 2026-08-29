@@ -8,7 +8,7 @@ describe('Firebase Auth Service', () => {
       email: 'teacher@school.ua',
       displayName: 'Олена Петрівна',
       photoURL: 'https://lh3.googleusercontent.com/a/photo.jpg',
-    } as any;
+    } as unknown as Parameters<typeof toAuthUserProfile>[0];
 
     const profile = toAuthUserProfile(mockUser);
     expect(profile).toEqual({

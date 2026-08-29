@@ -10,7 +10,8 @@ export const app: FirebaseApp =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const auth: Auth = getAuth(app);
-export const db: Firestore = initializeFirestore(app, { ignoreUndefinedProperties: true });
+export const firestore: Firestore = initializeFirestore(app, { ignoreUndefinedProperties: true });
+export const db: Firestore = firestore;
 export const storage: FirebaseStorage = getStorage(app);
 export const functions: Functions = getFunctions(app, 'europe-central2');
 

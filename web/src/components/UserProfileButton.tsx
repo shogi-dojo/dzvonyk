@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { signInWithGoogleThunk, signOutThunk } from '@/store/slices/authSlice';

@@ -51,10 +51,11 @@ export async function signInWithGoogle(): Promise<AuthUserProfile> {
     const cred = await signInWithPopup(auth, googleProvider);
     trackEvent('auth_login', { method: 'google' });
     return toAuthUserProfile(cred.user)!;
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorObj = err as { code?: string };
     // If popup was blocked, fallback to redirect
-    if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/popup-closed-by-user') {
-      if (err.code === 'auth/popup-blocked') {
+    if (errorObj?.code === 'auth/popup-blocked' || errorObj?.code === 'auth/popup-closed-by-user') {
+      if (errorObj.code === 'auth/popup-blocked') {
         await signInWithRedirect(auth, googleProvider);
         return new Promise(() => {});
       }
