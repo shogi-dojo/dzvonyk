@@ -41,7 +41,7 @@ export function useReloadTimetableState() {
       ]);
 
       if (rules.length > 0) {
-        dispatch(setRules(rules[0] as any));
+        dispatch(setRules(rules[0] as unknown as Parameters<typeof setRules>[0]));
       }
       dispatch(setTeachers(teachers));
       dispatch(setSubjects(subjects));

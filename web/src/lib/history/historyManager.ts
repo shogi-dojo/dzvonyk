@@ -3,6 +3,7 @@ import type { Table } from 'dexie';
 import { db, GUEST_WORKSPACE_ID, type FETDatabase } from '@/db';
 import type { HistoryEntry, EntityChange, WorkspaceSnapshotData } from '@/types';
 import { workspaceRepository } from '@/lib/workspace/workspaceRepository';
+import { restoreSnapshotDataToDatabase } from '@/lib/workspace/snapshotCodec';
 import { trackEvent } from '@/lib/analytics';
 
 export const MAX_HISTORY_ENTRIES = 100;
@@ -164,7 +165,6 @@ export class HistoryManager {
     for (const change of changes) {
       if (change.table === '_full') {
         if (change.next) {
-          const { restoreSnapshotDataToDatabase } = await import('@/lib/workspace/snapshotCodec');
           await restoreSnapshotDataToDatabase(this.database, change.next as WorkspaceSnapshotData);
         } else {
           await this.database.clearAllData();

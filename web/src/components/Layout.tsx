@@ -15,6 +15,8 @@ import { PageTransition } from './PageTransition';
 import { InstallPwaButton } from './InstallPwaButton';
 import { ConsentBanner } from './ConsentBanner';
 import { HistoryControls } from './HistoryDrawer';
+import { UserProfileButton } from './UserProfileButton';
+import { GuestMigrationModal } from './GuestMigrationModal';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { DONATE_URL } from '@/lib/links';
@@ -97,6 +99,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <HistoryControls />
+          <UserProfileButton />
           <InstallPwaButton variant="ghost" size="icon" showText={false} className="h-9 w-9" />
           <Button
             variant="ghost"
@@ -130,6 +133,7 @@ export function Layout({ children }: LayoutProps) {
           </Link>
           <div className="flex items-center gap-1">
             <HistoryControls />
+            <UserProfileButton />
             <Button
               variant="ghost"
               size="icon"
@@ -242,6 +246,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </main>
       </div>
+      <GuestMigrationModal />
       <ConsentBanner />
     </div>
   );

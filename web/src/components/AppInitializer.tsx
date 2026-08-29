@@ -9,6 +9,8 @@ import { setRooms, setBuildings } from '@/store/slices/roomsSlice';
 import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constraintsSlice';
 import { setStudents } from '@/store/slices/studentsSlice';
 import { loadWorkspaceContext } from '@/store/slices/workspaceSlice';
+import { setUser, initAuthThunk } from '@/store/slices/authSlice';
+import { subscribeToAuthState } from '@/lib/firebase/auth';
 import { db } from '@/db';
 
 interface AppInitializerProps {
@@ -36,6 +38,11 @@ export function AppInitializer({ children }: AppInitializerProps) {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    // 1. Initialize Auth redirect check and auth subscription
+    dispatch(initAuthThunk());
+    const unsubscribeAuth = subscribeToAuthState((user) => {
+      dispatch(setUser(user));
+    });
     async function loadAllData() {
       try {
         console.log('Loading data from IndexedDB...');
@@ -102,6 +109,10 @@ export function AppInitializer({ children }: AppInitializerProps) {
     }
 
     loadAllData();
+
+    return () => {
+      unsubscribeAuth();
+    };
   }, [dispatch]);
 
   if (!initialized) {

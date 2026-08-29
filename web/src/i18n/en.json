@@ -1133,5 +1133,16 @@
     "empty": "Action history is empty",
     "revert": "Revert",
     "reverted": "State successfully restored"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "user": "User",
+    "cloudSync": "Cloud Sync",
+    "accountMenu": "Account Menu",
+    "migrationTitle": "Save timetable to cloud?",
+    "migrationDesc": "You signed in with Google. Would you like to migrate your current local timetable into your cloud profile for backup and cross-device sync?",
+    "migrateConfirm": "Migrate timetable to cloud",
+    "startFresh": "Start fresh"
   }
 }
