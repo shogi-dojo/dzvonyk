@@ -832,13 +832,26 @@
     },
     "controls": {
       "title": "Generation Controls",
-      "description": "Start, pause, or stop the generation process",
+      "description": "Start or stop the generation process",
       "start": "Start Generation",
       "regenerate": "Regenerate",
-      "pause": "Pause",
-      "resume": "Resume",
       "stop": "Stop",
-      "reset": "Reset"
+      "reset": "Reset",
+      "timeLimit": "Time Limit",
+      "seconds": "{{count}}s",
+      "lockedInfo": "{{count}} pinned lessons (🔒) will stay in their slots"
+    },
+    "history": {
+      "title": "Generation History",
+      "description": "Saved timetable solutions",
+      "empty": "No generation history yet",
+      "makeActive": "Make Active",
+      "view": "View",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this timetable solution?",
+      "complete": "Complete",
+      "partial": "Partial",
+      "lessonsCount": "{{count}} lessons"
     },
     "precheck": {
       "title": "Pre-Generation Check",

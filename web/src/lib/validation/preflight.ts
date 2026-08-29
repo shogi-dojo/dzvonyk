@@ -12,7 +12,7 @@
 
 import type {
   Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
-  TimetableRules, StudentsGroup, StudentsSubgroup,
+  TimetableRules, StudentsGroup, StudentsSubgroup, StudentsYear,
 } from '../../types';
 import { runSanitaryChecks } from './sanitary';
 
@@ -38,6 +38,7 @@ export interface PreflightInput {
   rooms: Room[];
   studentsGroups: StudentsGroup[];
   studentsSubgroups: StudentsSubgroup[];
+  studentsYears?: StudentsYear[];
   timeConstraints: TimeConstraint[];
   spaceConstraints: SpaceConstraint[];
   // Phase 4: when true, also apply МОЗ №2205 (2020) weekly-load limits as
