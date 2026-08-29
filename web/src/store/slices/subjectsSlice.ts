@@ -3,7 +3,7 @@
  */
 
 import { createSlice, type PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import type { Subject } from '../../types';
+import type { Subject, ConstraintFields, SpaceConstraint } from '../../types';
 import { db } from '../../db';
 
 interface SubjectsState {
@@ -57,9 +57,9 @@ export const updateSubject = createAsyncThunk(
       // Also update constraints that reference this subject
       const spaceConstraints = await db.spaceConstraints.toArray();
       for (const constraint of spaceConstraints) {
-        const c = constraint as any;
+        const c = constraint as ConstraintFields;
         if (c.subjectId === oldSubject.name || c.subjectId === oldSubject.id) {
-          const updated = { ...constraint, subjectId: subject.name } as any;
+          const updated = { ...constraint, subjectId: subject.name } as SpaceConstraint;
           await db.spaceConstraints.put(updated);
         }
       }

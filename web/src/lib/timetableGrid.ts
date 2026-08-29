@@ -1,15 +1,4 @@
-import type {
-  Activity,
-  Teacher,
-  Room,
-  Subject,
-  TimetableRules,
-  TimetableSolution,
-  StudentsYear,
-  StudentsGroup,
-  StudentsSubgroup,
-  TimeConstraint,
-} from '@/types';
+import type { Activity, Teacher, Room, Subject, TimetableRules, TimetableSolution, StudentsYear, StudentsGroup, StudentsSubgroup, TimeConstraint, ConstraintFields } from '@/types';
 
 export interface CellData {
   activityId: string;
@@ -236,13 +225,13 @@ export function validateSlotMove(params: {
   // 3. Teacher unavailability constraints
   for (const c of timeConstraints) {
     if (!c.active) continue;
-    if (c.type === 'TeacherNotAvailableTimes' && (c as any).teacherId && Array.isArray((c as any).times)) {
-      const rawTid = (c as any).teacherId;
+    if (c.type === 'TeacherNotAvailableTimes' && (c as ConstraintFields).teacherId && Array.isArray((c as ConstraintFields).times)) {
+      const rawTid = (c as ConstraintFields).teacherId;
       const isMyTeacher = activity.teacherIds.some(
         (tid) => tid === rawTid || teachers.some((t) => (t.id === rawTid || t.name === rawTid) && (t.id === tid || t.name === tid))
       );
       if (isMyTeacher) {
-        const times = (c as any).times as { day: number; hour: number }[];
+        const times = (c as ConstraintFields).times as { day: number; hour: number }[];
         for (let h = 0; h < duration; h++) {
           if (times.some((t) => t.day === targetDay && t.hour === targetHour + h)) {
             const tObj = teachers.find((t) => t.id === rawTid || t.name === rawTid);
@@ -259,15 +248,15 @@ export function validateSlotMove(params: {
   // 4. Student set unavailability constraints
   for (const c of timeConstraints) {
     if (!c.active) continue;
-    if (c.type === 'StudentsSetNotAvailableTimes' && (c as any).studentsSetId && Array.isArray((c as any).times)) {
-      const rawSid = (c as any).studentsSetId;
+    if (c.type === 'StudentsSetNotAvailableTimes' && (c as ConstraintFields).studentsSetId && Array.isArray((c as ConstraintFields).times)) {
+      const rawSid = (c as ConstraintFields).studentsSetId ?? '';
       const groupSubgroups = resolveSubgroupNames(rawSid, studentsGroups, studentsSubgroups, studentsYears);
       const activitySubgroups = activity.studentSetIds.flatMap((sid) =>
         resolveSubgroupNames(sid, studentsGroups, studentsSubgroups, studentsYears)
       );
       const match = groupSubgroups.some((sg) => activitySubgroups.includes(sg));
       if (match) {
-        const times = (c as any).times as { day: number; hour: number }[];
+        const times = (c as ConstraintFields).times as { day: number; hour: number }[];
         for (let h = 0; h < duration; h++) {
           if (times.some((t) => t.day === targetDay && t.hour === targetHour + h)) {
             return {

@@ -7,17 +7,18 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState<boolean>(false);
+  // Standalone display-mode is external browser state that is already correct
+  // at mount, so read it during initialisation rather than setting state from
+  // inside the effect (which would cause a second, cascading render).
+  const [isInstalled, setIsInstalled] = useState<boolean>(
+    () =>
+      typeof window !== 'undefined' &&
+      (window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true)
+  );
 
   useEffect(() => {
-    // Check if already running in standalone mode
-    if (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true
-    ) {
-      setIsInstalled(true);
-      return;
-    }
+    if (isInstalled) return;
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -36,7 +37,7 @@ export function usePwaInstall() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isInstalled]);
 
   const promptInstall = useCallback(async () => {
     if (!deferredPrompt) {

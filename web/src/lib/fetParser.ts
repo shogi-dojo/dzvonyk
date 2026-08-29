@@ -4,12 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import type {
-  FETFile, Teacher, Subject, ActivityTag, Activity,
-  StudentsYear, StudentsGroup, StudentsSubgroup,
-  Room, Building, Day, Hour,
-  TimeConstraint, SpaceConstraint,
-} from '../types';
+import type { FETFile, Teacher, Subject, ActivityTag, Activity, StudentsYear, StudentsGroup, StudentsSubgroup, Room, Building, Day, Hour, TimeConstraint, SpaceConstraint, ConstraintFields } from '../types';
 
 /**
  * Parse a FET XML file content into structured data
@@ -938,7 +933,7 @@ export function exportToFETXml(data: FETFile): string {
   // Time Constraints
   xml += '<Time_Constraints_List>\n';
   for (const constraint of data.timeConstraints) {
-    const c = constraint as any;
+    const c = constraint as ConstraintFields;
     
     switch (constraint.type) {
       case 'BasicCompulsoryTime':
@@ -996,7 +991,7 @@ export function exportToFETXml(data: FETFile): string {
   // Space Constraints
   xml += '<Space_Constraints_List>\n';
   for (const constraint of data.spaceConstraints) {
-    const c = constraint as any;
+    const c = constraint as ConstraintFields;
     
     switch (constraint.type) {
       case 'BasicCompulsorySpace':

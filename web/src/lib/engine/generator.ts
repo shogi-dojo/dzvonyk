@@ -3,10 +3,7 @@
  * Implementation of the recursive swapping algorithm with enhanced constraint support
  */
 
-import type {
-  Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
-  TimetableRules, StudentsSubgroup, StudentsGroup, StudentsYear
-} from '../../types';
+import type { Activity, Teacher, Room, TimeConstraint, SpaceConstraint, TimetableRules, StudentsSubgroup, StudentsGroup, StudentsYear, ConstraintFields } from '../../types';
 import type {
   InternalActivity, TimeAllocation, RoomAllocation, ConflictInfo,
   GenerationConfig, GenerationResult, GenerationCallback, Matrix2D
@@ -128,7 +125,8 @@ export class TimetableGenerator {
     this.rng = new RandomGenerator();
   }
 
-  private findTeacherIndex(idOrName: string): number {
+  private findTeacherIndex(idOrName?: string): number {
+    if (idOrName === undefined) return -1;
     let idx = this.teacherIdToIndex.get(idOrName);
     if (idx !== undefined) return idx;
     idx = this.teacherNameToIndex.get(idOrName);
@@ -136,7 +134,8 @@ export class TimetableGenerator {
     return -1;
   }
 
-  private findSubgroupIndex(idOrName: string): number {
+  private findSubgroupIndex(idOrName?: string): number {
+    if (idOrName === undefined) return -1;
     let idx = this.subgroupIdToIndex.get(idOrName);
     if (idx !== undefined) return idx;
     idx = this.subgroupNameToIndex.get(idOrName);
@@ -144,7 +143,7 @@ export class TimetableGenerator {
     return -1;
   }
 
-  private resolveStudentSetIndices(idOrName: string): number[] {
+  private resolveStudentSetIndices(idOrName?: string): number[] {
     // 1. Direct subgroup match (by id or name)
     const directIdx = this.findSubgroupIndex(idOrName);
     if (directIdx >= 0) {
@@ -193,7 +192,8 @@ export class TimetableGenerator {
     return [];
   }
 
-  private findRoomIndex(idOrName: string): number {
+  private findRoomIndex(idOrName?: string): number {
+    if (idOrName === undefined) return -1;
     let idx = this.roomIdToIndex.get(idOrName);
     if (idx !== undefined) return idx;
     idx = this.roomNameToIndex.get(idOrName);
@@ -343,7 +343,7 @@ export class TimetableGenerator {
   private parseConstraints(): void {
     // Parse time constraints
     for (const constraint of this.timeConstraints) {
-      const c = constraint as any;
+      const c = constraint as ConstraintFields;
       
       switch (constraint.type) {
         case 'BreakTimes':
@@ -457,7 +457,7 @@ export class TimetableGenerator {
           break;
           
         case 'ActivityPreferredStartingTime': {
-          const activityIdx = this.activityIdToIndex.get(c.activityId);
+          const activityIdx = (c.activityId === undefined ? undefined : this.activityIdToIndex.get(c.activityId));
           if (activityIdx !== undefined && c.day !== undefined && c.hour !== undefined) {
             this.activityPreferredStartingTime.set(activityIdx, {
               day: c.day,
@@ -472,7 +472,7 @@ export class TimetableGenerator {
 
     // Parse space constraints
     for (const constraint of this.spaceConstraints) {
-      const c = constraint as any;
+      const c = constraint as ConstraintFields;
       
       switch (constraint.type) {
         case 'RoomNotAvailableTimes': {
@@ -491,7 +491,7 @@ export class TimetableGenerator {
         }
           
         case 'ActivityPreferredRoom': {
-          const prefRoomActivityIdx = this.activityIdToIndex.get(c.activityId);
+          const prefRoomActivityIdx = (c.activityId === undefined ? undefined : this.activityIdToIndex.get(c.activityId));
           const prefRoomIdx = this.findRoomIndex(c.roomId);
           if (prefRoomActivityIdx !== undefined && prefRoomIdx >= 0) {
             this.activityPreferredRoom.set(prefRoomActivityIdx, {
@@ -503,7 +503,7 @@ export class TimetableGenerator {
         }
           
         case 'ActivityPreferredRooms': {
-          const prefRoomsActivityIdx = this.activityIdToIndex.get(c.activityId);
+          const prefRoomsActivityIdx = (c.activityId === undefined ? undefined : this.activityIdToIndex.get(c.activityId));
           if (prefRoomsActivityIdx !== undefined && c.roomIds) {
             const roomIndices = c.roomIds
               .map((id: string) => this.findRoomIndex(id))

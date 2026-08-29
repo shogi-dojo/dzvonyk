@@ -175,7 +175,7 @@ export function Print() {
     });
 
     return { teachers: sortedTeachers, rows };
-  }, [reportType, latestSolution, rules, activities, teachers, subjects, rooms, sortedTeachers]);
+  }, [reportType, latestSolution, rules, activities, subjects, rooms, sortedTeachers]);
 
   // Teacher workload report data
   const teacherWorkload = useMemo(() => {

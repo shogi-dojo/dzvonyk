@@ -17,7 +17,7 @@ import {
 } from '@/store/slices/constraintsSlice';
 import { cn } from '@/lib/utils';
 import { TimeGrid } from '@/components/TimeGrid';
-import type { TimeConstraint, SpaceConstraint, TimeSlot } from '@/types';
+import type { TimeConstraint, SpaceConstraint, TimeSlot, ConstraintFields } from '@/types';
 
 interface ConstraintTypeDef {
   category: string;
@@ -104,12 +104,12 @@ export function Constraints() {
     return options;
   }, [years, groups, t]);
 
-  const getTeacherName = (id: string) => teachers.find(tt => tt.id === id || tt.name === id)?.name || id;
-  const getRoomName = (id: string) => rooms.find(r => r.id === id || r.name === id)?.name || id;
-  const getSubjectName = (id: string) => subjects.find(s => s.id === id || s.name === id)?.name || id;
-  const getActivityName = (id: string) => {
+  const getTeacherName = (id?: string) => teachers.find(tt => tt.id === id || tt.name === id)?.name ?? id ?? '';
+  const getRoomName = (id?: string) => rooms.find(r => r.id === id || r.name === id)?.name ?? id ?? '';
+  const getSubjectName = (id?: string) => subjects.find(s => s.id === id || s.name === id)?.name ?? id ?? '';
+  const getActivityName = (id?: string) => {
     const a = activities.find(act => act.id === id);
-    return a ? t('constraints.activityLabel', { subject: a.subjectId, teachers: a.teacherIds.join(', ') || t('constraints.noTeacher') }) : id;
+    return a ? t('constraints.activityLabel', { subject: a.subjectId, teachers: a.teacherIds.join(', ') || t('constraints.noTeacher') }) : id ?? '';
   };
 
   const filteredTimeConstraints = useMemo(() => {
@@ -149,7 +149,7 @@ export function Constraints() {
   const openEditTimeDialog = (c: TimeConstraint) => {
     setDialogMode('edit'); setEditingTimeConstraint(c); setEditingSpaceConstraint(null);
     setSelectedTimeType(c.type); setWeight(String(c.weightPercentage)); setActive(c.active);
-    const any = c as any;
+    const any = c as ConstraintFields;
     setTeacherId(any.teacherId || ''); setStudentsSetId(any.studentsSetId || '');
     setSelectedActivityId(any.activityId || ''); setMaxDays(String(any.maxDays || 5));
     setMinDays(String(any.minDays || 3));
@@ -163,7 +163,7 @@ export function Constraints() {
   const openEditSpaceDialog = (c: SpaceConstraint) => {
     setDialogMode('edit'); setEditingTimeConstraint(null); setEditingSpaceConstraint(c);
     setSelectedSpaceType(c.type); setWeight(String(c.weightPercentage)); setActive(c.active);
-    const any = c as any;
+    const any = c as ConstraintFields;
     setRoomId(any.roomId || ''); setSelectedActivityId(any.activityId || '');
     setTeacherId(any.teacherId || ''); setSubjectId(any.subjectId || '');
     setSelectedTimes(any.times || []); setDialogOpen(true);
@@ -174,15 +174,15 @@ export function Constraints() {
     let constraint: TimeConstraint;
     switch (selectedTimeType) {
       case 'BasicCompulsoryTime': constraint = { ...base, type: 'BasicCompulsoryTime' }; break;
-      case 'BreakTimes': constraint = { ...base, type: 'BreakTimes', times: selectedTimes } as any; break;
-      case 'TeacherNotAvailableTimes': constraint = { ...base, type: 'TeacherNotAvailableTimes', teacherId, times: selectedTimes } as any; break;
-      case 'TeacherMaxDaysPerWeek': constraint = { ...base, type: 'TeacherMaxDaysPerWeek', teacherId, maxDays: parseInt(maxDays) } as any; break;
-      case 'TeacherMinDaysPerWeek': constraint = { ...base, type: 'TeacherMinDaysPerWeek', teacherId, minDays: parseInt(minDays) } as any; break;
-      case 'TeacherMaxHoursDaily': constraint = { ...base, type: 'TeacherMaxHoursDaily', teacherId, maxHours: parseInt(maxHours) } as any; break;
-      case 'StudentsSetNotAvailableTimes': constraint = { ...base, type: 'StudentsSetNotAvailableTimes', studentsSetId, times: selectedTimes } as any; break;
-      case 'StudentsSetMaxHoursDaily': constraint = { ...base, type: 'StudentsSetMaxHoursDaily', studentsSetId, maxHours: parseInt(maxHours) } as any; break;
-      case 'StudentsSetMaxGapsPerDay': constraint = { ...base, type: 'StudentsSetMaxGapsPerDay', studentsSetId, maxGaps: parseInt(maxGaps) } as any; break;
-      case 'MinDaysBetweenActivities': constraint = { ...base, type: 'MinDaysBetweenActivities', activityIds: [selectedActivityId], minDays: parseInt(maxDays) } as any; break;
+      case 'BreakTimes': constraint = { ...base, type: 'BreakTimes', times: selectedTimes } as TimeConstraint; break;
+      case 'TeacherNotAvailableTimes': constraint = { ...base, type: 'TeacherNotAvailableTimes', teacherId, times: selectedTimes } as TimeConstraint; break;
+      case 'TeacherMaxDaysPerWeek': constraint = { ...base, type: 'TeacherMaxDaysPerWeek', teacherId, maxDays: parseInt(maxDays) } as TimeConstraint; break;
+      case 'TeacherMinDaysPerWeek': constraint = { ...base, type: 'TeacherMinDaysPerWeek', teacherId, minDays: parseInt(minDays) } as TimeConstraint; break;
+      case 'TeacherMaxHoursDaily': constraint = { ...base, type: 'TeacherMaxHoursDaily', teacherId, maxHours: parseInt(maxHours) } as TimeConstraint; break;
+      case 'StudentsSetNotAvailableTimes': constraint = { ...base, type: 'StudentsSetNotAvailableTimes', studentsSetId, times: selectedTimes } as TimeConstraint; break;
+      case 'StudentsSetMaxHoursDaily': constraint = { ...base, type: 'StudentsSetMaxHoursDaily', studentsSetId, maxHours: parseInt(maxHours) } as TimeConstraint; break;
+      case 'StudentsSetMaxGapsPerDay': constraint = { ...base, type: 'StudentsSetMaxGapsPerDay', studentsSetId, maxGaps: parseInt(maxGaps) } as TimeConstraint; break;
+      case 'MinDaysBetweenActivities': constraint = { ...base, type: 'MinDaysBetweenActivities', activityIds: [selectedActivityId], minDays: parseInt(maxDays) } as TimeConstraint; break;
       case 'ActivityPreferredStartingTime':
         constraint = {
           ...base,
@@ -191,9 +191,9 @@ export function Constraints() {
           day: selectedDay,
           hour: selectedHour,
           permanentlyLocked: lockedPin,
-        } as any;
+        } as TimeConstraint;
         break;
-      default: constraint = { ...base, type: selectedTimeType } as any;
+      default: constraint = { ...base, type: selectedTimeType } as TimeConstraint;
     }
     if (dialogMode === 'edit') await dispatch(updateTimeConstraint(constraint));
     else await dispatch(addTimeConstraint(constraint));
@@ -205,11 +205,11 @@ export function Constraints() {
     let constraint: SpaceConstraint;
     switch (selectedSpaceType) {
       case 'BasicCompulsorySpace': constraint = { ...base, type: 'BasicCompulsorySpace' }; break;
-      case 'RoomNotAvailableTimes': constraint = { ...base, type: 'RoomNotAvailableTimes', roomId, times: selectedTimes } as any; break;
-      case 'ActivityPreferredRoom': constraint = { ...base, type: 'ActivityPreferredRoom', activityId: selectedActivityId, roomId } as any; break;
-      case 'SubjectPreferredRoom': constraint = { ...base, type: 'SubjectPreferredRoom', subjectId, roomId } as any; break;
-      case 'TeacherHomeRoom': constraint = { ...base, type: 'TeacherHomeRoom', teacherId, roomId } as any; break;
-      default: constraint = { ...base, type: selectedSpaceType } as any;
+      case 'RoomNotAvailableTimes': constraint = { ...base, type: 'RoomNotAvailableTimes', roomId, times: selectedTimes } as SpaceConstraint; break;
+      case 'ActivityPreferredRoom': constraint = { ...base, type: 'ActivityPreferredRoom', activityId: selectedActivityId, roomId } as SpaceConstraint; break;
+      case 'SubjectPreferredRoom': constraint = { ...base, type: 'SubjectPreferredRoom', subjectId, roomId } as SpaceConstraint; break;
+      case 'TeacherHomeRoom': constraint = { ...base, type: 'TeacherHomeRoom', teacherId, roomId } as SpaceConstraint; break;
+      default: constraint = { ...base, type: selectedSpaceType } as SpaceConstraint;
     }
     if (dialogMode === 'edit') await dispatch(updateSpaceConstraint(constraint));
     else await dispatch(addSpaceConstraint(constraint));
@@ -220,7 +220,7 @@ export function Constraints() {
   const handleDeleteSpace = (id: string) => { if (confirm(t('constraints.confirmDelete'))) dispatch(deleteSpaceConstraint(id)); };
 
   const getTimeDescription = (c: TimeConstraint) => {
-    const any = c as any;
+    const any = c as ConstraintFields;
     switch (c.type) {
       case 'BasicCompulsoryTime': return t('constraints.descriptions.basicTime');
       case 'TeacherNotAvailableTimes': return t('constraints.descriptions.teacherSlots', { teacher: getTeacherName(any.teacherId), count: any.times?.length || 0 });
@@ -231,13 +231,13 @@ export function Constraints() {
       case 'StudentsSetMaxHoursDaily': return t('constraints.descriptions.studentsMaxHours', { students: any.studentsSetId, count: any.maxHours });
       case 'StudentsSetMaxGapsPerDay': return t('constraints.descriptions.studentsMaxGaps', { students: any.studentsSetId, count: any.maxGaps });
       case 'ActivityPreferredStartingTime':
-        return `${getActivityName(any.activityId)}: ${t('constraints.descriptions.activityAt', { day: any.day + 1, hour: any.hour + 1 })}${any.permanentlyLocked ? ' (🔒)' : ''}`;
+        return `${getActivityName(any.activityId)}: ${t('constraints.descriptions.activityAt', { day: (any.day ?? 0) + 1, hour: (any.hour ?? 0) + 1 })}${any.permanentlyLocked ? ' (🔒)' : ''}`;
       default: return '';
     }
   };
 
   const getSpaceDescription = (c: SpaceConstraint) => {
-    const any = c as any;
+    const any = c as ConstraintFields;
     switch (c.type) {
       case 'BasicCompulsorySpace': return t('constraints.descriptions.basicSpace');
       case 'RoomNotAvailableTimes': return t('constraints.descriptions.roomSlots', { room: getRoomName(any.roomId), count: any.times?.length || 0 });

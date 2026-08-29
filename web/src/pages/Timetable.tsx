@@ -32,7 +32,7 @@ import {
   
 } from '@/lib/printDocument';
 import { addTimeConstraint, deleteTimeConstraint, updateTimeConstraint } from '@/store/slices/constraintsSlice';
-import type { ActivityPreferredStartingTimeConstraint } from '@/types';
+import type { ActivityPreferredStartingTimeConstraint, ConstraintFields } from '@/types';
 
 interface StudentHierarchyItem {
   id: string;
@@ -244,7 +244,7 @@ export function Timetable() {
 
     // If activity is locked, update its constraint position as well
     const existingConstraint = timeConstraints.find(
-      (c) => c.type === 'ActivityPreferredStartingTime' && (c as any).activityId === activityId
+      (c) => c.type === 'ActivityPreferredStartingTime' && (c as ConstraintFields).activityId === activityId
     );
     if (existingConstraint) {
       const updatedConstraint: ActivityPreferredStartingTimeConstraint = {
@@ -266,7 +266,7 @@ export function Timetable() {
     const isLocked = lockedActivityIds.has(activityId);
 
     const existingConstraint = timeConstraints.find(
-      (c) => c.type === 'ActivityPreferredStartingTime' && (c as any).activityId === activityId
+      (c) => c.type === 'ActivityPreferredStartingTime' && (c as ConstraintFields).activityId === activityId
     );
 
     if (isLocked) {

@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components -- shadcn/ui keeps
+   variant definitions in the same file as the component by design. */
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";

@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components -- shadcn/ui keeps
+   variant definitions in the same file as the component by design. */
 /**
  * Pagination Component for listing pages
  * Dense, power-user focused design
