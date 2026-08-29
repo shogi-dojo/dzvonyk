@@ -84,6 +84,7 @@
       "prompt": "Імпортуйте або створіть новий розклад",
       "newTimetable": "Новий розклад",
       "importFet": "Імпортувати .fet",
+      "importRoz": "Імпортувати .roz",
       "exportFet": "Експортувати .fet",
       "viewTimetable": "Переглянути розклад",
       "generate": "Згенерувати",
@@ -963,5 +964,34 @@
       "description": "Створіть нову конфігурацію розкладу або імпортуйте з файлу FET.",
       "importFile": "Імпортувати файл FET"
     }
+  },
+  "rozImport": {
+    "title": "Імпорт aSc TimeTables (.roz)",
+    "button": "Імпортувати .roz",
+    "chooseFile": "Обрати файл .roz",
+    "previewTitle": "Попередній перегляд імпорту aSc",
+    "school": "Заклад",
+    "year": "Навчальний рік",
+    "classes": "Класи",
+    "subgroups": "Підгрупи",
+    "teachers": "Вчителі",
+    "subjects": "Предмети",
+    "lessons": "Уроки",
+    "hours": "Години на тиждень",
+    "placements": "Розміщено в сітці",
+    "unplaced": "Не розміщено",
+    "warningsTitle": "Зауваження та обмеження",
+    "constraintsNotImported": "Обмеження вчителів та простору не імпортовано — перевірте доступність",
+    "roomsNotImported": "Кабінети відсутні у файлі aSc",
+    "unplacedHours": "{{count}} год уроків не розміщено в сітці aSc",
+    "duplicateNamesResolved": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
+    "sampleLessonsTitle": "Приклади розпізнаних уроків",
+    "hoursSuffix": "год",
+    "dangerNotice": "Це замінить усі поточні дані.",
+    "confirmButton": "Імпортувати",
+    "cancelButton": "Скасувати",
+    "success": "Розклад .roz успішно імпортовано",
+    "successDetail": "Успішно імпортовано: {{classes}} класів, {{teachers}} вчителів, {{subjects}} предметів, {{hours}} год навантаження",
+    "error": "Не вдалося імпортувати файл .roz"
   }
 }

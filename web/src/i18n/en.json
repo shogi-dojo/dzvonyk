@@ -84,6 +84,7 @@
       "prompt": "Import or create a new timetable",
       "newTimetable": "New Timetable",
       "importFet": "Import .fet",
+      "importRoz": "Import .roz",
       "exportFet": "Export .fet",
       "viewTimetable": "View Timetable",
       "generate": "Generate",
@@ -951,5 +952,34 @@
       "description": "Create a new timetable configuration or import from a FET file.",
       "importFile": "Import FET File"
     }
+  },
+  "rozImport": {
+    "title": "Import aSc TimeTables (.roz)",
+    "button": "Import .roz",
+    "chooseFile": "Choose .roz file",
+    "previewTitle": "aSc Import Preview",
+    "school": "Institution",
+    "year": "Academic Year",
+    "classes": "Classes",
+    "subgroups": "Subgroups",
+    "teachers": "Teachers",
+    "subjects": "Subjects",
+    "lessons": "Lessons",
+    "hours": "Weekly Hours",
+    "placements": "Placed in grid",
+    "unplaced": "Unplaced",
+    "warningsTitle": "Notices and Limitations",
+    "constraintsNotImported": "Teacher and room constraints not imported — please check availability manually",
+    "roomsNotImported": "No rooms defined in the aSc file",
+    "unplacedHours": "{{count}} lesson hours not placed in the aSc grid",
+    "duplicateNamesResolved": "Found {{count}} duplicate names, suffixes added automatically",
+    "sampleLessonsTitle": "Sample decoded lessons",
+    "hoursSuffix": "h",
+    "dangerNotice": "Warning: this will replace all current timetable data.",
+    "confirmButton": "Import",
+    "cancelButton": "Cancel",
+    "success": ".roz timetable imported successfully",
+    "successDetail": "Successfully imported: {{classes}} classes, {{teachers}} teachers, {{subjects}} subjects, {{hours}} weekly hours",
+    "error": "Failed to import .roz file"
   }
 }
