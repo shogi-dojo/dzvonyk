@@ -26,6 +26,7 @@ import { setTimeConstraints, setSpaceConstraints, clearConstraints } from '@/sto
 import { setStudents, clearStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile } from '@/lib/fetParser';
+import { getHourRange, formatHourRange } from '@/lib/bellSchedule';
 import { useSanitaryMode } from '@/lib/sanitaryMode';
 import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
@@ -316,17 +317,12 @@ export function Settings() {
     setHours(updated);
   };
 
-  const getHourRange = (hour: Hour): [string, string] => {
-    const matches = (hour.longName || '').match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/);
-    return matches ? [matches[1], matches[2]] : [hour.name, hour.name];
-  };
-
   const updateHourRange = (index: number, part: 'start' | 'end', value: string) => {
     const updated = [...hours];
     const [currentStart, currentEnd] = getHourRange(updated[index]);
     const start = part === 'start' ? value : currentStart;
     const end = part === 'end' ? value : currentEnd;
-    updated[index] = { ...updated[index], longName: `${start} – ${end}` };
+    updated[index] = { ...updated[index], longName: formatHourRange(start, end) };
     setHours(updated);
   };
 

@@ -19,6 +19,7 @@ import {
   type GridCell,
   type CellData,
 } from './timetableGrid';
+import { hourTimeLabel } from './bellSchedule';
 
 export interface PrintOptions {
   includeApproval?: boolean;
@@ -318,7 +319,7 @@ function renderSingleGridTable(
       <tr>
         <td class="time-cell">
           <div class="period-num">${hIdx + 1}</div>
-          <div class="period-time">${escapeHtml(hour.longName || hour.name)}</div>
+          <div class="period-time">${escapeHtml(hourTimeLabel(hour))}</div>
         </td>
     `;
 
