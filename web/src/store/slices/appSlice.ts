@@ -13,20 +13,21 @@ interface AppState {
   error: string | null;
 }
 
-// Get initial dark mode from localStorage or system preference
+// Get initial dark mode from localStorage (defaults to light theme)
 const getInitialDarkMode = (): boolean => {
   if (typeof window === 'undefined') return false;
-  const stored = localStorage.getItem('fet-dark-mode');
+  const stored = localStorage.getItem('dzvonyk-theme') || localStorage.getItem('fet-dark-mode');
   if (stored !== null) {
-    return stored === 'true';
+    return stored === 'dark' || stored === 'true';
   }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // Default is Light theme
+  return false;
 };
 
 const initialState: AppState = {
   currentRulesId: null,
   isDarkMode: getInitialDarkMode(),
-  language: 'en',
+  language: 'uk',
   sidebarOpen: true,
   isLoading: false,
   error: null,
@@ -41,15 +42,18 @@ const appSlice = createSlice({
     },
     toggleDarkMode: (state) => {
       state.isDarkMode = !state.isDarkMode;
-      // Persist to localStorage
       if (typeof window !== 'undefined') {
+        localStorage.setItem('dzvonyk-theme', state.isDarkMode ? 'dark' : 'light');
         localStorage.setItem('fet-dark-mode', String(state.isDarkMode));
+        document.documentElement.classList.toggle('dark', state.isDarkMode);
       }
     },
     setDarkMode: (state, action: PayloadAction<boolean>) => {
       state.isDarkMode = action.payload;
       if (typeof window !== 'undefined') {
+        localStorage.setItem('dzvonyk-theme', action.payload ? 'dark' : 'light');
         localStorage.setItem('fet-dark-mode', String(action.payload));
+        document.documentElement.classList.toggle('dark', action.payload);
       }
     },
     setLanguage: (state, action: PayloadAction<string>) => {

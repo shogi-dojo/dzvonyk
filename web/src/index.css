@@ -1,51 +1,97 @@
-@import "tailwindcss";
-
-/* 
- * Monochromatic Black-Amber Theme
- * A refined, accessible color scheme using ONLY black and amber tones
- * Clean lines, soft colors, elegant contrast
- * WCAG 2.1 AA compliant
- */
 @theme {
-  /* Core backgrounds - warm black tones */
-  --color-background: hsl(30 8% 6%);
-  --color-foreground: hsl(40 20% 90%);
-  --color-card: hsl(30 8% 9%);
-  --color-card-foreground: hsl(40 20% 90%);
-  --color-popover: hsl(30 8% 11%);
-  --color-popover-foreground: hsl(40 20% 90%);
+  /* Core background & text */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
   
-  /* Primary amber */
-  --color-primary: hsl(40 90% 50%);
-  --color-primary-foreground: hsl(30 8% 6%);
+  /* Primary amber / honey */
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
   
-  /* Secondary - muted warm gray */
-  --color-secondary: hsl(35 6% 16%);
-  --color-secondary-foreground: hsl(40 15% 85%);
+  /* Secondary - subtle neutral */
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
   
-  /* Muted - soft warm gray */
-  --color-muted: hsl(35 6% 13%);
-  --color-muted-foreground: hsl(38 12% 55%);
+  /* Muted */
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
   
-  /* Accent - slightly brighter amber */
-  --color-accent: hsl(42 85% 55%);
-  --color-accent-foreground: hsl(30 8% 6%);
+  /* Accent */
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
   
-  /* Destructive - dark amber/burnt orange (monochromatic) */
-  --color-destructive: hsl(25 80% 45%);
-  --color-destructive-foreground: hsl(40 20% 95%);
+  /* Destructive */
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
   
   /* Borders and inputs */
-  --color-border: hsl(35 8% 20%);
-  --color-input: hsl(35 6% 15%);
-  --color-ring: hsl(40 90% 50%);
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
   
-  --radius: 0.25rem;
+  --radius: 0.375rem;
 }
 
 @layer base {
   :root {
-    /* Core backgrounds */
+    /* Core backgrounds - Light Theme (Default) */
+    --background: 40 20% 98%;
+    --foreground: 30 10% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 10% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 10% 12%;
+    
+    /* Primary amber / honey */
+    --primary: 38 92% 48%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary */
+    --secondary: 35 15% 93%;
+    --secondary-foreground: 30 10% 20%;
+    
+    /* Muted */
+    --muted: 35 15% 94%;
+    --muted-foreground: 30 8% 46%;
+    
+    /* Accent */
+    --accent: 38 90% 94%;
+    --accent-foreground: 32 90% 28%;
+    
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders and inputs */
+    --border: 35 12% 88%;
+    --input: 35 12% 88%;
+    --ring: 38 92% 48%;
+    --radius: 0.375rem;
+    
+    /* Monochromatic Amber Palette */
+    --amber-50: 42 100% 96%;
+    --amber-100: 42 95% 90%;
+    --amber-200: 42 90% 80%;
+    --amber-300: 40 88% 68%;
+    --amber-400: 38 90% 55%;
+    --amber-500: 38 92% 48%;
+    --amber-600: 35 90% 40%;
+    --amber-700: 32 85% 32%;
+    --amber-800: 28 80% 24%;
+    --amber-900: 25 75% 16%;
+    
+    /* Semantic colors */
+    --success: 142 70% 36%;
+    --warning: 38 92% 48%;
+    --info: 217 90% 50%;
+    --subtle: 35 10% 85%;
+  }
+
+  .dark {
+    /* Core backgrounds - Dark Theme */
     --background: 30 8% 6%;
     --foreground: 40 20% 90%;
     --card: 30 8% 9%;
@@ -53,33 +99,25 @@
     --popover: 30 8% 11%;
     --popover-foreground: 40 20% 90%;
     
-    /* Primary amber */
     --primary: 40 90% 50%;
     --primary-foreground: 30 8% 6%;
     
-    /* Secondary */
     --secondary: 35 6% 16%;
     --secondary-foreground: 40 15% 85%;
     
-    /* Muted */
     --muted: 35 6% 13%;
     --muted-foreground: 38 12% 55%;
     
-    /* Accent */
     --accent: 42 85% 55%;
     --accent-foreground: 30 8% 6%;
     
-    /* Destructive - burnt amber (stays in monochrome family) */
     --destructive: 25 80% 45%;
     --destructive-foreground: 40 20% 95%;
     
-    /* Borders */
     --border: 35 8% 20%;
     --input: 35 6% 15%;
     --ring: 40 90% 50%;
-    --radius: 0.25rem;
     
-    /* Monochromatic Amber Palette - all variations of amber/black */
     --amber-50: 42 100% 95%;
     --amber-100: 42 95% 88%;
     --amber-200: 42 90% 75%;
@@ -91,33 +129,10 @@
     --amber-800: 28 80% 24%;
     --amber-900: 25 75% 16%;
     
-    /* Semantic colors - all amber-based for monochromatic theme */
-    --success: 42 85% 55%;        /* bright amber */
-    --warning: 38 90% 48%;        /* standard amber */
-    --info: 40 70% 60%;           /* light amber */
-    --subtle: 38 20% 45%;         /* muted amber */
-  }
- 
-  .dark {
-    --background: 30 8% 6%;
-    --foreground: 40 20% 90%;
-    --card: 30 8% 9%;
-    --card-foreground: 40 20% 90%;
-    --popover: 30 8% 11%;
-    --popover-foreground: 40 20% 90%;
-    --primary: 40 90% 50%;
-    --primary-foreground: 30 8% 6%;
-    --secondary: 35 6% 16%;
-    --secondary-foreground: 40 15% 85%;
-    --muted: 35 6% 13%;
-    --muted-foreground: 38 12% 55%;
-    --accent: 42 85% 55%;
-    --accent-foreground: 30 8% 6%;
-    --destructive: 25 80% 45%;
-    --destructive-foreground: 40 20% 95%;
-    --border: 35 8% 20%;
-    --input: 35 6% 15%;
-    --ring: 40 90% 50%;
+    --success: 42 85% 55%;
+    --warning: 38 90% 48%;
+    --info: 40 70% 60%;
+    --subtle: 38 20% 45%;
   }
 }
  

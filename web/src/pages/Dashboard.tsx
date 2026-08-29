@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   Users2, BookOpen, Calendar, Building2, Clock, Shield,
   Play, Upload, FilePlus, Download, AlertCircle, CheckCircle2, Eye,
-  Sparkles, ArrowRight, FileText, Zap, LayoutDashboard, GraduationCap
+  Bell, ArrowRight, FileText, Zap, LayoutDashboard, GraduationCap
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -247,7 +247,7 @@ export function Dashboard() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Bell className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle>{rules?.institutionName || t('dashboard.institution.empty')}</CardTitle>

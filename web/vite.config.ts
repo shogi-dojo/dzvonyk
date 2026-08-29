@@ -24,8 +24,8 @@ export default defineConfig({
         name: 'Дзвоник — шкільний розклад',
         short_name: 'Дзвоник',
         description: 'Офлайн-планувальник шкільного розкладу для завуча. AGPL-3.0.',
-        theme_color: '#3b82f6',
-        background_color: '#ffffff',
+        theme_color: '#f59e0b',
+        background_color: '#faf8f5',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

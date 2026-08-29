@@ -3,13 +3,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users2, BookOpen, GraduationCap, Calendar,
-  Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Sparkles
+  Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Bell, Sun, Moon
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useAppSelector, useAppDispatch } from '@/hooks';
-import { toggleSidebar } from '@/store/slices/appSlice';
+import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
 import { PageTransition } from './PageTransition';
 import { Footer } from './Footer';
 
@@ -40,13 +40,18 @@ const navigation: NavItem[] = [
 export function Layout({ children }: LayoutProps) {
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.app.sidebarOpen);
+  const isDarkMode = useAppSelector((state) => state.app.isDarkMode);
   const location = useLocation();
   const { t } = useTranslation();
 
-  // Always set dark mode on mount
+  // Sync dark class on html root based on Redux state (defaults to light)
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -60,25 +65,36 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile header */}
       <header 
-        className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-border px-4 shadow-sm lg:hidden glass no-print"
+        className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-border px-4 shadow-sm lg:hidden glass no-print"
         role="banner"
       >
+        <div className="flex items-center gap-x-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => dispatch(toggleSidebar())}
+            className="hover-glow"
+            aria-label={sidebarOpen ? t('app.closeMenu') : t('app.openMenu')}
+            aria-expanded={sidebarOpen}
+          >
+            {sidebarOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
+          </Button>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg gradient-primary shadow-sm">
+              <Bell className="h-5 w-5 text-primary-foreground fill-current" aria-hidden="true" />
+            </div>
+            <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
+          </div>
+        </div>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => dispatch(toggleSidebar())}
-          className="hover-glow"
-          aria-label={sidebarOpen ? t('app.closeMenu') : t('app.openMenu')}
-          aria-expanded={sidebarOpen}
+          onClick={() => dispatch(toggleDarkMode())}
+          aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
+          title={isDarkMode ? 'Світла тема' : 'Темна тема'}
         >
-          {sidebarOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
+          {isDarkMode ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
         </Button>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg gradient-primary">
-            <Sparkles className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
-          </div>
-          <span className="text-xl font-bold text-foreground">{t('app.name')}</span>
-        </div>
       </header>
 
       {/* Sidebar */}
@@ -94,20 +110,32 @@ export function Layout({ children }: LayoutProps) {
         {/* Logo */}
         <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-border">
           <Link to="/" className="flex items-center gap-3 group" aria-label={t('app.home')}>
-            <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110">
-              <Sparkles className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+            <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Bell className="h-5 w-5 text-primary-foreground fill-current" aria-hidden="true" />
             </div>
-            <span className="text-xl font-bold text-foreground">{t('app.name')}</span>
+            <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
           </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => dispatch(toggleSidebar())}
-            aria-label={t('app.closeMenu')}
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => dispatch(toggleDarkMode())}
+              aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
+              title={isDarkMode ? 'Світла тема' : 'Темна тема'}
+            >
+              {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => dispatch(toggleSidebar())}
+              aria-label={t('app.closeMenu')}
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
         
         <ScrollArea className="h-[calc(100vh-4rem)]">
