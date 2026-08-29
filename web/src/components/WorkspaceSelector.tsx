@@ -24,7 +24,7 @@ export function WorkspaceSelector() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const reloadState = useReloadTimetableState();
-  const { activeSchool, activeWorkspace, schools, workspaces, isGuest } = useAppSelector(
+  const { activeSchool, activeWorkspace, workspaces, isGuest } = useAppSelector(
     (state) => state.workspace
   );
 

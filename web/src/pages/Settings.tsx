@@ -31,6 +31,8 @@ import { getHourRange, formatHourRange } from '@/lib/bellSchedule';
 import { useSanitaryMode } from '@/lib/sanitaryMode';
 import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
+import { AccountSettingsCard } from '@/components/AccountSettingsCard';
+import { VersionManager } from '@/components/VersionManager';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -392,6 +394,12 @@ export function Settings() {
           </div>
         }
       />
+
+      {/* Account and Cloud Workspace Controls */}
+      <AccountSettingsCard />
+
+      {/* Version History and Milestones */}
+      <VersionManager />
 
       {/* Import Section */}
       <Card className="animate-slide-up">
