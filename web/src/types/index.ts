@@ -36,6 +36,7 @@ export interface Subject {
   name: string;
   longName?: string;
   code?: string;
+  color?: string;
   comments?: string;
 }
 
