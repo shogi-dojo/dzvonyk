@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users2, BookOpen, GraduationCap, Calendar,
-  Building2, Shield, Play, Grid3X3, Settings, Menu, X, Sparkles
+  Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Sparkles
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -33,6 +33,7 @@ const navigation: NavItem[] = [
   { key: 'constraints', href: '/constraints', icon: Shield },
   { key: 'generate', href: '/generate', icon: Play },
   { key: 'timetable', href: '/timetable', icon: Grid3X3 },
+  { key: 'print', href: '/print', icon: Printer },
   { key: 'settings', href: '/settings', icon: Settings },
 ];
 

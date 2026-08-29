@@ -13,6 +13,7 @@ import {
   Constraints,
   Generate,
   Timetable,
+  Print,
   Settings,
 } from './pages';
 
@@ -33,6 +34,7 @@ function App() {
               <Route path="/constraints" element={<Constraints />} />
               <Route path="/generate" element={<Generate />} />
               <Route path="/timetable" element={<Timetable />} />
+              <Route path="/print" element={<Print />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </Layout>

@@ -83,6 +83,34 @@ const DAYBIT_MAP: Record<number, number> = {
   16: 4, // Fri
 };
 
+const SUBJECT_PALETTE = [
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#8b5cf6', // purple
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#f97316', // orange
+  '#6366f1', // indigo
+  '#14b8a6', // teal
+  '#84cc16', // lime
+];
+
+export function getDeterministicSubjectColor(name: string, index: number): string {
+  const lower = name.toLowerCase();
+  if (lower.includes('матем') || lower.includes('алгебр') || lower.includes('геометр')) return '#3b82f6';
+  if (lower.includes('укр') || lower.includes('мов') || lower.includes('літ')) return '#8b5cf6';
+  if (lower.includes('англ') || lower.includes('нім') || lower.includes('франц') || lower.includes('інозем')) return '#14b8a6';
+  if (lower.includes('істор') || lower.includes('право') || lower.includes('громад')) return '#f59e0b';
+  if (lower.includes('біол') || lower.includes('природ') || lower.includes('екол')) return '#10b981';
+  if (lower.includes('фізик') || lower.includes('хімі')) return '#6366f1';
+  if (lower.includes('фізк') || lower.includes('спорт') || lower.includes('зах')) return '#f97316';
+  if (lower.includes('інформ') || lower.includes('технол')) return '#06b6d4';
+  if (lower.includes('мист') || lower.includes('музик') || lower.includes('малюв')) return '#ec4899';
+  if (lower.includes('геогр')) return '#84cc16';
+  return SUBJECT_PALETTE[index % SUBJECT_PALETTE.length];
+}
+
 function generateHours(count: number): Hour[] {
   const hours: Hour[] = [];
   const startHour = 8;
@@ -680,11 +708,12 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
     comments: '',
   }));
 
-  const subjectObjects: Subject[] = subjects.map((name) => ({
+  const subjectObjects: Subject[] = subjects.map((name, index) => ({
     id: uuidv4(),
     name,
     longName: name,
     code: '',
+    color: getDeterministicSubjectColor(name, index),
     comments: '',
   }));
 

@@ -32,6 +32,7 @@ export function Subjects() {
     name: '',
     longName: '',
     code: '',
+    color: '#3b82f6',
     comments: '',
   });
 
@@ -62,7 +63,7 @@ export function Subjects() {
 
   const openNewDialog = () => {
     setEditingSubject(null);
-    setFormData({ name: '', longName: '', code: '', comments: '' });
+    setFormData({ name: '', longName: '', code: '', color: '#3b82f6', comments: '' });
     setIsDialogOpen(true);
   };
 
@@ -72,6 +73,7 @@ export function Subjects() {
       name: subject.name,
       longName: subject.longName || '',
       code: subject.code || '',
+      color: subject.color || '#3b82f6',
       comments: subject.comments || '',
     });
     setIsDialogOpen(true);
@@ -79,10 +81,30 @@ export function Subjects() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) return;
+
     if (editingSubject) {
-      dispatch(updateSubject({ ...editingSubject, ...formData }));
+      dispatch(
+        updateSubject({
+          ...editingSubject,
+          name: formData.name.trim(),
+          longName: formData.longName.trim() || undefined,
+          code: formData.code.trim() || undefined,
+          color: formData.color,
+          comments: formData.comments.trim() || undefined,
+        })
+      );
     } else {
-      dispatch(addSubject({ id: uuidv4(), ...formData }));
+      dispatch(
+        addSubject({
+          id: uuidv4(),
+          name: formData.name.trim(),
+          longName: formData.longName.trim() || undefined,
+          code: formData.code.trim() || undefined,
+          color: formData.color,
+          comments: formData.comments.trim() || undefined,
+        })
+      );
     }
     setIsDialogOpen(false);
   };
@@ -141,12 +163,26 @@ export function Subjects() {
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 stagger-children">
             {paginatedSubjects.map((subject, index) => (
-              <Card key={subject.id} className="hover-lift" style={{ animationDelay: `${index * 30}ms` }}>
+              <Card
+                key={subject.id}
+                className="hover-lift"
+                style={{
+                  animationDelay: `${index * 30}ms`,
+                  borderLeftColor: subject.color || '#3b82f6',
+                  borderLeftWidth: '4px',
+                }}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-success/10">
-                        <BookOpen className="h-4 w-4 text-success" />
+                      <div
+                        className="p-2 rounded-lg"
+                        style={{
+                          backgroundColor: `${subject.color || '#3b82f6'}20`,
+                          color: subject.color || '#3b82f6',
+                        }}
+                      >
+                        <BookOpen className="h-4 w-4" />
                       </div>
                       <div>
                         <CardTitle className="text-base">
@@ -213,14 +249,39 @@ export function Subjects() {
                   placeholder={t('subjects.dialog.longNamePlaceholder')}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="code">{t('common.code')}</Label>
-                <Input
-                  id="code"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder={t('subjects.dialog.codePlaceholder')}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="code">{t('common.code')}</Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    placeholder={t('subjects.dialog.codePlaceholder')}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="color">{t('common.color', { defaultValue: 'Колір' })}</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="color"
+                      type="color"
+                      className="h-10 w-12 p-1 cursor-pointer rounded"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    />
+                    <div className="flex flex-wrap gap-1">
+                      {['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'].map((hex) => (
+                        <button
+                          key={hex}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, color: hex })}
+                          className="w-4 h-4 rounded-full border border-black/20"
+                          style={{ backgroundColor: hex }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="comments">{t('common.comments')}</Label>

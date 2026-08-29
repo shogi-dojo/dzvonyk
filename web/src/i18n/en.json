@@ -27,6 +27,8 @@
     "generateDesc": "Create timetable",
     "timetable": "Timetable",
     "timetableDesc": "View schedule",
+    "print": "Print & Reports",
+    "printDesc": "Print schedules & reports",
     "settings": "Settings",
     "settingsDesc": "Configuration"
   },

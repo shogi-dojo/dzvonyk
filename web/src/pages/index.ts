@@ -7,4 +7,5 @@ export { Rooms } from './Rooms';
 export { Constraints } from './Constraints';
 export { Generate } from './Generate';
 export { Timetable } from './Timetable';
+export { Print } from './Print';
 export { Settings } from './Settings';
