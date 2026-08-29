@@ -1,6 +1,9 @@
 # Node
 node_modules/
 .vite/
+.env
+.env.local
+.env.*.local
 
 # Playwright
 /web/test-results/
