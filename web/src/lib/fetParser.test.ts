@@ -56,6 +56,63 @@ describe('FET Parser', () => {
       expect(result.hoursOfTheDay[0].name).toBe('08:00');
     });
 
+    it('should resolve RoomNotAvailableTimes day/hour names to indices', () => {
+      const fetWithRoomConstraint = `<?xml version="1.0" encoding="UTF-8"?>
+<fet version="7.5.1">
+  <Mode>Official</Mode>
+  <Institution_Name>Test</Institution_Name>
+  <Days_List>
+    <Number_of_Days>5</Number_of_Days>
+    <Day><Name>Monday</Name></Day>
+    <Day><Name>Tuesday</Name></Day>
+    <Day><Name>Wednesday</Name></Day>
+    <Day><Name>Thursday</Name></Day>
+    <Day><Name>Friday</Name></Day>
+  </Days_List>
+  <Hours_List>
+    <Number_of_Hours>4</Number_of_Hours>
+    <Hour><Name>08:00</Name></Hour>
+    <Hour><Name>09:00</Name></Hour>
+    <Hour><Name>10:00</Name></Hour>
+    <Hour><Name>11:00</Name></Hour>
+  </Hours_List>
+  <Subjects_List></Subjects_List>
+  <Activity_Tags_List></Activity_Tags_List>
+  <Teachers_List></Teachers_List>
+  <Students_List></Students_List>
+  <Activities_List></Activities_List>
+  <Buildings_List></Buildings_List>
+  <Rooms_List>
+    <Room><Name>Lab1</Name><Capacity>30</Capacity></Room>
+  </Rooms_List>
+  <Time_Constraints_List></Time_Constraints_List>
+  <Space_Constraints_List>
+    <ConstraintRoomNotAvailableTimes>
+      <Weight_Percentage>100</Weight_Percentage>
+      <Room>Lab1</Room>
+      <Number_of_Not_Available_Times>3</Number_of_Not_Available_Times>
+      <Not_Available_Time><Day>Wednesday</Day><Hour>10:00</Hour></Not_Available_Time>
+      <Not_Available_Time><Day>Friday</Day><Hour>08:00</Hour></Not_Available_Time>
+      <Not_Available_Time><Day>Nonexistent</Day><Hour>09:00</Hour></Not_Available_Time>
+      <Active>true</Active>
+    </ConstraintRoomNotAvailableTimes>
+  </Space_Constraints_List>
+</fet>`;
+
+      const result = parseFETFile(fetWithRoomConstraint);
+      const constraint = result.spaceConstraints.find(
+        (c) => c.type === 'RoomNotAvailableTimes'
+      ) as { times: { day: number; hour: number }[] } | undefined;
+
+      expect(constraint).toBeDefined();
+      // Wednesday = index 2, 10:00 = index 2; Friday = 4, 08:00 = 0.
+      // The unresolvable day is skipped, matching how time constraints behave.
+      expect(constraint!.times).toEqual([
+        { day: 2, hour: 2 },
+        { day: 4, hour: 0 },
+      ]);
+    });
+
     it('should parse teachers correctly', () => {
       const fetWithTeacher = `<?xml version="1.0" encoding="UTF-8"?>
 <fet version="7.5.1">

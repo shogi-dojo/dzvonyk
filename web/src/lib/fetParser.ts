@@ -57,7 +57,7 @@ export function parseFETFile(xmlContent: string): FETFile {
     buildings: parseBuildings(doc),
     rooms: parseRooms(doc),
     timeConstraints: parseTimeConstraints(doc, daysOfTheWeek, hoursOfTheDay),
-    spaceConstraints: parseSpaceConstraints(doc),
+    spaceConstraints: parseSpaceConstraints(doc, daysOfTheWeek, hoursOfTheDay),
   };
   
   console.log('Parsed FET file:', {
@@ -618,10 +618,14 @@ function parseTimeConstraints(doc: Document, days: Day[], hours: Hour[]): TimeCo
   return constraints;
 }
 
-function parseSpaceConstraints(doc: Document): SpaceConstraint[] {
+function parseSpaceConstraints(doc: Document, days: Day[], hours: Hour[]): SpaceConstraint[] {
   const constraints: SpaceConstraint[] = [];
   const constraintsList = doc.querySelector('Space_Constraints_List');
   if (!constraintsList) return constraints;
+
+  // Helper to find day/hour index (mirrors parseTimeConstraints)
+  const findDayIndex = (dayName: string) => days.findIndex(d => d.name === dayName);
+  const findHourIndex = (hourName: string) => hours.findIndex(h => h.name === hourName);
   
   // Basic Compulsory Space
   constraintsList.querySelectorAll('ConstraintBasicCompulsorySpace').forEach((el) => {
@@ -701,16 +705,13 @@ function parseSpaceConstraints(doc: Document): SpaceConstraint[] {
   constraintsList.querySelectorAll('ConstraintRoomNotAvailableTimes').forEach((el) => {
     const times: { day: number; hour: number }[] = [];
     el.querySelectorAll('Not_Available_Time').forEach((nat) => {
-      // FIXME: parsed but not yet mapped to indices — every imported
-      // RoomNotAvailableTimes constraint currently collapses to day 0 / hour 0.
-      // Needs the day/hour name arrays threaded in to resolve properly.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const dayName = nat.querySelector('Day')?.textContent?.trim() || '';
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const hourName = nat.querySelector('Hour')?.textContent?.trim() || '';
-      const dayIdx = 0;
-      const hourIdx = 0;
-      times.push({ day: dayIdx, hour: hourIdx });
+      const dayIdx = findDayIndex(dayName);
+      const hourIdx = findHourIndex(hourName);
+      if (dayIdx >= 0 && hourIdx >= 0) {
+        times.push({ day: dayIdx, hour: hourIdx });
+      }
     });
     constraints.push({
       id: uuidv4(),
