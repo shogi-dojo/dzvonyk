@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, ChevronRight, ChevronDown, GraduationCap, Trash2, Pencil, Search, UserPlus, Users, Clock } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -31,8 +31,9 @@ import {
 } from '@/store/slices/studentsSlice';
 import { addTimeConstraint, updateTimeConstraint, deleteTimeConstraint } from '@/store/slices/constraintsSlice';
 import { TimeGrid } from '@/components/TimeGrid';
-import type { StudentsYear, StudentsGroup, StudentsSubgroup, TimeSlot, StudentsSetNotAvailableTimesConstraint } from '@/types';
+import type { StudentsYear, StudentsGroup, StudentsSubgroup, TimeSlot, StudentsSetNotAvailableTimesConstraint, Activity } from '@/types';
 import { STUDENTS_YEAR, STUDENTS_GROUP, STUDENTS_SUBGROUP } from '@/types';
+import { sumWeeklyLoad, formatHours, type WeeklyLoad } from '@/lib/weeklyLoad';
 
 type DialogMode = 'year' | 'group' | 'subgroup';
 
@@ -40,6 +41,7 @@ export function Students() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { years, groups, subgroups, loading } = useAppSelector((state) => state.students);
+  const activities = useAppSelector((state) => state.activities.items);
   const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
   const rules = useAppSelector((state) => state.rules.current);
 
@@ -68,6 +70,42 @@ export function Students() {
 
   const days = rules?.daysOfTheWeek || [];
   const hours = rules?.hoursOfTheDay || [];
+
+  /**
+   * Weekly hours per class, with subgroup lessons folded into their parent
+   * group — a lesson taught to «6-В, 1 група» is still an hour of 6-В's week.
+   */
+  const classLoads = useMemo(() => {
+    const parentOf = new Map<string, string[]>();
+    for (const group of groups) {
+      for (const key of [group.id, group.name]) parentOf.set(key, [group.id, group.name]);
+      for (const subgroupName of group.subgroups) {
+        parentOf.set(subgroupName, [group.id, group.name]);
+        const subgroup = subgroups.find((s) => s.name === subgroupName);
+        if (subgroup) parentOf.set(subgroup.id, [group.id, group.name]);
+      }
+    }
+
+    const byClass = new Map<string, Activity[]>();
+    for (const activity of activities) {
+      if (!activity.active) continue;
+      // One activity must count once per class even when it names several of
+      // that class's subgroups (e.g. both halves of a split lesson).
+      const owners = new Set<string>();
+      for (const reference of activity.studentSetIds) {
+        for (const key of parentOf.get(reference) || []) owners.add(key);
+      }
+      for (const key of owners) {
+        const bucket = byClass.get(key);
+        if (bucket) bucket.push(activity);
+        else byClass.set(key, [activity]);
+      }
+    }
+
+    const result = new Map<string, WeeklyLoad>();
+    for (const [key, own] of byClass) result.set(key, sumWeeklyLoad(own));
+    return result;
+  }, [activities, groups, subgroups]);
 
   const studentsSetUnavailConstraint = useCallback(
     (studentsSet: StudentsYear | StudentsGroup | StudentsSubgroup) => {
@@ -320,6 +358,35 @@ export function Students() {
                                 )}
                                 <span className="font-medium text-foreground">{group.name}</span>
                                 <Badge variant="outline" className="text-xs">{t('students.studentsCount', { count: group.numberOfStudents })}</Badge>
+                                {(() => {
+                                  // Weekly hours per class: the завуч checks this
+                                  // against the навчальний план before scheduling,
+                                  // and half-lessons are why the two weeks differ.
+                                  const load =
+                                    classLoads.get(group.id) || classLoads.get(group.name);
+                                  if (!load || load.average === 0) return null;
+                                  return (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs gap-1"
+                                      title={
+                                        load.alternates
+                                          ? t('students.loadByWeek', {
+                                              numerator: formatHours(load.numerator),
+                                              denominator: formatHours(load.denominator),
+                                            })
+                                          : undefined
+                                      }
+                                    >
+                                      {t('students.weeklyHours', { count: formatHours(load.average) })}
+                                      {load.alternates && (
+                                        <span className="opacity-70 text-[10px] font-normal">
+                                          {formatHours(load.numerator)}/{formatHours(load.denominator)}
+                                        </span>
+                                      )}
+                                    </Badge>
+                                  );
+                                })()}
                                 {group.shift ? (
                                   <Badge variant="secondary" className="text-xs">
                                     {group.shift === 1 ? t('students.dialog.shift1') : t('students.dialog.shift2')}

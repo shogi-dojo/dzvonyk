@@ -164,6 +164,7 @@
     "targetBadge": "{{count}}h target",
     "assignedVsTarget": "{{assigned}} / {{target}} h",
     "loadMismatch": "Assigned load does not match the target",
+    "loadByWeek": "Numerator week: {{numerator}} h, denominator week: {{denominator}} h",
     "subjectsBadge_one": "{{count}} subject",
     "subjectsBadge_other": "{{count}} subjects",
     "dialog": {
@@ -223,6 +224,8 @@
     "confirmDeleteYear": "Delete year \"{{name}}\" and all its groups?",
     "confirmDeleteGroup": "Delete group \"{{name}}\" and all its subgroups?",
     "confirmDeleteSubgroup": "Delete subgroup \"{{name}}\"?",
+    "weeklyHours": "{{count}} h/week",
+    "loadByWeek": "Numerator week: {{numerator}} h, denominator week: {{denominator}} h",
     "availabilityButton": "Working hours",
     "availabilityDialogTitle": "Working hours: {{name}}",
     "availabilityDialogDesc": "Mark slots when this class or group does not study.",

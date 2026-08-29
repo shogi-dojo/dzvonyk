@@ -15,6 +15,7 @@ import type {
   TimetableRules, StudentsGroup, StudentsSubgroup, StudentsYear,
 } from '../../types';
 import { runSanitaryChecks } from './sanitary';
+import { sumWeeklyLoad, type WeeklyLoad } from '../weeklyLoad';
 
 export type IssueSeverity = 'blocking' | 'warning';
 
@@ -50,12 +51,19 @@ export interface PreflightInput {
 // exceeding it. 90 % load is where FET's heuristic starts to struggle.
 const WARN_LOAD_RATIO = 0.9;
 
-/** Assigned weekly hours keyed by both teacher id and teacher name. */
+/**
+ * Assigned weekly load per teacher, keyed by both teacher id and teacher name
+ * (activities reference teachers either way).
+ *
+ * Split by week parity: a half-lesson counts towards only one of the two weeks,
+ * so a teacher on 27 full hours plus one чисельник lesson reads 28/27, average
+ * 27,5 — not a flat 28.
+ */
 export function calculateTeacherAssignedLoad(
   teachers: Teacher[],
   activities: Activity[]
-): Map<string, number> {
-  const result = new Map<string, number>();
+): Map<string, WeeklyLoad> {
+  const byTeacher = new Map<string, Activity[]>();
   const teacherByReference = new Map<string, Teacher>();
   for (const teacher of teachers) {
     teacherByReference.set(teacher.id, teacher);
@@ -66,11 +74,43 @@ export function calculateTeacherAssignedLoad(
     for (const reference of activity.teacherIds) {
       const teacher = teacherByReference.get(reference);
       const id = teacher?.id || reference;
-      const next = (result.get(id) || 0) + activity.duration;
-      result.set(id, next);
-      if (teacher) result.set(teacher.name, next);
+      const bucket = byTeacher.get(id);
+      if (bucket) bucket.push(activity);
+      else byTeacher.set(id, [activity]);
     }
   }
+
+  const result = new Map<string, WeeklyLoad>();
+  for (const [id, own] of byTeacher) {
+    const load = sumWeeklyLoad(own);
+    result.set(id, load);
+    const teacher = teacherByReference.get(id);
+    if (teacher) result.set(teacher.name, load);
+  }
+  return result;
+}
+
+/**
+ * Assigned weekly load per students set, keyed by set id and by name.
+ *
+ * The завуч verifies that every class carries the hours its навчальний план
+ * requires, and that the figure is the same every week — half-lessons are the
+ * usual reason it is not.
+ */
+export function calculateStudentsAssignedLoad(
+  activities: Activity[]
+): Map<string, WeeklyLoad> {
+  const bySet = new Map<string, Activity[]>();
+  for (const activity of activities) {
+    if (!activity.active) continue;
+    for (const reference of activity.studentSetIds) {
+      const bucket = bySet.get(reference);
+      if (bucket) bucket.push(activity);
+      else bySet.set(reference, [activity]);
+    }
+  }
+  const result = new Map<string, WeeklyLoad>();
+  for (const [id, own] of bySet) result.set(id, sumWeeklyLoad(own));
   return result;
 }
 
@@ -155,7 +195,9 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   // subgroup activities per activityGroupId (split subjects). We conservatively
   // count subgroup-parallel slots once per activityGroupId (since both
   // subgroups occupy the same time slot in a coordinated timetable).
-  const perClassLoad = new Map<string, number>();
+  // Counted per week parity: a half-lesson occupies a slot in only one of the
+  // two weeks, so capacity must be judged against the busier week.
+  const perClassLoad = new Map<string, { numerator: number; denominator: number }>();
   const seenGroupIdForClass = new Map<string, Set<number>>();  // classId → set<activityGroupId>
 
   for (const a of active) {
@@ -174,13 +216,21 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         seen.add(a.activityGroupId);
         seenGroupIdForClass.set(gid, seen);
       }
-      perClassLoad.set(gid, (perClassLoad.get(gid) ?? 0) + a.duration);
+      const tally = perClassLoad.get(gid) ?? { numerator: 0, denominator: 0 };
+      if (a.weekParity === 'numerator') tally.numerator += a.duration;
+      else if (a.weekParity === 'denominator') tally.denominator += a.duration;
+      else {
+        tally.numerator += a.duration;
+        tally.denominator += a.duration;
+      }
+      perClassLoad.set(gid, tally);
     }
   }
 
-  for (const [gid, load] of perClassLoad) {
+  for (const [gid, tally] of perClassLoad) {
     const g = groupById.get(gid);
     if (!g) continue;
+    const load = Math.max(tally.numerator, tally.denominator);
     if (load > weeklySlots) {
       blocking.push({
         code: 'CLASS_OVERLOAD',
@@ -202,8 +252,11 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   const perTeacherLoad = calculateTeacherAssignedLoad(teachers, active);
   const teacherById = new Map(teachers.map((t) => [t.id, t]));
 
-  for (const [tid, load] of perTeacherLoad) {
+  for (const [tid, weekly] of perTeacherLoad) {
     if (teachers.some((teacher) => teacher.name === tid && teacher.id !== tid)) continue;
+    // Capacity has to hold in the busier week, so check the peak rather than
+    // the average — a 28/27 teacher needs 28 free slots, not 27,5.
+    const load = Math.max(weekly.numerator, weekly.denominator);
     const t = teacherById.get(tid);
     const name = t?.name ?? tid;
     const unavail = teacherUnavail.get(tid) ?? 0;

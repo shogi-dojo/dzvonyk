@@ -22,6 +22,7 @@ import { loadTeachers, addTeacher, updateTeacher, deleteTeacher } from '@/store/
 import { addTimeConstraint, updateTimeConstraint, deleteTimeConstraint } from '@/store/slices/constraintsSlice';
 import { TimeGrid } from '@/components/TimeGrid';
 import { calculateTeacherAssignedLoad } from '@/lib/validation/preflight';
+import { EMPTY_LOAD, formatHours } from '@/lib/weeklyLoad';
 import type { Teacher, TimeSlot, TeacherNotAvailableTimesConstraint } from '@/types';
 
 export function Teachers() {
@@ -238,14 +239,39 @@ export function Teachers() {
                 <CardContent className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     {(() => {
-                      const assigned = assignedLoads.get(teacher.id) || assignedLoads.get(teacher.name) || 0;
-                      const mismatch = teacher.targetNumberOfHours > 0 && assigned !== teacher.targetNumberOfHours;
+                      const load = assignedLoads.get(teacher.id) || assignedLoads.get(teacher.name) || EMPTY_LOAD;
+                      // Compare the average, so 27,5 assigned against a target of
+                      // 27 or 28 is not flagged: the завуч rounds when typing a
+                      // target she can only enter as a whole number.
+                      const mismatch =
+                        teacher.targetNumberOfHours > 0 &&
+                        Math.abs(load.average - teacher.targetNumberOfHours) >= 1;
                       return (
                         <Badge
                           variant={mismatch ? 'destructive' : 'outline'}
-                          title={mismatch ? t('teachers.loadMismatch') : undefined}
+                          className="gap-1.5"
+                          title={
+                            load.alternates
+                              ? t('teachers.loadByWeek', {
+                                  numerator: formatHours(load.numerator),
+                                  denominator: formatHours(load.denominator),
+                                })
+                              : mismatch
+                                ? t('teachers.loadMismatch')
+                                : undefined
+                          }
                         >
-                          {t('teachers.assignedVsTarget', { assigned, target: teacher.targetNumberOfHours })}
+                          <span>
+                            {t('teachers.assignedVsTarget', {
+                              assigned: formatHours(load.average),
+                              target: teacher.targetNumberOfHours,
+                            })}
+                          </span>
+                          {load.alternates && (
+                            <span className="opacity-70 text-[10px] font-normal">
+                              {formatHours(load.numerator)}/{formatHours(load.denominator)}
+                            </span>
+                          )}
                         </Badge>
                       );
                     })()}
