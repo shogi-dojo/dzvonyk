@@ -839,7 +839,7 @@ export function Teachers() {
                             </div>
                           </td>
                           <td className="px-3 py-3">
-                            <Badge variant={row.weekParity === 'both' ? 'outline' : 'secondary'}>
+                            <Badge variant="outline">
                               {row.weekParity === 'mixed'
                                 ? t('teachers.workload.weekPair', {
                                     numerator: row.schedule.everyWeek + row.schedule.numerator,
