@@ -19,31 +19,43 @@ export default defineConfig({
       // Set VITE_DISABLE_PWA=true to skip PWA entirely for deploy builds from Termux.
       disable: process.env.VITE_DISABLE_PWA === 'true',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'Дзвоник — шкільний розклад',
         short_name: 'Дзвоник',
         description: 'Офлайн-планувальник шкільного розкладу для завуча. AGPL-3.0.',
+        start_url: '/',
+        scope: '/',
+        id: '/',
+        display: 'standalone',
+        orientation: 'any',
         theme_color: '#f59e0b',
         background_color: '#faf8f5',
-        display: 'standalone',
-        orientation: 'portrait',
+        categories: ['education', 'productivity'],
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: 'favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any'
           }
         ]
       },

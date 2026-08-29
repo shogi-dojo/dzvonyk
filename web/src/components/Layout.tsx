@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
 import { PageTransition } from './PageTransition';
+import { InstallPwaButton } from './InstallPwaButton';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -86,15 +87,18 @@ export function Layout({ children }: LayoutProps) {
             <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => dispatch(toggleDarkMode())}
-          aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
-          title={isDarkMode ? 'Світла тема' : 'Темна тема'}
-        >
-          {isDarkMode ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <InstallPwaButton variant="ghost" size="icon" showText={false} className="h-9 w-9" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => dispatch(toggleDarkMode())}
+            aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
+            title={isDarkMode ? 'Світла тема' : 'Темна тема'}
+          >
+            {isDarkMode ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
+          </Button>
+        </div>
       </header>
 
       {/* Sidebar */}
@@ -139,7 +143,10 @@ export function Layout({ children }: LayoutProps) {
         </div>
         
         <ScrollArea className="h-[calc(100vh-4rem)]">
-          <nav className="flex flex-col gap-1 p-4" aria-label="Primary">
+          <div className="px-4 pt-3 pb-1">
+            <InstallPwaButton className="w-full justify-start text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20" />
+          </div>
+          <nav className="flex flex-col gap-1 p-4 pt-2" aria-label="Primary">
             {navigation.map((item, index) => {
               const isActive = location.pathname === item.href;
               return (

@@ -49,6 +49,12 @@
     "uk": "Українська",
     "en": "English"
   },
+  "pwa": {
+    "install": "Install app",
+    "installed": "App installed",
+    "dialogTitle": "Install «Dzvonyk» App",
+    "dialogDesc": "«Dzvonyk» works completely offline as a standalone application on desktop and mobile."
+  },
   "common": {
     "save": "Save",
     "saveChanges": "Save Changes",

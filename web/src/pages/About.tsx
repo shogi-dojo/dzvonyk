@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageTransition';
+import { InstallPwaButton } from '@/components/InstallPwaButton';
 
 const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
 const FET_URL = 'https://lalescu.ro/liviu/fet/';
@@ -42,13 +43,16 @@ export function About() {
                 </p>
               </div>
             </div>
-            <Button asChild variant="outline" className="gap-2">
-              <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
-                <Code2 className="h-4 w-4" />
-                <span>GitHub Репозиторій</span>
-                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
-              </a>
-            </Button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <InstallPwaButton variant="default" className="gradient-primary text-primary-foreground font-semibold shadow-sm" />
+              <Button asChild variant="outline" className="gap-2">
+                <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
+                  <Code2 className="h-4 w-4" />
+                  <span>GitHub Репозиторій</span>
+                  <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+                </a>
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
