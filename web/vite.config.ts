@@ -12,6 +12,7 @@ const VENDOR_CHUNKS: Record<string, string[]> = {
   zip: ['jszip'],
   icons: ['lucide-react'],
   validation: ['zod'],
+  firebase: ['firebase'],
 };
 
 // https://vite.dev/config/
