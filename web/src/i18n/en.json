@@ -52,8 +52,8 @@
     "body": "If Dzvonyk saved you time, you can support the project. Contributions go towards hosting and development. If your school cannot afford it, simply use it — that is fine.",
     "donate": "Support",
     "feedbackTitle": "Tell us what broke",
-    "feedbackBody": "Feedback is worth more than a donation right now. If something broke or is missing, write to us.",
-    "feedback": "Report a problem"
+    "feedbackBody": "Feedback is worth more than a donation right now. If something broke or is missing, write to {{email}}.",
+    "feedback": "Send an email"
   },
   "lang": {
     "uk": "Українська",
