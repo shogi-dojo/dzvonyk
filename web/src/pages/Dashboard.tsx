@@ -22,7 +22,6 @@ import { db } from '@/db';
 import { parseFETFile, exportToFETXml } from '@/lib/fetParser';
 import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
-import { InstallPwaButton } from '@/components/InstallPwaButton';
 import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
@@ -283,7 +282,6 @@ export function Dashboard() {
               <Download className="h-4 w-4" />
               {exporting ? t('common.exporting') : t('dashboard.institution.exportFet')}
             </Button>
-            <InstallPwaButton variant="outline" className="gap-2 hover-lift" />
 
             {lastSolution ? (
               <Button asChild className="gap-2 bg-success hover:bg-success/90 hover-lift">
