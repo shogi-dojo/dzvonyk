@@ -337,10 +337,10 @@ describe('rozParser', () => {
     ]);
   });
 
-  it('should deduplicate duplicate teacher and subject names', () => {
+  it('should deduplicate duplicate subject names', () => {
     const builder = new SyntheticRozBuilder()
       .setSubjects(['Математика', 'Математика'])
-      .setTeachers(['Коваль Світлана', 'Коваль Світлана'])
+      .setTeachers(['Коваль Світлана', 'Грибок Лариса'])
       .setClasses(['5-А'])
       .addLesson(1, 1, 0, 0, 0)
       .addLesson(2, 1, 1, 0, 1)
@@ -349,7 +349,7 @@ describe('rozParser', () => {
 
     const res = parseROZFile(builder.build());
     expect(res.file.subjects.map((s) => s.name)).toEqual(['Математика', 'Математика (2)']);
-    expect(res.file.teachers.map((t) => t.name)).toEqual(['Коваль Світлана', 'Коваль Світлана (2)']);
+    expect(res.file.teachers.map((t) => t.name)).toEqual(['Коваль Світлана', 'Грибок Лариса']);
     expect(res.report.warnings.some((w) => w.key === 'duplicateNamesResolved')).toBe(true);
   });
 

@@ -231,11 +231,15 @@ export function parseROZFile(bytes: ArrayBuffer | Uint8Array): RozImportResult {
   const firstGrpOffset = firstVesKlasEntry.offset;
 
   const rawTeachers: string[] = [];
+  const seenTeachers = new Set<string>();
   for (const item of allStrings) {
     if (item.offset > lastSubjOffset && item.offset < firstGrpOffset) {
       const s = item.text;
       if (s.includes(' ') || s === 'Вакансія' || s === 'ЗБД') {
-        rawTeachers.push(s);
+        if (!seenTeachers.has(s)) {
+          rawTeachers.push(s);
+          seenTeachers.add(s);
+        }
       }
     }
   }
