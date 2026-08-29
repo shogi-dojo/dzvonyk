@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
-import { useAppDispatch } from '../store/hooks';
+import { useAppDispatch } from './useAppDispatch';
 import { setRules } from '../store/slices/rulesSlice';
 import { setTeachers } from '../store/slices/teachersSlice';
 import { setSubjects } from '../store/slices/subjectsSlice';

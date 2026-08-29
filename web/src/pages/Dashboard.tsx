@@ -9,7 +9,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
+import { PageHeader, StatCard } from '@/components/PageTransition';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { setRules } from '@/store/slices/rulesSlice';
 import { setTeachers } from '@/store/slices/teachersSlice';
@@ -20,6 +20,8 @@ import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constrai
 import { setStudents } from '@/store/slices/studentsSlice';
 import { db } from '@/db';
 import { parseFETFile, exportToFETXml } from '@/lib/fetParser';
+import { useRozImport } from '@/hooks/useRozImport';
+import { RozImportDialog } from '@/components/RozImportDialog';
 import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
@@ -34,6 +36,17 @@ export function Dashboard() {
   const { timeConstraints, spaceConstraints } = useAppSelector((state) => state.constraints);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const rozFileInputRef = useRef<HTMLInputElement>(null);
+  const [rozDialogOpen, setRozDialogOpen] = useState(false);
+  const {
+    preview: rozPreview,
+    parseFile: parseRozFile,
+    confirm: confirmRozImport,
+    cancel: cancelRozImport,
+    importing: rozImporting,
+    error: rozError,
+  } = useRozImport();
+
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -186,9 +199,22 @@ export function Dashboard() {
     }
   };
 
+  const handleRozFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(null);
+    setImportSuccess(null);
+    const ok = await parseRozFile(file);
+    if (ok) {
+      setRozDialogOpen(true);
+    }
+    if (rozFileInputRef.current) rozFileInputRef.current.value = '';
+  };
+
   return (
     <div className="space-y-8">
       <input ref={fileInputRef} type="file" accept=".fet,.xml" className="hidden" onChange={handleFileChange} />
+      <input ref={rozFileInputRef} type="file" accept=".roz" className="hidden" onChange={handleRozFileChange} />
 
       <PageHeader
         title={t('dashboard.title')}
@@ -197,11 +223,11 @@ export function Dashboard() {
       />
 
       {/* Status Messages */}
-      {importError && (
+      {(importError || rozError) && (
         <Card className="border-destructive bg-destructive/10 animate-slide-up">
           <CardContent className="py-4 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-            <span className="text-destructive">{importError}</span>
+            <span className="text-destructive">{importError || rozError}</span>
           </CardContent>
         </Card>
       )}
@@ -243,6 +269,15 @@ export function Dashboard() {
               <Upload className="h-4 w-4" />
               {importing ? t('common.importing') : t('dashboard.institution.importFet')}
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => rozFileInputRef.current?.click()}
+              disabled={rozImporting}
+              className="gap-2 hover-lift"
+            >
+              <Upload className="h-4 w-4" />
+              {rozImporting ? t('common.importing') : t('dashboard.institution.importRoz')}
+            </Button>
             <Button variant="outline" onClick={handleExport} disabled={exporting || !rules} className="gap-2 hover-lift">
               <Download className="h-4 w-4" />
               {exporting ? t('common.exporting') : t('dashboard.institution.exportFet')}
@@ -280,6 +315,32 @@ export function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      <RozImportDialog
+        open={rozDialogOpen && !!rozPreview}
+        onOpenChange={setRozDialogOpen}
+        result={rozPreview}
+        onConfirm={async () => {
+          const report = rozPreview?.report;
+          await confirmRozImport();
+          if (report) {
+            setImportSuccess(
+              t('rozImport.successDetail', {
+                classes: report.counts.classes,
+                teachers: report.counts.teachers,
+                subjects: report.counts.subjects,
+                hours: report.counts.hours,
+              })
+            );
+          }
+          const solutions = await db.solutions.orderBy('generatedAt').reverse().limit(1).toArray();
+          if (solutions.length > 0) {
+            setLastSolution(solutions[0]);
+          }
+        }}
+        onCancel={cancelRozImport}
+        importing={rozImporting}
+      />
 
       {/* Statistics Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
