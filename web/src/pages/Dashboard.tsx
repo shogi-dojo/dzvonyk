@@ -408,28 +408,34 @@ export function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="divide-y divide-border/60 border border-border/70 rounded-xl overflow-hidden bg-card/60">
             {[
-              t('dashboard.gettingStarted.steps.1'),
-              t('dashboard.gettingStarted.steps.2'),
-              t('dashboard.gettingStarted.steps.3'),
-              t('dashboard.gettingStarted.steps.4'),
-              t('dashboard.gettingStarted.steps.5'),
-              t('dashboard.gettingStarted.steps.6'),
-              t('dashboard.gettingStarted.steps.7'),
-              t('dashboard.gettingStarted.steps.8'),
-              t('dashboard.gettingStarted.steps.9'),
-            ].map((step, index) => (
-              <div 
-                key={index} 
-                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              { step: 1, text: t('dashboard.gettingStarted.steps.1'), href: '/settings' },
+              { step: 2, text: t('dashboard.gettingStarted.steps.2'), href: '/teachers' },
+              { step: 3, text: t('dashboard.gettingStarted.steps.3'), href: '/subjects' },
+              { step: 4, text: t('dashboard.gettingStarted.steps.4'), href: '/students' },
+              { step: 5, text: t('dashboard.gettingStarted.steps.5'), href: '/activities' },
+              { step: 6, text: t('dashboard.gettingStarted.steps.6'), href: '/rooms' },
+              { step: 7, text: t('dashboard.gettingStarted.steps.7'), href: '/constraints' },
+              { step: 8, text: t('dashboard.gettingStarted.steps.8'), href: '/generate' },
+              { step: 9, text: t('dashboard.gettingStarted.steps.9'), href: '/timetable' },
+            ].map((item) => (
+              <Link
+                key={item.step}
+                to={item.href}
+                className="flex items-center gap-3.5 px-4 py-3 hover:bg-primary/5 transition-colors group text-sm"
               >
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                  {index + 1}
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  {item.step}
                 </div>
-                <span className="text-muted-foreground">{step}</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground/50 ml-auto" />
-              </div>
+                <span className="text-foreground group-hover:text-primary font-medium transition-colors flex-1">
+                  {item.text}
+                </span>
+                <span className="text-xs text-muted-foreground group-hover:text-primary flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-all shrink-0">
+                  <span className="hidden sm:inline">{t('common.navigate', { defaultValue: 'Перейти' })}</span>
+                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </span>
+              </Link>
             ))}
           </div>
         </CardContent>

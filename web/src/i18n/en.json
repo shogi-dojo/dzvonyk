@@ -56,6 +56,7 @@
     "dialogDesc": "«Dzvonyk» works completely offline as a standalone application on desktop and mobile."
   },
   "common": {
+    "navigate": "Go to",
     "save": "Save",
     "saveChanges": "Save Changes",
     "cancel": "Cancel",
