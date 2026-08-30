@@ -106,6 +106,13 @@ export function useDropFeedback(params: UseDropFeedbackParams) {
     setActiveActivityId((prev) => (prev === activityId ? null : activityId));
   }, []);
 
+  // Mark the document while a lesson is in hand so global CSS can kill text
+  // selection everywhere, not just inside the grid.
+  useEffect(() => {
+    document.body.classList.toggle('matrix-dragging', Boolean(activeActivityId));
+    return () => document.body.classList.remove('matrix-dragging');
+  }, [activeActivityId]);
+
   // Handle Escape key to cancel drag or selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

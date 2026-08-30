@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { SyntheticRozBuilder } from '../src/lib/rozFixture';
 import fs from 'fs';
 import path from 'path';
+import { MAX_ZOOM } from '../src/components/timetable/TimetableMatrix';
 
 test.beforeEach(async ({ page }) => {
   page.on('pageerror', (err) => {
@@ -87,6 +88,15 @@ test.describe('Timetable full matrix', () => {
   test('keeps the first column pinned while scrolling horizontally', async ({ page }) => {
     await importFixture(page);
     const matrix = await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    // At fit zoom the whole week is visible, so zoom in until the grid overflows -
+    // stickiness only means anything once there is something to scroll past.
+    for (let i = 0; i < MAX_ZOOM; i++) {
+      await page.getByTestId('zoom-in').click();
+    }
+    await expect
+      .poll(async () => matrix.evaluate((el) => el.scrollWidth - el.clientWidth))
+      .toBeGreaterThan(0);
 
     const firstLabel = page.getByTestId('matrix-row-label').first();
     const before = await firstLabel.boundingBox();
@@ -177,6 +187,57 @@ test.describe('Timetable full matrix', () => {
   });
 });
 
+test.describe('Matrix viewport and controls', () => {
+  test('fits every day on screen with plain lesson numbers', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await importFixture(page);
+    const matrix = await openMatrix(page, /загальна матриця \(класи\)/i);
+    await page.getByTestId('focus-mode-toggle').click();
+
+    // Period headers are lesson numbers, not clock times.
+    const firstPeriod = page.locator('thead tr').nth(1).locator('th').first();
+    await expect(firstPeriod).toHaveText('1');
+
+    // All five days visible without horizontal scrolling.
+    await expect(page.locator('thead tr').first().locator('th')).toHaveCount(6); // corner + 5 days
+    const fits = await matrix.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+    expect(fits).toBe(true);
+  });
+
+  test('zooming in trades overview for bigger cells', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await importFixture(page);
+    await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    const cell = page.getByTestId('matrix-cell').first();
+    const before = (await cell.boundingBox())!.width;
+
+    await page.getByTestId('zoom-in').click();
+    await expect.poll(async () => (await cell.boundingBox())!.width).toBeGreaterThan(before);
+
+    await page.getByTestId('zoom-out').click();
+    await expect.poll(async () => (await cell.boundingBox())!.width).toBe(before);
+  });
+
+  test('grid text cannot be selected while dragging', async ({ page }) => {
+    await importFixture(page);
+    const matrix = await openMatrix(page, /загальна матриця \(класи\)/i);
+    const userSelect = await matrix.evaluate((el) => getComputedStyle(el).userSelect);
+    expect(userSelect).toBe('none');
+  });
+
+  test('horizontal overscroll cannot trigger browser back navigation', async ({ page }) => {
+    await importFixture(page);
+    const matrix = await openMatrix(page, /загальна матриця \(класи\)/i);
+    const behavior = await matrix.evaluate((el) => getComputedStyle(el).overscrollBehaviorX);
+    expect(behavior).toBe('contain');
+    const bodyBehavior = await page.evaluate(
+      () => getComputedStyle(document.body).overscrollBehaviorX
+    );
+    expect(bodyBehavior).toBe('none');
+  });
+});
+
 test.describe('Zen / focus mode', () => {
   test('fills the screen and hides the surrounding chrome', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -208,6 +269,22 @@ test.describe('Zen / focus mode', () => {
     // Escape returns to the normal layout.
     await page.keyboard.press('Escape');
     await expect(card).toHaveAttribute('data-focus-mode', 'off');
+  });
+
+  test('leaving the grid also leaves focus mode', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await importFixture(page);
+    await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    await page.getByTestId('focus-mode-toggle').click();
+    await expect(page.getByTestId('timetable-card')).toHaveAttribute('data-focus-mode', 'on');
+
+    // "Змінити" returns to the view picker; it must not leave the app chrome hidden.
+    await page.getByRole('button', { name: /змінити/i }).click();
+    await expect
+      .poll(async () => page.evaluate(() => document.body.classList.contains('matrix-focus')))
+      .toBe(false);
+    await expect(page.locator('aside')).toBeVisible();
   });
 });
 

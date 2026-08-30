@@ -25,10 +25,30 @@ export interface TimetableMatrixProps {
    */
   canPair?: (activityAId: string, activityBId: string, day: number, hour: number) => boolean;
   onDragStateChange?: (activityId: string | null) => void;
-  density?: 'compact' | 'comfortable';
+  /**
+   * Zoom step. 0 is "fit every day on one screen"; higher values trade overview
+   * for bigger drop targets. Widths are Tailwind classes rather than inline
+   * styles so the sticky column keeps its own borders.
+   */
+  zoom?: number;
+  onZoomChange?: (next: number) => void;
   className?: string;
   cornerLabel?: string;
 }
+
+/**
+ * Widths per zoom step. Step 0 is sized so a 5-day × 9-period grid fits a laptop
+ * screen without horizontal scrolling; each step up roughly doubles the drop target.
+ */
+export const ZOOM_STEPS = [
+  { cell: 'min-w-[24px]', label: 'w-[76px] min-w-[76px]', head: 'h-5 text-[9px]', cellH: 'h-7 text-[10px]' },
+  { cell: 'min-w-[32px]', label: 'w-[92px] min-w-[92px]', head: 'h-6 text-[10px]', cellH: 'h-8 text-[11px]' },
+  { cell: 'min-w-[44px]', label: 'w-[110px] min-w-[110px]', head: 'h-7 text-[11px]', cellH: 'h-10 text-xs' },
+  { cell: 'min-w-[56px]', label: 'w-[130px] min-w-[130px]', head: 'h-7 text-[11px]', cellH: 'h-12 text-xs' },
+  { cell: 'min-w-[80px]', label: 'w-[150px] min-w-[150px]', head: 'h-8 text-xs', cellH: 'h-14 text-sm' },
+] as const;
+
+export const MAX_ZOOM = ZOOM_STEPS.length - 1;
 
 export function TimetableMatrix({
   rows,
@@ -40,11 +60,59 @@ export function TimetableMatrix({
   onPair,
   canPair,
   onDragStateChange,
-  density = 'comfortable',
+  zoom = 0,
+  onZoomChange,
   className,
   cornerLabel,
 }: TimetableMatrixProps) {
-  const isCompact = density === 'compact';
+  const zoomStep = ZOOM_STEPS[Math.min(Math.max(zoom, 0), ZOOM_STEPS.length - 1)];
+  const cellWidth = zoomStep.cell;
+  const labelWidth = zoomStep.label;
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Ctrl/⌘ + wheel zooms. Registered manually because React's onWheel is passive,
+  // and a passive listener cannot preventDefault the browser's page zoom.
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !onZoomChange) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const dir = e.deltaY < 0 ? 1 : -1;
+      onZoomChange(Math.min(Math.max(zoom + dir, 0), MAX_ZOOM));
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [zoom, onZoomChange]);
+
+  // Hold the right button to pan the grid, the way a drawing app does. Keeps the
+  // left button free for dragging lessons.
+  const panRef = React.useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+
+  const handlePanStart = (e: React.MouseEvent) => {
+    if (e.button !== 2) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    e.preventDefault();
+    panRef.current = { x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop };
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const start = panRef.current;
+      if (!start || !scrollRef.current) return;
+      scrollRef.current.scrollLeft = start.left - (ev.clientX - start.x);
+      scrollRef.current.scrollTop = start.top - (ev.clientY - start.y);
+    };
+    const onMouseUp = () => {
+      panRef.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
 
   const handleCellClick = (dIdx: number, hIdx: number, isAvailable: boolean) => {
     if (!isAvailable || !dropFeedback?.activeActivityId || !onMove) return;
@@ -57,20 +125,24 @@ export function TimetableMatrix({
   return (
     <div
       data-testid="timetable-matrix"
+      ref={scrollRef}
+      onMouseDown={handlePanStart}
+      onContextMenu={(e) => e.preventDefault()}
       className={cn(
-        'overflow-auto relative rounded-lg border border-border bg-card shadow-xs max-h-[700px]',
+        'overflow-auto relative rounded-lg border border-border bg-card shadow-xs',
+        'h-full min-h-0 select-none [overscroll-behavior-x:contain] [-webkit-user-select:none]',
         className
       )}
       tabIndex={0}
     >
-      <table className="w-full border-separate border-spacing-0 text-left font-sans">
+      <table className={cn('border-separate border-spacing-0 text-left font-sans', zoom === 0 && 'w-full table-fixed')}>
         <thead className="sticky top-0 z-20 bg-muted/95 backdrop-blur-xs">
           {/* Day Headers */}
           <tr>
             <th
               rowSpan={2}
               data-testid="matrix-corner"
-              className="sticky left-0 z-30 bg-muted/95 backdrop-blur-xs px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-r border-border min-w-[110px] max-w-[160px] align-middle shadow-[1px_0_0_0_hsl(var(--border))]"
+              className={cn("sticky left-0 z-30 bg-muted/95 backdrop-blur-xs px-2 py-2 text-xs font-semibold text-muted-foreground border-b border-r border-border align-middle shadow-[1px_0_0_0_hsl(var(--border))]", labelWidth)}
             >
               {cornerLabel || 'Клас / Вчитель'}
             </th>
@@ -91,12 +163,14 @@ export function TimetableMatrix({
               hours.map((hour, hIdx) => (
                 <th
                   key={`${dIdx}-${hIdx}`}
+                  title={hour.name}
                   className={cn(
-                    'border-b border-r border-border p-1 text-center font-mono text-[11px] font-medium text-muted-foreground bg-muted/60 select-none',
-                    isCompact ? 'min-w-[42px] max-w-[50px] h-7' : 'min-w-[52px] max-w-[64px] h-8'
+                    'border-b border-r border-border p-0 text-center font-mono font-medium text-muted-foreground bg-muted/60 select-none',
+                    cellWidth,
+                    zoomStep.head
                   )}
                 >
-                  {hour.name}
+                  {hIdx + 1}
                 </th>
               ))
             )}
@@ -110,7 +184,7 @@ export function TimetableMatrix({
               <td
                 data-testid="matrix-row-label"
                 data-row-id={row.id}
-                className="sticky left-0 z-10 bg-card/95 backdrop-blur-xs px-3 py-1.5 text-xs font-medium border-b border-r border-border shadow-[1px_0_0_0_hsl(var(--border))] truncate">
+                className={cn("sticky left-0 z-10 bg-card/95 backdrop-blur-xs px-2 py-1 text-xs font-medium border-b border-r border-border shadow-[1px_0_0_0_hsl(var(--border))] truncate", labelWidth)}>
                 <div className="font-semibold text-foreground truncate">{row.label}</div>
                 {row.sublabel && (
                   <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
@@ -186,8 +260,10 @@ export function TimetableMatrix({
                         onDragStateChange?.(null);
                       }}
                       className={cn(
-                        'border-b border-r border-border p-0.5 text-center align-middle transition-colors relative',
-                        isCompact ? 'min-w-[42px] max-w-[50px] h-9' : 'min-w-[52px] max-w-[64px] h-12',
+                        'border-b border-r border-border p-0 text-center align-middle transition-colors relative',
+                        cellWidth,
+                        zoomStep.cellH,
+                        'max-h-16',
                         cellBgClass
                       )}
                     >

@@ -170,7 +170,7 @@ export function Layout({ children }: LayoutProps) {
           >
             <UserProfileButton compact={desktopSidebarCollapsed} />
             <div className={cn("flex items-center gap-0.5", desktopSidebarCollapsed && "flex-col")}>
-              <HistoryControls />
+              <HistoryControls vertical={desktopSidebarCollapsed} />
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
                   <TooltipTrigger asChild>

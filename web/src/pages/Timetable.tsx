@@ -5,7 +5,7 @@ import {
   Calendar, Clock, AlertTriangle, Grid3X3, CheckCircle2,
   GraduationCap, Users, RotateCcw, Printer, Archive,
   Lock, Unlock, Move, AlertCircle, LayoutGrid, X,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ import {
   findSolutionConflicts,
   type ViewType,
 } from '@/lib/timetableGrid';
-import { TimetableMatrix } from '@/components/timetable/TimetableMatrix';
+import { TimetableMatrix, MAX_ZOOM } from '@/components/timetable/TimetableMatrix';
 import { useDropFeedback } from '@/components/timetable/useDropFeedback';
 import {
   Dialog,
@@ -122,7 +122,8 @@ export function Timetable() {
     return () => document.body.classList.remove('matrix-focus');
   }, [isFocusMode]);
 
-  const [matrixDensity, setMatrixDensity] = useState<'compact' | 'comfortable'>('comfortable');
+  // 0 = every day visible at once; higher = bigger drop targets.
+  const [matrixZoom, setMatrixZoom] = useState(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -516,6 +517,9 @@ export function Timetable() {
     setShowGrid(false);
     setSelectedActivityForMove(null);
     setMoveError(null);
+    // Leaving the grid must also leave focus mode, or the view picker renders
+    // inside a full-screen overlay with the app chrome still hidden.
+    setIsFocusMode(false);
   };
 
   const getSelectedDisplayName = () => {
@@ -1031,17 +1035,44 @@ export function Timetable() {
                 </div>
                 <div className="flex items-center gap-2">
                   {(viewType === 'full-matrix' || viewType === 'teacher-matrix') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMatrixDensity(matrixDensity === 'compact' ? 'comfortable' : 'compact')}
-                      className="gap-1.5 text-xs h-8"
-                      title={t('timetable.density', { defaultValue: 'Масштаб' })}
-                    >
-                      {matrixDensity === 'compact'
-                        ? t('timetable.comfortable', { defaultValue: 'Зручний' })
-                        : t('timetable.compact', { defaultValue: 'Компактний' })}
-                    </Button>
+                    <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        data-testid="zoom-out"
+                        disabled={matrixZoom <= 0}
+                        onClick={() => setMatrixZoom((z) => Math.max(z - 1, 0))}
+                        className="h-7 w-7 p-0"
+                        title={t('timetable.zoomOut', { defaultValue: 'Зменшити' })}
+                      >
+                        <ZoomOut className="h-3.5 w-3.5" />
+                      </Button>
+                      <input
+                        type="range"
+                        min={0}
+                        max={MAX_ZOOM}
+                        step={1}
+                        value={matrixZoom}
+                        data-testid="zoom-slider"
+                        onChange={(e) => setMatrixZoom(Number(e.target.value))}
+                        className="h-7 w-24 accent-primary cursor-pointer"
+                        aria-label={t('timetable.zoom', { defaultValue: 'Масштаб' })}
+                        title={t('timetable.zoomHint', {
+                          defaultValue: 'Масштаб — на мінімумі видно всі дні',
+                        })}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        data-testid="zoom-in"
+                        disabled={matrixZoom >= MAX_ZOOM}
+                        onClick={() => setMatrixZoom((z) => Math.min(z + 1, MAX_ZOOM))}
+                        className="h-7 w-7 p-0"
+                        title={t('timetable.zoomIn', { defaultValue: 'Збільшити' })}
+                      >
+                        <ZoomIn className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   )}
                   <Button
                     variant="outline"
@@ -1063,10 +1094,10 @@ export function Timetable() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0 flex-1">
+            <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
               {(viewType === 'full-matrix' || viewType === 'teacher-matrix') &&
               ((viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData) !== null) ? (
-                <div className="p-4 space-y-4">
+                <div className="p-3 gap-3 flex-1 min-h-0 flex flex-col">
                   <TimetableMatrix
                     rows={viewType === 'teacher-matrix' ? teacherMatrixData!.rows : classMatrixData!.rows}
                     days={rules.daysOfTheWeek}
@@ -1077,7 +1108,9 @@ export function Timetable() {
                     onPair={requestPairActivities}
                     canPair={canPairActivities}
                     onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
-                    density={matrixDensity}
+                    zoom={matrixZoom}
+                    onZoomChange={setMatrixZoom}
+                    className="flex-1 min-h-0"
                     cornerLabel={
                       viewType === 'teacher-matrix'
                         ? t('teachers.title', { defaultValue: 'Вчителі' })

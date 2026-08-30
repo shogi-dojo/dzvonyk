@@ -9,6 +9,38 @@ export interface ShortcutItem {
 
 export const SHORTCUTS: ShortcutItem[] = [
   {
+    id: 'matrix_drag',
+    category: 'actions',
+    label: 'Перемістити урок',
+    description: 'Перетягніть урок лівою кнопкою або натисніть на нього, а потім на вільну клітинку',
+    macKeys: ['Ліва кнопка'],
+    winKeys: ['Ліва кнопка'],
+  },
+  {
+    id: 'matrix_zoom',
+    category: 'actions',
+    label: 'Масштаб матриці',
+    description: 'Наблизити або віддалити розклад; на найменшому масштабі видно всі дні одразу',
+    macKeys: ['⌘', 'Колесо'],
+    winKeys: ['Ctrl', 'Колесо'],
+  },
+  {
+    id: 'matrix_pan',
+    category: 'actions',
+    label: 'Рух по матриці',
+    description: 'Тягніть правою кнопкою або гортайте двома пальцями на тачпаді',
+    macKeys: ['Права кнопка'],
+    winKeys: ['Права кнопка'],
+  },
+  {
+    id: 'matrix_cancel',
+    category: 'actions',
+    label: 'Скасувати переміщення',
+    description: 'Відпустити урок, який ви взяли, нічого не змінюючи',
+    macKeys: ['Esc'],
+    winKeys: ['Esc'],
+  },
+  {
     id: 'undo',
     category: 'history',
     label: 'Скасувати дію',

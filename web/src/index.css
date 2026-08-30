@@ -502,6 +502,23 @@ body.matrix-focus {
   overflow: hidden;
 }
 
+/* Two-finger horizontal scrolling inside the matrix must never reach the browser's
+   swipe-to-go-back gesture, which otherwise fires the moment a drag runs past the
+   edge of the trackpad and navigates away mid-edit. */
+html,
+body {
+  overscroll-behavior-x: none;
+}
+
+/* While a lesson is in hand, suppress the text selection and the drag-image ghost
+   that otherwise smear across the grid. */
+body.matrix-dragging,
+body.matrix-dragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+
 @media print {
   @page {
     size: A4 landscape;
