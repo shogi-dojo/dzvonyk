@@ -17,6 +17,7 @@ export interface TimetableMatrixProps {
   cells: Map<string, CellData[]>;
   dropFeedback?: DropFeedback | null;
   onMove?: (activityId: string, day: number, hour: number) => void;
+  onPair?: (activityAId: string, activityBId: string, day: number, hour: number) => void;
   onDragStateChange?: (activityId: string | null) => void;
   density?: 'compact' | 'comfortable';
   className?: string;
@@ -30,6 +31,7 @@ export function TimetableMatrix({
   cells,
   dropFeedback,
   onMove,
+  onPair,
   onDragStateChange,
   density = 'comfortable',
   className,
@@ -142,8 +144,17 @@ export function TimetableMatrix({
                         if (!isAvailable) return;
                         e.preventDefault();
                         const actId = e.dataTransfer.getData('text/plain');
-                        if (actId && onMove) {
-                          onMove(actId, dIdx, hIdx);
+                        if (actId) {
+                          if (cellEntries.length === 1 && onPair && cellEntries[0].activityId !== actId) {
+                            const v = dropFeedback?.verdicts.get(`${dIdx}|${hIdx}`);
+                            if (!v?.valid) {
+                              onPair(actId, cellEntries[0].activityId, dIdx, hIdx);
+                            } else if (onMove) {
+                              onMove(actId, dIdx, hIdx);
+                            }
+                          } else if (onMove) {
+                            onMove(actId, dIdx, hIdx);
+                          }
                         }
                         onDragStateChange?.(null);
                       }}

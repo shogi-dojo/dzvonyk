@@ -37,7 +37,8 @@ import {
   
 } from '@/lib/printDocument';
 import { addTimeConstraint, deleteTimeConstraint, updateTimeConstraint } from '@/store/slices/constraintsSlice';
-import type { ActivityPreferredStartingTimeConstraint, ConstraintFields } from '@/types';
+import { updateActivity } from '@/store/slices/activitiesSlice';
+import type { ActivityPreferredStartingTimeConstraint, ConstraintFields, Activity } from '@/types';
 
 interface StudentHierarchyItem {
   id: string;
@@ -317,6 +318,47 @@ export function Timetable() {
 
     setSelectedActivityForMove(null);
     setMoveSuccess(t('timetable.moveSuccess', { defaultValue: 'Урок успішно переміщено' }));
+    setTimeout(() => setMoveSuccess(null), 3000);
+  };
+
+  // Pair two activities as numerator/denominator in a single slot
+  const handlePairActivities = async (
+    activityAId: string,
+    activityBId: string,
+    targetDay: number,
+    targetHour: number
+  ) => {
+    if (!latestSolution || !rules) return;
+
+    const actA = activities.find((a) => a.id === activityAId);
+    const actB = activities.find((a) => a.id === activityBId);
+    if (!actA || !actB) return;
+
+    const updatedA: Activity = { ...actA, weekParity: 'numerator' };
+    const updatedB: Activity = { ...actB, weekParity: 'denominator' };
+
+    await dispatch(updateActivity(updatedA)).unwrap();
+    await dispatch(updateActivity(updatedB)).unwrap();
+
+    const filteredPlacements = latestSolution.placements.filter(
+      (p) => p.activityId !== activityAId && p.activityId !== activityBId
+    );
+    const updatedPlacements = [
+      ...filteredPlacements,
+      { activityId: activityAId, day: targetDay, hour: targetHour },
+      { activityId: activityBId, day: targetDay, hour: targetHour },
+    ];
+
+    const isComplete = updatedPlacements.length >= activities.length;
+
+    await db.solutions.put({
+      ...latestSolution,
+      placements: updatedPlacements,
+      isComplete,
+    });
+
+    setSelectedActivityForMove(null);
+    setMoveSuccess(t('timetable.pairedSuccess', { defaultValue: 'Уроки спаровано як чисельник/знаменник' }));
     setTimeout(() => setMoveSuccess(null), 3000);
   };
 
@@ -893,6 +935,7 @@ export function Timetable() {
                     cells={classMatrixData.cells}
                     dropFeedback={dropFeedback}
                     onMove={handleMoveActivity}
+                    onPair={handlePairActivities}
                     onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
                     cornerLabel={t('students.stats.groups', { defaultValue: 'Класи' })}
                   />
