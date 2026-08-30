@@ -54,7 +54,15 @@ test('Teacher workload accurately displays alternating-week fractional hours in 
   const row = page.locator('tr:has-text("Сисова Оксана")');
   await expect(row).toBeVisible();
 
-  // 4. Reload the page to ensure persisted state in IndexedDB renders correctly
+  // 4. Test Classes Workload Matrix report
+  const classesWorkloadBtn = page.getByRole('main').getByRole('button', { name: /навантаження класів/i });
+  await expect(classesWorkloadBtn).toBeVisible({ timeout: 10_000 });
+  await classesWorkloadBtn.click();
+  await expect(page.getByText('ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ')).toBeVisible();
+  await expect(page.getByText('5-А')).toBeVisible();
+  await expect(page.getByText(/збалансовано/i).first()).toBeVisible();
+
+  // 5. Reload the page to ensure persisted state in IndexedDB renders correctly
   await page.reload();
   await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
   await workloadReportBtn.click();

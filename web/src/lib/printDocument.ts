@@ -20,7 +20,13 @@ import {
   type CellData,
 } from './timetableGrid';
 import { hourTimeLabel } from './bellSchedule';
-import { sumWeeklyLoad, formatWeeklyLoad, formatHours } from './weeklyLoad';
+import {
+  sumWeeklyLoad,
+  formatWeeklyLoad,
+  formatHours,
+  computeTeacherWorkloadReportData,
+  computeAllClassesWeeklyLoad,
+} from './weeklyLoad';
 
 export interface PrintOptions {
   includeApproval?: boolean;
@@ -299,7 +305,8 @@ function renderSingleGridTable(
   rules: TimetableRules,
   colorMode: boolean,
   showTeacher: boolean,
-  showStudents: boolean
+  showStudents: boolean,
+  currentClassName?: string
 ): string {
   const days = rules.daysOfTheWeek;
   const hours = rules.hoursOfTheDay;
@@ -337,10 +344,28 @@ function renderSingleGridTable(
               : '';
           const coloredClass = colorMode && c.subjectColor ? 'colored' : '';
 
+          // Extract subgroup if printing a specific class
+          const subgroups = !showStudents && currentClassName && c.students.length > 0
+            ? c.students
+                .map((s) => {
+                  if (s === currentClassName) return '';
+                  if (s.startsWith(`${currentClassName},`) || s.startsWith(`${currentClassName} `) || s.startsWith(`${currentClassName}/`)) {
+                    return s.replace(currentClassName, '').trim().replace(/^[,/:-]\s*/, '');
+                  }
+                  return s;
+                })
+                .filter(Boolean)
+            : [];
+
           tableHtml += `
             <div class="lesson-box ${coloredClass}" style="${style}">
               <div class="lesson-subj">${escapeHtml(c.subject)}</div>
               ${renderWeekParity(c.weekParity)}
+              ${
+                subgroups.length > 0
+                  ? `<div class="lesson-details" style="font-weight: bold; color: #444;">${escapeHtml(subgroups.join(', '))}</div>`
+                  : ''
+              }
               ${
                 showTeacher && c.teachers.length > 0
                   ? `<div class="lesson-details">${escapeHtml(c.teachers.join(', '))}</div>`
@@ -349,6 +374,11 @@ function renderSingleGridTable(
               ${
                 showStudents && c.students.length > 0
                   ? `<div class="lesson-details">${escapeHtml(c.students.join(', '))}</div>`
+                  : ''
+              }
+              ${
+                c.activityTags && c.activityTags.length > 0
+                  ? `<div class="lesson-details" style="font-size: 8.5px; color: #777;">${escapeHtml(c.activityTags.join(', '))}</div>`
                   : ''
               }
               ${
@@ -395,7 +425,7 @@ export function generateClassPrintHtml(
       <h1>РОЗКЛАД УРОКІВ ${escapeHtml(className)} КЛАСУ</h1>
       <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
     </div>
-    ${renderSingleGridTable(grid, rules, colorMode, true, false)}
+    ${renderSingleGridTable(grid, rules, colorMode, true, false, className)}
     ${renderFooter()}
   </div>
 </body>
@@ -474,7 +504,7 @@ export function generateAllClassesPrintHtml(params: {
           <h1>РОЗКЛАД УРОКІВ ${escapeHtml(group.name)} КЛАСУ</h1>
           <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
         </div>
-        ${renderSingleGridTable(grid, rules, colorMode, true, false)}
+        ${renderSingleGridTable(grid, rules, colorMode, true, false, group.name)}
         ${renderFooter()}
       </div>
     `;
@@ -843,7 +873,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
 }
 
 /**
- * Generates printable HTML for Teacher Workload / Tariffication Report
+ * Generates printable HTML for Teacher Workload / Tariffication Report with detailed subject & class itemization
  */
 export function generateTeacherWorkloadPrintHtml(params: {
   rules: TimetableRules;
@@ -855,42 +885,11 @@ export function generateTeacherWorkloadPrintHtml(params: {
   const { rules, teachers, activities, subjects, options = {} } = params;
   const { includeApproval = true, orientation = 'portrait' } = options;
 
-  const sortedTeachers = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'uk'));
-  const subMap = new Map(subjects.map((s) => [s.id, s]));
-
-  const rows = sortedTeachers.map((teacher, index) => {
-    const teacherActs = activities.filter(
-      (a) => a.active && (a.teacherIds.includes(teacher.id) || a.teacherIds.includes(teacher.name))
-    );
-
-    const subjectNames = Array.from(
-      new Set(
-        teacherActs.map((a) => {
-          const s = subMap.get(a.subjectId) || subjects.find((sub) => sub.name === a.subjectId);
-          return s?.name || a.subjectId;
-        })
-      )
-    );
-
-    const classNames = Array.from(
-      new Set(teacherActs.flatMap((a) => a.studentSetIds))
-    );
-
-    const load = sumWeeklyLoad(teacherActs);
-
-    return {
-      index: index + 1,
-      name: teacher.name,
-      longName: teacher.longName,
-      subjects: subjectNames,
-      classes: classNames,
-      load,
-      averageHours: load.average,
-      targetHours: teacher.targetNumberOfHours,
-    };
+  const { rows, totalSchoolHours } = computeTeacherWorkloadReportData({
+    teachers,
+    activities,
+    subjects,
   });
-
-  const totalSchoolHours = rows.reduce((sum, r) => sum + r.averageHours, 0);
 
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -906,8 +905,8 @@ export function generateTeacherWorkloadPrintHtml(params: {
     }
     table.workload-table th, table.workload-table td {
       border: 1px solid #333;
-      padding: 6px 8px;
-      font-size: 11px;
+      padding: 5px 7px;
+      font-size: 10.5px;
     }
     table.workload-table th {
       background: #f0f0f0;
@@ -925,36 +924,196 @@ export function generateTeacherWorkloadPrintHtml(params: {
     <table class="workload-table">
       <thead>
         <tr>
-          <th style="width: 35px; text-align: center;">№</th>
-          <th style="text-align: left;">ПІБ Викладача</th>
-          <th style="text-align: left;">Предмети</th>
-          <th style="text-align: left;">Класи</th>
-          <th style="width: 80px; text-align: center;">Годин/тижд.</th>
+          <th style="width: 30px; text-align: center;">№</th>
+          <th style="width: 170px; text-align: left;">ПІБ Викладача</th>
+          <th style="width: 160px; text-align: left;">Предмет</th>
+          <th style="text-align: left;">Класи / підгрупи та години</th>
+          <th style="width: 65px; text-align: center;">Годин</th>
+          <th style="width: 85px; text-align: center;">Разом / тижд.</th>
         </tr>
       </thead>
       <tbody>
         ${rows
+          .map((teacher) => {
+            const nSubj = teacher.subjects.length || 1;
+            return teacher.subjects
+              .map(
+                (subj, sIdx) => `
+              <tr>
+                ${
+                  sIdx === 0
+                    ? `
+                  <td rowspan="${nSubj}" style="text-align: center; vertical-align: top;">${teacher.index}</td>
+                  <td rowspan="${nSubj}" style="vertical-align: top; font-weight: bold;">
+                    ${escapeHtml(teacher.name)}
+                    ${
+                      teacher.longName && teacher.longName !== teacher.name
+                        ? `<div style="font-weight: normal; font-size: 9.5px; color: #555;">${escapeHtml(teacher.longName)}</div>`
+                        : ''
+                    }
+                    ${
+                      teacher.targetHours && teacher.targetHours > 0
+                        ? `<div style="font-weight: normal; font-size: 9px; color: #666; margin-top: 2px;">(план: ${formatHours(
+                            teacher.targetHours
+                          )})</div>`
+                        : ''
+                    }
+                  </td>
+                `
+                    : ''
+                }
+                <td style="font-weight: 500;">${escapeHtml(subj.subjectName)}</td>
+                <td>${escapeHtml(subj.classesSummary || '—')}</td>
+                <td style="text-align: center; font-weight: 600;">${subj.formattedHours}</td>
+                ${
+                  sIdx === 0
+                    ? `
+                  <td rowspan="${nSubj}" style="text-align: center; vertical-align: middle; font-weight: bold; font-size: 12px; background: #fafafa;">
+                    ${formatWeeklyLoad(teacher.totalLoad)}
+                  </td>
+                `
+                    : ''
+                }
+              </tr>
+            `
+              )
+              .join('');
+          })
+          .join('')}
+        <tr style="background: #f0f0f0; font-weight: bold;">
+          <td colspan="5" style="text-align: right;">РАЗОМ ГОДИН ПО ЗАКЛАДУ:</td>
+          <td style="text-align: center; font-size: 13px;">${formatHours(totalSchoolHours)}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${renderFooter()}
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Generates printable HTML for consolidated Class Weekly Workload Matrix (Parity comparison)
+ */
+export function generateClassesWorkloadMatrixPrintHtml(params: {
+  rules: TimetableRules;
+  groups: StudentsGroup[];
+  activities: Activity[];
+  options?: PrintOptions;
+}): string {
+  const { rules, groups, activities, options = {} } = params;
+  const { includeApproval = true, orientation = 'portrait' } = options;
+
+  const data = computeAllClassesWeeklyLoad(groups, activities);
+
+  return `<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>Навантаження класів по тижнях - ${escapeHtml(rules.institutionName)}</title>
+  <style>
+    ${getPrintStyles(orientation)}
+    table.workload-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table.workload-table th, table.workload-table td {
+      border: 1px solid #333;
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+    table.workload-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+    .badge-ok {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      background: #e6f4ea;
+      color: #137333;
+    }
+    .badge-warn {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      background: #fef7e0;
+      color: #b06000;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    ${renderHeader(rules, includeApproval)}
+    <div class="doc-title">
+      <h1>ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ (ЧИСЕЛЬНИК / ЗНАМЕННИК)</h1>
+      <p>${rules.institutionName}</p>
+    </div>
+    <table class="workload-table">
+      <thead>
+        <tr>
+          <th style="width: 35px; text-align: center;">№</th>
+          <th style="text-align: left;">Клас</th>
+          <th style="width: 80px; text-align: center;">Чисельник</th>
+          <th style="width: 80px; text-align: center;">Знаменник</th>
+          <th style="width: 90px; text-align: center;">Середнє</th>
+          <th style="width: 130px; text-align: center;">Баланс тижнів</th>
+          <th style="width: 70px; text-align: center;">Предметів</th>
+          <th style="width: 60px; text-align: center;">Уроків</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.classes
           .map(
-            (r) => `
+            (c, idx) => `
           <tr>
-            <td style="text-align: center;">${r.index}</td>
+            <td style="text-align: center;">${idx + 1}</td>
             <td style="font-weight: bold;">
-              ${escapeHtml(r.name)}
-              ${r.longName && r.longName !== r.name ? `<div style="font-weight: normal; font-size: 9.5px; color: #555;">${escapeHtml(r.longName)}</div>` : ''}
+              ${escapeHtml(c.name)}
+              ${
+                c.longName && c.longName !== c.name
+                  ? `<span style="font-weight: normal; font-size: 9.5px; color: #555; margin-left: 4px;">(${escapeHtml(
+                      c.longName
+                    )})</span>`
+                  : ''
+              }
             </td>
-            <td>${escapeHtml(r.subjects.join(', ') || '—')}</td>
-            <td>${escapeHtml(r.classes.join(', ') || '—')}</td>
-            <td style="text-align: center; font-weight: bold; font-size: 12px;">
-              ${formatWeeklyLoad(r.load)}
-              ${r.targetHours > 0 ? `<div style="font-size: 9px; font-weight: normal; color: #666;">(план: ${formatHours(r.targetHours)})</div>` : ''}
+            <td style="text-align: center; font-weight: 500;">${formatHours(c.numerator)}</td>
+            <td style="text-align: center; font-weight: 500;">${formatHours(c.denominator)}</td>
+            <td style="text-align: center; font-weight: bold; font-size: 12px;">${formatHours(c.average)}</td>
+            <td style="text-align: center;">
+              ${
+                c.isBalanced
+                  ? '<span class="badge-ok">✓ Збалансовано</span>'
+                  : `<span class="badge-warn">⚠ Різниця ${formatHours(c.difference)} год</span>`
+              }
             </td>
+            <td style="text-align: center;">${c.subjectsCount}</td>
+            <td style="text-align: center;">${c.activitiesCount}</td>
           </tr>
         `
           )
           .join('')}
         <tr style="background: #f0f0f0; font-weight: bold;">
-          <td colspan="4" style="text-align: right;">РАЗОМ ГОДИН ПО ЗАКЛАДУ:</td>
-          <td style="text-align: center; font-size: 13px;">${formatHours(totalSchoolHours)}</td>
+          <td colspan="2" style="text-align: right;">РАЗОМ ПО ЗАКЛАДУ:</td>
+          <td style="text-align: center;">${formatHours(data.totalNumerator)}</td>
+          <td style="text-align: center;">${formatHours(data.totalDenominator)}</td>
+          <td style="text-align: center; font-size: 13px;">${formatHours(data.totalAverage)}</td>
+          <td style="text-align: center;">
+            ${
+              data.totalNumerator === data.totalDenominator
+                ? '<span class="badge-ok">✓ Збалансовано</span>'
+                : `<span class="badge-warn">⚠ Різниця ${formatHours(
+                    Math.abs(data.totalNumerator - data.totalDenominator)
+                  )} год</span>`
+            }
+          </td>
+          <td colspan="2"></td>
         </tr>
       </tbody>
     </table>

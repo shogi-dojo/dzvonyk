@@ -1052,6 +1052,25 @@ export function Timetable() {
                                               <span className="truncate">{cell.students.join(', ')}</span>
                                             </div>
                                           )}
+                                          {viewType === 'students' && (() => {
+                                            const currentClass = selectedEntity || '';
+                                            const subgroups = cell.students
+                                              .map((s) => {
+                                                if (s === currentClass) return '';
+                                                if (s.startsWith(`${currentClass},`) || s.startsWith(`${currentClass} `) || s.startsWith(`${currentClass}/`)) {
+                                                  return s.replace(currentClass, '').trim().replace(/^[,/:-]\s*/, '');
+                                                }
+                                                return s;
+                                              })
+                                              .filter(Boolean);
+                                            if (subgroups.length === 0) return null;
+                                            return (
+                                              <div className="text-muted-foreground text-xs flex items-center gap-1.5 mt-1 font-medium">
+                                                <Users className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+                                                <span className="truncate">{subgroups.join(', ')}</span>
+                                              </div>
+                                            );
+                                          })()}
                                           {cell.room && (
                                             <div className="text-muted-foreground text-xs flex items-center gap-1.5 mt-1">
                                               <Building2 className="h-3 w-3 shrink-0" aria-hidden="true" />
