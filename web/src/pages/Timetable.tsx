@@ -26,6 +26,7 @@ import {
   type ViewType,
 } from '@/lib/timetableGrid';
 import { TimetableMatrix } from '@/components/timetable/TimetableMatrix';
+import { useDropFeedback } from '@/components/timetable/useDropFeedback';
 import {
   printHtmlDocument,
   generateClassPrintHtml,
@@ -69,12 +70,29 @@ export function Timetable() {
   const [bulkProgress, setBulkProgress] = useState<BulkExportProgress | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Edit / Move state
-  const [selectedActivityForMove, setSelectedActivityForMove] = useState<string | null>(null);
+  const latestSolution = useLiveQuery(() => db.solutions.orderBy('generatedAt').reverse().first());
+
+  // Edit / Move state with red/green drop feedback
+  const {
+    activeActivityId: selectedActivityForMove,
+    dropFeedback,
+    beginDrag,
+    endDrag,
+    setActiveActivityId: setSelectedActivityForMove,
+  } = useDropFeedback({
+    currentSolution: latestSolution || null,
+    rules: rules || null,
+    activities,
+    teachers,
+    studentsGroups: groups,
+    studentsSubgroups: subgroups,
+    studentsYears: years,
+    rooms,
+    timeConstraints,
+  });
+
   const [moveError, setMoveError] = useState<string | null>(null);
   const [moveSuccess, setMoveSuccess] = useState<string | null>(null);
-
-  const latestSolution = useLiveQuery(() => db.solutions.orderBy('generatedAt').reverse().first());
 
   // Locked activities set from timeConstraints
   const lockedActivityIds = useMemo(() => {
@@ -853,8 +871,9 @@ export function Timetable() {
                     days={rules.daysOfTheWeek}
                     hours={rules.hoursOfTheDay}
                     cells={classMatrixData.cells}
+                    dropFeedback={dropFeedback}
                     onMove={handleMoveActivity}
-                    onDragStateChange={setSelectedActivityForMove}
+                    onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
                     cornerLabel={t('students.stats.groups', { defaultValue: 'Класи' })}
                   />
                 </div>
