@@ -1080,6 +1080,7 @@
       "title": "Hours of the Day",
       "description": "Configure time slots ({{count}} hours)",
       "add": "Add Hour",
+      "defaultName": "Lesson {{index}}",
       "label": "Label",
       "start": "Start",
       "end": "End",
