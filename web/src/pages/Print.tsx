@@ -27,6 +27,7 @@ import {
   generateSummaryTeachersMatrixPrintHtml,
   generateTeacherWorkloadPrintHtml,
 } from '@/lib/printDocument';
+import { trackEvent } from '@/lib/analytics';
 
 type ReportType =
   | 'class'
@@ -221,13 +222,16 @@ export function Print() {
 
     if (reportType === 'class') {
       if (!classGrid) return;
+      trackEvent('print_exported', { format: 'print', view_type: 'students' });
       const html = generateClassPrintHtml(selectedClassId, classGrid, rules, { includeApproval, colorMode });
       printHtmlDocument(html);
     } else if (reportType === 'teacher') {
       if (!teacherGrid) return;
+      trackEvent('print_exported', { format: 'print', view_type: 'teachers' });
       const html = generateTeacherPrintHtml(selectedTeacherId, teacherGrid, rules, { includeApproval, colorMode });
       printHtmlDocument(html);
     } else if (reportType === 'summary-classes') {
+      trackEvent('print_exported', { format: 'print', view_type: 'students' });
       const html = generateSummaryClassesMatrixPrintHtml({
         solution: latestSolution,
         rules,
@@ -241,6 +245,7 @@ export function Print() {
       });
       printHtmlDocument(html);
     } else if (reportType === 'summary-teachers') {
+      trackEvent('print_exported', { format: 'print', view_type: 'teachers' });
       const html = generateSummaryTeachersMatrixPrintHtml({
         solution: latestSolution,
         rules,
@@ -252,6 +257,7 @@ export function Print() {
       });
       printHtmlDocument(html);
     } else if (reportType === 'teacher-workload') {
+      trackEvent('print_exported', { format: 'print', view_type: 'tariff' });
       const html = generateTeacherWorkloadPrintHtml({
         rules,
         teachers: sortedTeachers,
@@ -265,6 +271,7 @@ export function Print() {
 
   const handlePrintAllClasses = () => {
     if (!rules || !latestSolution) return;
+    trackEvent('print_exported', { format: 'print', view_type: 'students' });
     const html = generateAllClassesPrintHtml({
       groups: sortedGroups,
       solution: latestSolution,
@@ -280,6 +287,7 @@ export function Print() {
 
   const handlePrintAllTeachers = () => {
     if (!rules || !latestSolution) return;
+    trackEvent('print_exported', { format: 'print', view_type: 'teachers' });
     const html = generateAllTeachersPrintHtml({
       teachers: sortedTeachers,
       solution: latestSolution,

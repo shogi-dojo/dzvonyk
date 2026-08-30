@@ -1,5 +1,10 @@
 name: CI
 
+# Firebase Web Auth requires a non-empty API key during module initialisation.
+# CI never contacts production Firebase, so use an explicit non-secret placeholder.
+env:
+  VITE_FIREBASE_API_KEY: ci-placeholder-api-key
+
 on:
   push:
     branches: [main]

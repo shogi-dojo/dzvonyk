@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Save, Plus, Trash2, FileUp, AlertCircle, CheckCircle2, Settings as SettingsIcon, Calendar, Clock, AlertTriangle, RotateCcw, ShieldCheck, BarChart2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
+import { getConsentStatus, setConsentStatus, CONSENT_CHANGED_EVENT, trackEvent, type ConsentStatus } from '@/lib/analytics';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import {
   createNewRules,
@@ -30,6 +31,9 @@ import { getHourRange, formatHourRange } from '@/lib/bellSchedule';
 import { useSanitaryMode } from '@/lib/sanitaryMode';
 import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
+import { AccountSettingsCard } from '@/components/AccountSettingsCard';
+import { VersionManager } from '@/components/VersionManager';
+import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -96,6 +100,21 @@ export function Settings() {
   const [shift1Last, setShift1Last] = useState(4);
   const [shift2First, setShift2First] = useState(5);
   const [shift2Last, setShift2Last] = useState(8);
+  const [consentStatus, setLocalConsentStatus] = useState<ConsentStatus | null>(getConsentStatus());
+
+  useEffect(() => {
+    const handleConsent = () => {
+      setLocalConsentStatus(getConsentStatus());
+    };
+    window.addEventListener(CONSENT_CHANGED_EVENT, handleConsent);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, handleConsent);
+  }, []);
+
+  const handleToggleConsent = async (granted: boolean) => {
+    const newStatus: ConsentStatus = granted ? 'granted' : 'denied';
+    await setConsentStatus(newStatus);
+    setLocalConsentStatus(newStatus);
+  };
 
   const hasLocalChanges = useMemo(() => {
     if (!rules) return false;
@@ -223,19 +242,38 @@ export function Settings() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await db.rules.add(newRules);
-      
-      if (data.teachers.length > 0) await db.teachers.bulkAdd(data.teachers);
-      if (data.subjects.length > 0) await db.subjects.bulkAdd(data.subjects);
-      if (data.activityTags.length > 0) await db.activityTags.bulkAdd(data.activityTags);
-      if (data.studentsYears.length > 0) await db.studentsYears.bulkAdd(data.studentsYears);
-      if (data.studentsGroups.length > 0) await db.studentsGroups.bulkAdd(data.studentsGroups);
-      if (data.studentsSubgroups.length > 0) await db.studentsSubgroups.bulkAdd(data.studentsSubgroups);
-      if (data.activities.length > 0) await db.activities.bulkAdd(data.activities);
-      if (data.buildings.length > 0) await db.buildings.bulkAdd(data.buildings);
-      if (data.rooms.length > 0) await db.rooms.bulkAdd(data.rooms);
-      if (data.timeConstraints.length > 0) await db.timeConstraints.bulkAdd(data.timeConstraints);
-      if (data.spaceConstraints.length > 0) await db.spaceConstraints.bulkAdd(data.spaceConstraints);
+      await db.transaction(
+        'rw',
+        [
+          db.rules,
+          db.teachers,
+          db.subjects,
+          db.activityTags,
+          db.studentsYears,
+          db.studentsGroups,
+          db.studentsSubgroups,
+          db.activities,
+          db.buildings,
+          db.rooms,
+          db.timeConstraints,
+          db.spaceConstraints,
+        ],
+        async () => {
+          await db.rules.add(newRules);
+          
+          if (data.teachers.length > 0) await db.teachers.bulkAdd(data.teachers);
+          if (data.subjects.length > 0) await db.subjects.bulkAdd(data.subjects);
+          if (data.activityTags.length > 0) await db.activityTags.bulkAdd(data.activityTags);
+          if (data.studentsYears.length > 0) await db.studentsYears.bulkAdd(data.studentsYears);
+          if (data.studentsGroups.length > 0) await db.studentsGroups.bulkAdd(data.studentsGroups);
+          if (data.studentsSubgroups.length > 0) await db.studentsSubgroups.bulkAdd(data.studentsSubgroups);
+          if (data.activities.length > 0) await db.activities.bulkAdd(data.activities);
+          if (data.buildings.length > 0) await db.buildings.bulkAdd(data.buildings);
+          if (data.rooms.length > 0) await db.rooms.bulkAdd(data.rooms);
+          if (data.timeConstraints.length > 0) await db.timeConstraints.bulkAdd(data.timeConstraints);
+          if (data.spaceConstraints.length > 0) await db.spaceConstraints.bulkAdd(data.spaceConstraints);
+        }
+      );
       
       dispatch(setRules(serializeDates(newRules)));
       dispatch(setTeachers(data.teachers));
@@ -257,6 +295,11 @@ export function Settings() {
         activities: data.activities.length,
         rooms: data.rooms.length,
       }));
+
+      trackEvent('timetable_imported', {
+        source_type: 'fet',
+        activity_count: data.activities.length,
+      });
 
       if (fileInputRef.current) fileInputRef.current.value = '';
 
@@ -372,6 +415,12 @@ export function Settings() {
         }
       />
 
+      {/* Account and Cloud Workspace Controls */}
+      <AccountSettingsCard />
+
+      {/* Version History and Milestones */}
+      <VersionManager />
+
       {/* Import Section */}
       <Card className="animate-slide-up">
         <CardHeader>
@@ -435,6 +484,10 @@ export function Settings() {
           const report = rozPreview?.report;
           await confirmRozImport();
           if (report) {
+            trackEvent('timetable_imported', {
+              source_type: 'roz',
+              activity_count: report.counts.lessons,
+            });
             setImportSuccess(
               t('rozImport.successDetail', {
                 classes: report.counts.classes,
@@ -688,6 +741,47 @@ export function Settings() {
             <StatCard title={t('settings.stats.status')} value={modified ? t('settings.stats.modified') : t('settings.stats.saved')} icon={<SettingsIcon className="h-5 w-5" aria-hidden="true" />} />
           </div>
 
+          {/* Keyboard Shortcuts Guide */}
+          <KeyboardShortcutsCard />
+
+          {/* Analytics & Privacy */}
+          <Card className="animate-slide-up" style={{ animationDelay: '175ms' }}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <BarChart2 className="h-5 w-5 text-primary" aria-hidden="true" />
+                </div>
+                <div>
+                  <CardTitle>{t('analytics.settingsTitle', 'Анонімна статистика та конфіденційність')}</CardTitle>
+                  <CardDescription>
+                    {t('analytics.settingsDesc', 'Керування участю в покращенні застосунку')}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-primary"
+                  checked={consentStatus === 'granted'}
+                  onChange={(e) => handleToggleConsent(e.target.checked)}
+                />
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">
+                    {t('analytics.allowAnalytics', 'Дозволити надсилання анонімної технічної статистики')}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t(
+                      'analytics.privacyGuarantee',
+                      'Збираються лише технічні показники (відкриття сторінок, швидкість генерації, формат експорту). Жодні назви шкіл, розклади, предмети або імена вчителів ніколи не передаються.'
+                    )}
+                  </p>
+                </div>
+              </label>
+            </CardContent>
+          </Card>
+
           {/* Reset Data Section */}
           <Card className="animate-slide-up border-destructive/30" style={{ animationDelay: '200ms' }}>
             <CardHeader>
@@ -760,27 +854,30 @@ export function Settings() {
       )}
 
       {!rules && (
-        <Card className="animate-slide-up">
-          <CardContent className="py-12">
-            <EmptyState
-              icon={<SettingsIcon className="h-12 w-12" aria-hidden="true" />}
-              title={t('settings.empty.title')}
-              description={t('settings.empty.description')}
-              action={
-                <div className="flex gap-4">
-                  <Button onClick={handleCreateNew} className="gap-2">
-                    <Plus className="h-4 w-4" aria-hidden="true" />
-                    {t('common.createNew')}
-                  </Button>
-                  <Button variant="outline" onClick={handleImportClick} className="gap-2">
-                    <FileUp className="h-4 w-4" aria-hidden="true" />
-                    {t('settings.empty.importFile')}
-                  </Button>
-                </div>
-              }
-            />
-          </CardContent>
-        </Card>
+        <>
+          <Card className="animate-slide-up">
+            <CardContent className="py-12">
+              <EmptyState
+                icon={<SettingsIcon className="h-12 w-12" aria-hidden="true" />}
+                title={t('settings.empty.title')}
+                description={t('settings.empty.description')}
+                action={
+                  <div className="flex gap-4">
+                    <Button onClick={handleCreateNew} className="gap-2">
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                      {t('common.createNew')}
+                    </Button>
+                    <Button variant="outline" onClick={handleImportClick} className="gap-2">
+                      <FileUp className="h-4 w-4" aria-hidden="true" />
+                      {t('settings.empty.importFile')}
+                    </Button>
+                  </div>
+                }
+              />
+            </CardContent>
+          </Card>
+          <KeyboardShortcutsCard />
+        </>
       )}
     </div>
   );

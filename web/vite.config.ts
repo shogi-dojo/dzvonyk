@@ -5,13 +5,14 @@ import path from 'path'
 
 // Vendor packages grouped into stable, separately-cacheable chunks.
 const VENDOR_CHUNKS: Record<string, string[]> = {
-  react: ['react', 'react-dom', 'react-router-dom'],
+  react: ['react', 'react-dom', 'react-router-dom', 'dexie-react-hooks'],
   redux: ['@reduxjs/toolkit', 'react-redux'],
   i18n: ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
-  db: ['dexie', 'dexie-react-hooks'],
+  db: ['dexie'],
   zip: ['jszip'],
   icons: ['lucide-react'],
   validation: ['zod'],
+  firebase: ['firebase'],
 };
 
 // https://vite.dev/config/

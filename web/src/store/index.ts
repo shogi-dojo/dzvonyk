@@ -14,6 +14,8 @@ import roomsReducer from './slices/roomsSlice';
 import constraintsReducer from './slices/constraintsSlice';
 import generationReducer from './slices/generationSlice';
 import activityTagsReducer from './slices/activityTagsSlice';
+import workspaceReducer from './slices/workspaceSlice';
+import authReducer from './slices/authSlice';
 import { fetApi } from './api';
 
 export const store = configureStore({
@@ -28,6 +30,8 @@ export const store = configureStore({
     constraints: constraintsReducer,
     generation: generationReducer,
     activityTags: activityTagsReducer,
+    workspace: workspaceReducer,
+    auth: authReducer,
     [fetApi.reducerPath]: fetApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

@@ -454,3 +454,6 @@ export interface FETFile {
     shift2: { firstHour: number; lastHour: number };
   };
 }
+
+export * from './workspace';
+

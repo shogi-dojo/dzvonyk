@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function validSchool(uid, school) {
+      return school.keys().hasOnly([
+          'id', 'name', 'shortName', 'address', 'ownerUid', 'createdAt', 'updatedAt'
+        ])
+        && school.id is string
+        && school.id.size() > 0
+        && school.id.size() <= 128
+        && school.name is string
+        && school.name.size() > 0
+        && school.name.size() <= 200
+        && school.ownerUid == uid
+        && school.createdAt is string
+        && school.updatedAt is string
+        && school.createdAt.size() <= 64
+        && school.updatedAt.size() <= 64
+        && (!('shortName' in school) || (school.shortName is string && school.shortName.size() <= 100))
+        && (!('address' in school) || (school.address is string && school.address.size() <= 300));
+    }
+
+    function validWorkspace(schoolId, workspace) {
+      return workspace.keys().hasOnly([
+          'id', 'schoolId', 'label', 'startDate', 'endDate', 'localRevision',
+          'cloudRevision', 'lastSyncedAt', 'createdAt', 'updatedAt', 'isArchived'
+        ])
+        && workspace.id is string
+        && workspace.id.size() > 0
+        && workspace.id.size() <= 128
+        && workspace.schoolId == schoolId
+        && workspace.label is string
+        && workspace.label.size() > 0
+        && workspace.label.size() <= 200
+        && workspace.localRevision is int
+        && workspace.localRevision >= 0
+        && (!('cloudRevision' in workspace) || (workspace.cloudRevision is int && workspace.cloudRevision >= 0))
+        && workspace.createdAt is string
+        && workspace.updatedAt is string
+        && workspace.createdAt.size() <= 64
+        && workspace.updatedAt.size() <= 64
+        && (!('startDate' in workspace) || (workspace.startDate is string && workspace.startDate.size() <= 64))
+        && (!('endDate' in workspace) || (workspace.endDate is string && workspace.endDate.size() <= 64))
+        && (!('lastSyncedAt' in workspace) || (workspace.lastSyncedAt is string && workspace.lastSyncedAt.size() <= 64))
+        && (!('isArchived' in workspace) || workspace.isArchived is bool);
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if false;
+
+      match /schools/{schoolId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && validSchool(uid, request.resource.data)
+          && request.resource.data.id == schoolId;
+
+        match /workspaces/{workspaceId} {
+          allow read, delete: if isOwner(uid);
+          allow create, update: if isOwner(uid)
+            && validWorkspace(schoolId, request.resource.data)
+            && request.resource.data.id == workspaceId;
+        }
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
