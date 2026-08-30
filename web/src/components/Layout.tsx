@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users2, BookOpen, GraduationCap, Calendar,
   Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Bell, Sun, Moon, Info,
-  Heart, ExternalLink, PanelLeftClose, PanelLeftOpen
+  Heart, ExternalLink, PanelLeftClose, PanelLeftOpen, CircleHelp
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -47,6 +47,7 @@ const navigation: NavItem[] = [
   { key: 'rooms', href: '/rooms', icon: Building2 },
   { key: 'constraints', href: '/constraints', icon: Shield },
   { key: 'settings', href: '/settings', icon: Settings },
+  { key: 'faq', href: '/faq', icon: CircleHelp },
   { key: 'about', href: '/about', icon: Info },
 ];
 

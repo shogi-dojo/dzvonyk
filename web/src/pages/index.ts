@@ -9,4 +9,5 @@ export { Generate } from './Generate';
 export { Timetable } from './Timetable';
 export { Print } from './Print';
 export { Settings } from './Settings';
+export { FAQ } from './FAQ';
 export { About } from './About';

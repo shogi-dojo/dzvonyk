@@ -15,6 +15,7 @@ import {
   Timetable,
   Print,
   Settings,
+  FAQ,
   About,
 } from './pages';
 
@@ -37,6 +38,7 @@ function App() {
               <Route path="/timetable" element={<Timetable />} />
               <Route path="/print" element={<Print />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/about" element={<About />} />
             </Routes>
           </Layout>
