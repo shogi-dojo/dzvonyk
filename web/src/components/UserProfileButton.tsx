@@ -35,12 +35,19 @@ export function UserProfileButton({ compact = false }: { compact?: boolean }) {
   const { user, loading } = useAppSelector((state) => state.auth);
   const syncStatus = useAppSelector((state) => state.workspace.syncStatus);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const reloadTimetableState = useReloadTimetableState();
 
   const handleSignIn = async () => {
+    setErrorMessage(null);
     try {
       await dispatch(signInWithGoogleThunk()).unwrap();
-    } catch (err) {
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message || 'Помилка авторизації';
+      if (!msg.includes('закрито')) {
+        setErrorMessage(msg);
+        alert(msg);
+      }
       console.warn('Sign in failed:', err);
     }
   };
@@ -53,18 +60,25 @@ export function UserProfileButton({ compact = false }: { compact?: boolean }) {
 
   if (!user) {
     return (
-      <Button
-        variant="outline"
-        size={compact ? 'icon' : 'sm'}
-        disabled={loading}
-        onClick={handleSignIn}
-        className="gap-2 h-9 shrink-0 text-xs font-medium border-border/80 hover:bg-primary/5 hover:border-primary/40"
-      >
-        <GoogleIcon />
-        <span className={compact ? 'sr-only' : 'hidden sm:inline'}>
-          {t('auth.signIn', 'Увійти')}
-        </span>
-      </Button>
+      <div className="relative">
+        <Button
+          variant="outline"
+          size={compact ? 'icon' : 'sm'}
+          disabled={loading}
+          onClick={handleSignIn}
+          className="gap-2 h-9 shrink-0 text-xs font-medium border-border/80 hover:bg-primary/5 hover:border-primary/40"
+        >
+          <GoogleIcon />
+          <span className={compact ? 'sr-only' : 'hidden sm:inline'}>
+            {loading ? 'Вхід...' : t('auth.signIn', 'Увійти')}
+          </span>
+        </Button>
+        {errorMessage && (
+          <div className="absolute left-0 top-full mt-1.5 p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-[11px] text-destructive shadow-lg z-50 w-56">
+            {errorMessage}
+          </div>
+        )}
+      </div>
     );
   }
 

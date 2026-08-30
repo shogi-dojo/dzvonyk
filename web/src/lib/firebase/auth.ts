@@ -34,32 +34,39 @@ export function toAuthUserProfile(user: User | null): AuthUserProfile | null {
 
 /**
  * Signs in user with Google Auth.
- * Uses popup by default with redirect fallback.
+ * Uses popup by default (works reliably in desktop browsers and PWAs).
  */
 export async function signInWithGoogle(): Promise<AuthUserProfile> {
-  const isStandalone =
-    typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true);
-
   try {
-    if (isStandalone) {
-      await signInWithRedirect(auth, googleProvider);
-      return new Promise(() => {}); // Wait for redirect to complete
-    }
-
     const cred = await signInWithPopup(auth, googleProvider);
     trackEvent('auth_login', { method: 'google' });
-    return toAuthUserProfile(cred.user)!;
+    const profile = toAuthUserProfile(cred.user);
+    if (!profile) throw new Error('User profile is null after sign in');
+    return profile;
   } catch (err: unknown) {
-    const errorObj = err as { code?: string };
-    // If popup was blocked, fallback to redirect
-    if (errorObj?.code === 'auth/popup-blocked' || errorObj?.code === 'auth/popup-closed-by-user') {
-      if (errorObj.code === 'auth/popup-blocked') {
-        await signInWithRedirect(auth, googleProvider);
-        return new Promise(() => {});
-      }
+    const errorObj = err as { code?: string; message?: string };
+    console.warn('[Auth] signInWithPopup code:', errorObj?.code, errorObj?.message);
+
+    // If popup was explicitly blocked by the browser, fallback to redirect
+    if (errorObj?.code === 'auth/popup-blocked') {
+      console.log('[Auth] Popup was blocked, attempting signInWithRedirect...');
+      await signInWithRedirect(auth, googleProvider);
+      return new Promise(() => {});
     }
+
+    if (errorObj?.code === 'auth/popup-closed-by-user' || errorObj?.code === 'auth/cancelled-popup-request') {
+      console.log('[Auth] Sign-in popup was closed by user.');
+      throw new Error('Вікно авторизації було закрито.');
+    }
+
+    if (errorObj?.code === 'auth/unauthorized-domain') {
+      throw new Error('Домен застосунку не додано до списку авторизованих у Firebase Console (Authorized Domains).');
+    }
+
+    if (errorObj?.code === 'auth/operation-not-allowed') {
+      throw new Error('Провайдер Google не увімкнено у Firebase Console (Authentication -> Sign-in method).');
+    }
+
     throw err;
   }
 }
