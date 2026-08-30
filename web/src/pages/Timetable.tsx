@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Download, Eye, UserCircle, Building2, Loader2,
   Calendar, Clock, AlertTriangle, Grid3X3, CheckCircle2,
   GraduationCap, Users, RotateCcw, Printer, Archive,
-  Lock, Unlock, Move, AlertCircle, LayoutGrid, X
+  Lock, Unlock, Move, AlertCircle, LayoutGrid, X,
+  Maximize2, Minimize2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -97,6 +98,18 @@ export function Timetable() {
 
   const [moveError, setMoveError] = useState<string | null>(null);
   const [moveSuccess, setMoveSuccess] = useState<string | null>(null);
+  const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+  const [matrixDensity, setMatrixDensity] = useState<'compact' | 'comfortable'>('comfortable');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFocusMode) {
+        setIsFocusMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFocusMode]);
 
   // Locked activities set from timeConstraints
   const lockedActivityIds = useMemo(() => {
@@ -924,8 +937,8 @@ export function Timetable() {
 
       {showGrid && (
         <>
-          <Card className="animate-slide-up" ref={printRef}>
-            <CardHeader>
+          <Card className={cn(isFocusMode ? "fixed inset-0 z-50 rounded-none border-0 bg-background flex flex-col p-4 overflow-auto" : "animate-slide-up")} ref={printRef}>
+            <CardHeader className={cn(isFocusMode && "shrink-0 pb-3")}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   {viewType === 'teachers' && <UserCircle className="h-5 w-5 text-primary" aria-hidden="true" />}
@@ -949,13 +962,40 @@ export function Timetable() {
                     </CardDescription>
                   </div>
                 </div>
-                <Button variant="outline" onClick={handleChangeSelection} className="gap-2">
-                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                  {t('timetable.change')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {(viewType === 'full-matrix' || viewType === 'teacher-matrix') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMatrixDensity(matrixDensity === 'compact' ? 'comfortable' : 'compact')}
+                      className="gap-1.5 text-xs h-8"
+                      title={t('timetable.density', { defaultValue: 'Масштаб' })}
+                    >
+                      {matrixDensity === 'compact'
+                        ? t('timetable.comfortable', { defaultValue: 'Зручний' })
+                        : t('timetable.compact', { defaultValue: 'Компактний' })}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFocusMode(!isFocusMode)}
+                    className="gap-1.5 text-xs h-8"
+                    title={isFocusMode ? t('timetable.exitFocusMode', { defaultValue: 'Вийти з фокусування' }) : t('timetable.focusMode', { defaultValue: 'Режим фокусування' })}
+                  >
+                    {isFocusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                    <span className="hidden sm:inline">
+                      {isFocusMode ? t('timetable.exitFocusMode', { defaultValue: 'Вийти з фокусування' }) : t('timetable.focusMode', { defaultValue: 'Режим фокусування' })}
+                    </span>
+                  </Button>
+                  <Button variant="outline" onClick={handleChangeSelection} className="gap-2 h-8 text-xs">
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                    {t('timetable.change')}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 flex-1">
               {(viewType === 'full-matrix' || viewType === 'teacher-matrix') &&
               ((viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData) !== null) ? (
                 <div className="p-4 space-y-4">
@@ -968,6 +1008,7 @@ export function Timetable() {
                     onMove={handleMoveActivity}
                     onPair={handlePairActivities}
                     onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
+                    density={matrixDensity}
                     cornerLabel={
                       viewType === 'teacher-matrix'
                         ? t('teachers.title', { defaultValue: 'Вчителі' })
