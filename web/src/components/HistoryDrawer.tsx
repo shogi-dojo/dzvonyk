@@ -111,21 +111,22 @@ export function HistoryControls() {
           <aside
             role="dialog"
             aria-label={t('history.title', 'Історія дій')}
-            className="relative w-full max-w-md bg-card border-l border-border shadow-2xl flex flex-col h-full z-10 animate-slide-left"
+            className="relative w-full max-w-[320px] sm:max-w-md bg-card border-l border-border shadow-2xl flex flex-col h-full z-10 animate-slide-left"
           >
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <HistoryIcon className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-foreground">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
+              <div className="flex items-center gap-2 min-w-0">
+                <HistoryIcon className="h-5 w-5 text-primary shrink-0" />
+                <h3 className="font-semibold text-foreground truncate">
                   {t('history.title', 'Історія змін')}
                 </h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono shrink-0">
                   {entries.length} / 100
                 </span>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-8 w-8 shrink-0"
                 onClick={() => setDrawerOpen(false)}
                 aria-label={t('common.close', 'Закрити')}
               >
@@ -133,13 +134,13 @@ export function HistoryControls() {
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-3 sm:p-4">
               {entries.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-sm">
                   {t('history.empty', 'Історія дій порожня')}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {[...entries].reverse().map((entry, idx) => {
                     const isLatest = idx === 0;
                     return (
@@ -157,7 +158,7 @@ export function HistoryControls() {
                           }
                         }}
                         className={cn(
-                          'p-3 rounded-lg border transition-all flex items-start justify-between gap-3 text-left w-full group',
+                          'p-3 rounded-lg border transition-all flex items-start justify-between gap-2 text-left w-full group box-border overflow-hidden',
                           isLatest
                             ? 'border-primary/40 bg-primary/5 shadow-sm'
                             : 'border-border/70 bg-background/60 hover:border-primary/70 hover:bg-muted/70 cursor-pointer active:scale-[0.99]'
@@ -169,8 +170,8 @@ export function HistoryControls() {
                         }
                       >
                         <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-foreground truncate">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="text-sm font-medium text-foreground leading-snug break-words">
                               {entry.description}
                             </p>
                             {isLatest && (
@@ -185,11 +186,8 @@ export function HistoryControls() {
                           </div>
                         </div>
                         {!isLatest && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-0.5">
+                          <div className="flex items-center text-xs text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-0.5 ml-1">
                             <RotateCcw className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline text-[11px] font-medium opacity-80 group-hover:opacity-100">
-                              {t('history.revert', 'Відновити')}
-                            </span>
                           </div>
                         )}
                       </div>
