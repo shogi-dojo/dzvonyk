@@ -124,6 +124,8 @@ export function Timetable() {
 
   // 0 = every day visible at once; higher = bigger drop targets.
   const [matrixZoom, setMatrixZoom] = useState(0);
+  // 0 means "size the label column from the zoom step"; a drag pins it in px.
+  const [labelWidthPx, setLabelWidthPx] = useState(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1110,6 +1112,8 @@ export function Timetable() {
                     onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
                     zoom={matrixZoom}
                     onZoomChange={setMatrixZoom}
+                    labelWidthPx={labelWidthPx || undefined}
+                    onLabelWidthChange={setLabelWidthPx}
                     className="flex-1 min-h-0"
                     cornerLabel={
                       viewType === 'teacher-matrix'

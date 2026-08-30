@@ -518,6 +518,14 @@ body.matrix-dragging * {
   -webkit-user-select: none !important;
 }
 
+/* Keep the resize cursor steady while dragging a column divider, even as the
+   pointer leaves the handle itself. */
+body.matrix-resizing,
+body.matrix-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
 
 @media print {
   @page {

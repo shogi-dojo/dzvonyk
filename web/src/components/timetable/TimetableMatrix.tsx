@@ -3,6 +3,7 @@ import { Lock, AlertCircle } from 'lucide-react';
 import type { Day, Hour } from '@/types';
 import type { CellData, MatrixRow } from '@/lib/timetableGrid';
 import { deriveSubjectCode } from '@/lib/subjectCodes';
+import { splitPersonName } from '@/lib/personName';
 import { cn } from '@/lib/utils';
 
 export interface DropFeedback {
@@ -32,6 +33,9 @@ export interface TimetableMatrixProps {
    */
   zoom?: number;
   onZoomChange?: (next: number) => void;
+  /** Explicit label-column width in px. Unset means "follow the zoom step". */
+  labelWidthPx?: number;
+  onLabelWidthChange?: (px: number) => void;
   className?: string;
   cornerLabel?: string;
 }
@@ -41,9 +45,9 @@ export interface TimetableMatrixProps {
  * screen without horizontal scrolling; each step up roughly doubles the drop target.
  */
 export const ZOOM_STEPS = [
-  { cell: 'min-w-[24px]', label: 'w-[76px] min-w-[76px]', head: 'h-5 text-[9px]', cellH: 'h-7 text-[10px]' },
-  { cell: 'min-w-[32px]', label: 'w-[92px] min-w-[92px]', head: 'h-6 text-[10px]', cellH: 'h-8 text-[11px]' },
-  { cell: 'min-w-[44px]', label: 'w-[110px] min-w-[110px]', head: 'h-7 text-[11px]', cellH: 'h-10 text-xs' },
+  { cell: 'min-w-[24px]', label: 'w-[108px] min-w-[108px]', head: 'h-5 text-[9px]', cellH: 'h-7 text-[10px]' },
+  { cell: 'min-w-[32px]', label: 'w-[120px] min-w-[120px]', head: 'h-6 text-[10px]', cellH: 'h-8 text-[11px]' },
+  { cell: 'min-w-[44px]', label: 'w-[132px] min-w-[132px]', head: 'h-7 text-[11px]', cellH: 'h-10 text-xs' },
   { cell: 'min-w-[56px]', label: 'w-[130px] min-w-[130px]', head: 'h-7 text-[11px]', cellH: 'h-12 text-xs' },
   { cell: 'min-w-[80px]', label: 'w-[150px] min-w-[150px]', head: 'h-8 text-xs', cellH: 'h-14 text-sm' },
 ] as const;
@@ -62,6 +66,8 @@ export function TimetableMatrix({
   onDragStateChange,
   zoom = 0,
   onZoomChange,
+  labelWidthPx,
+  onLabelWidthChange,
   className,
   cornerLabel,
 }: TimetableMatrixProps) {
@@ -70,6 +76,33 @@ export function TimetableMatrix({
   const labelWidth = zoomStep.label;
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Google-Sheets style column resize: drag the divider on the header's right edge.
+  const handleLabelResize = (e: React.MouseEvent) => {
+    if (!onLabelWidthChange) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = (e.currentTarget.parentElement as HTMLElement).offsetWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const next = Math.min(Math.max(startWidth + (ev.clientX - startX), 60), 420);
+      onLabelWidthChange(next);
+    };
+    const onMouseUp = () => {
+      document.body.classList.remove('matrix-resizing');
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+    document.body.classList.add('matrix-resizing');
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const labelStyle = labelWidthPx
+    ? { width: labelWidthPx, minWidth: labelWidthPx, maxWidth: labelWidthPx }
+    : undefined;
+
 
   // Ctrl/⌘ + wheel zooms. Registered manually because React's onWheel is passive,
   // and a passive listener cannot preventDefault the browser's page zoom.
@@ -142,9 +175,21 @@ export function TimetableMatrix({
             <th
               rowSpan={2}
               data-testid="matrix-corner"
-              className={cn("sticky left-0 z-30 bg-muted/95 backdrop-blur-xs px-2 py-2 text-xs font-semibold text-muted-foreground border-b border-r border-border align-middle shadow-[1px_0_0_0_hsl(var(--border))]", labelWidth)}
+              style={labelStyle}
+              className={cn("sticky left-0 z-30 bg-muted/95 backdrop-blur-xs px-2 py-2 text-xs font-semibold text-muted-foreground border-b border-r border-border align-middle shadow-[1px_0_0_0_hsl(var(--border))] relative", !labelWidthPx && labelWidth)}
             >
               {cornerLabel || 'Клас / Вчитель'}
+              {onLabelWidthChange && (
+                <span
+                  role="separator"
+                  aria-orientation="vertical"
+                  data-testid="label-resize-handle"
+                  onMouseDown={handleLabelResize}
+                  onDoubleClick={() => onLabelWidthChange(0)}
+                  title="Потягніть, щоб змінити ширину. Подвійний клік — авто"
+                  className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-primary/40 active:bg-primary/60 transition-colors"
+                />
+              )}
             </th>
             {days.map((day, dIdx) => (
               <th
@@ -184,10 +229,17 @@ export function TimetableMatrix({
               <td
                 data-testid="matrix-row-label"
                 data-row-id={row.id}
-                className={cn("sticky left-0 z-10 bg-card/95 backdrop-blur-xs px-2 py-1 text-xs font-medium border-b border-r border-border shadow-[1px_0_0_0_hsl(var(--border))] truncate", labelWidth)}>
-                <div className="font-semibold text-foreground truncate">{row.label}</div>
+                style={labelStyle}
+                title={row.label}
+                className={cn("sticky left-0 z-10 bg-card/95 backdrop-blur-xs px-2 py-1 text-xs font-medium border-b border-r border-border shadow-[1px_0_0_0_hsl(var(--border))] overflow-hidden", !labelWidthPx && labelWidth)}>
+                <div className="font-semibold text-foreground leading-tight truncate">{splitPersonName(row.label).primary}</div>
+                {splitPersonName(row.label).initials && (
+                  <div className="text-[10px] text-muted-foreground leading-tight truncate">
+                    {splitPersonName(row.label).initials}
+                  </div>
+                )}
                 {row.sublabel && (
-                  <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+                  <div className="text-[10px] text-muted-foreground truncate leading-tight">
                     {row.sublabel}
                   </div>
                 )}

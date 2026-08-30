@@ -238,6 +238,46 @@ test.describe('Matrix viewport and controls', () => {
   });
 });
 
+test.describe('Row label column', () => {
+  test('shows a teacher as surname over initials', async ({ page }) => {
+    await importFixture(page);
+    await openMatrix(page, /загальна матриця \(вчителі\)/i);
+
+    // Fixture teachers are "Шевченко Т.Г." and "Франко І.Я.".
+    const labels = await page.getByTestId('matrix-row-label').allInnerTexts();
+    expect(labels.some((l) => /Шевченко\nТ\.Г\./.test(l))).toBe(true);
+  });
+
+  test('leaves class labels alone', async ({ page }) => {
+    await importFixture(page);
+    await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    const first = await page.getByTestId('matrix-row-label').first().innerText();
+    expect(first.trim()).toBe('5-А');
+  });
+
+  test('column width can be dragged like a spreadsheet', async ({ page }) => {
+    await importFixture(page);
+    await openMatrix(page, /загальна матриця \(вчителі\)/i);
+
+    const label = page.getByTestId('matrix-row-label').first();
+    const before = (await label.boundingBox())!.width;
+
+    const handle = page.getByTestId('label-resize-handle');
+    const box = (await handle.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+
+    await expect.poll(async () => (await label.boundingBox())!.width).toBeGreaterThan(before + 50);
+
+    // Double-click hands the width back to the zoom step.
+    await handle.dblclick();
+    await expect.poll(async () => (await label.boundingBox())!.width).toBe(before);
+  });
+});
+
 test.describe('Zen / focus mode', () => {
   test('fills the screen and hides the surrounding chrome', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
