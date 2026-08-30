@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { SyntheticRozBuilder } from '../src/lib/rozFixture';
+import fs from 'fs';
 import path from 'path';
 
 test('Teacher rename and direct block click rollback in history', async ({ page }) => {
@@ -6,8 +8,23 @@ test('Teacher rename and direct block click rollback in history', async ({ page 
   await page.goto('/');
   await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
-  // 1. Upload ROZ file from notes
-  const rozPath = path.resolve('../notes/Останній 1_b8aedb47-5e1d-4adc-814c-f2ab51729012.roz');
+  // 1. Prepare and upload ROZ file fixture
+  const fixturesDir = path.resolve(process.cwd(), 'e2e/fixtures');
+  if (!fs.existsSync(fixturesDir)) {
+    fs.mkdirSync(fixturesDir, { recursive: true });
+  }
+  const rozPath = path.join(fixturesDir, 'teacher-history-school.roz');
+  if (!fs.existsSync(rozPath)) {
+    const builder = new SyntheticRozBuilder()
+      .setSchool('Гімназія 131', '2025/2026')
+      .setSubjects(['Математика', 'Українська мова'])
+      .setTeachers(['Ігор Коваленко', 'Оксана Сисова'])
+      .setClasses(['5-А'])
+      .addLesson(1, 2, 0, 0, 0)
+      .addCard(1, 1, 0);
+    fs.writeFileSync(rozPath, Buffer.from(builder.build()));
+  }
+
   const fileInput = page.locator('input[accept=".roz"]');
   await fileInput.setInputFiles(rozPath);
 

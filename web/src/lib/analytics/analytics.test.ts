@@ -10,6 +10,14 @@ import {
   trackEvent,
 } from './analytics';
 
+vi.mock('firebase/analytics', () => ({
+  getAnalytics: vi.fn(() => ({})),
+  isSupported: vi.fn(async () => true),
+  logEvent: vi.fn(),
+  setAnalyticsCollectionEnabled: vi.fn(),
+  setConsent: vi.fn(),
+}));
+
 describe('Consent-gated Analytics & Privacy', () => {
   beforeEach(() => {
     localStorage.clear();
