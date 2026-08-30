@@ -3,118 +3,140 @@ export interface PrintReportPdfOptions {
   bufferPx?: number;
 }
 
+const STYLE_ID = 'pdf-custom-page-size-style';
+let printInProgress = false;
+
+function pixelValue(value: string): number {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 /**
- * Directly prints/saves the on-screen report element as a 1:1 vector PDF using native window.print()
- * with dynamically injected @page dimensions matching the element's full natural size.
- *
- * This ensures the exported PDF is identical to the on-screen preview with 100% vector typography,
- * selectable text, exact colors, and no column squishing on wide multi-class tables.
+ * Prints the rendered report preview through the browser's native PDF pipeline.
+ * The temporary page box matches the report's natural dimensions, so text stays
+ * selectable and wide matrices are not scaled down or rasterized.
  */
 export async function printReportElementToPdf(
   element: HTMLElement,
   options: PrintReportPdfOptions = {}
 ): Promise<void> {
-  const { fileName = 'Зведений_розклад.pdf', bufferPx = 32 } = options;
-
-  // 1. Measure the widest table/container and full content height
-  let maxContentWidth = Math.max(element.scrollWidth, element.offsetWidth, 1200);
-  const wideElements = element.querySelectorAll<HTMLElement>('.overflow-x-auto, table, .timetable-grid');
-  wideElements.forEach((el) => {
-    if (el.scrollWidth > maxContentWidth) {
-      maxContentWidth = el.scrollWidth;
-    }
-  });
-
-  const maxContentHeight = Math.max(element.scrollHeight, element.offsetHeight, 600);
-
-  // Compute exact single-page dimensions in pixels with buffer against rounding
-  const pageWidthPx = Math.ceil(maxContentWidth + bufferPx);
-  const pageHeightPx = Math.ceil(maxContentHeight + bufferPx);
-
-  // Clean document.title so the browser's "Save as PDF" dialog pre-fills the suggested file name
-  const safeDocTitle = fileName.replace(/\.pdf$/i, '');
-  const originalTitle = document.title;
-
-  // 2. Inject temporary custom @page size style
-  const styleId = 'pdf-custom-page-size-style';
-  let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
-  if (!styleEl) {
-    styleEl = document.createElement('style');
-    styleEl.id = styleId;
-    document.head.appendChild(styleEl);
+  if (!element.isConnected) {
+    throw new Error('Cannot print a report element that is not attached to the document');
+  }
+  if (printInProgress) {
+    throw new Error('A report print is already in progress');
   }
 
-  styleEl.innerHTML = `
+  const { fileName = 'Зведений_розклад.pdf', bufferPx = 4 } = options;
+  const safeBufferPx = Number.isFinite(bufferPx) ? Math.max(0, bufferPx) : 4;
+  const computedStyle = window.getComputedStyle(element);
+  const paddingTop = pixelValue(computedStyle.paddingTop);
+  const paddingRight = pixelValue(computedStyle.paddingRight);
+  const paddingBottom = pixelValue(computedStyle.paddingBottom);
+  const paddingLeft = pixelValue(computedStyle.paddingLeft);
+  const horizontalPadding = paddingLeft + paddingRight;
+
+  const elementContentWidth = Math.max(
+    0,
+    element.scrollWidth - horizontalPadding,
+    element.offsetWidth - horizontalPadding,
+    element.clientWidth - horizontalPadding
+  );
+  let widestContentWidth = elementContentWidth;
+  const wideElements = element.querySelectorAll<HTMLElement>(
+    '.overflow-x-auto, table, .timetable-grid'
+  );
+  wideElements.forEach((candidate) => {
+    widestContentWidth = Math.max(
+      widestContentWidth,
+      candidate.scrollWidth,
+      candidate.offsetWidth
+    );
+  });
+
+  const reportWidthPx = Math.ceil(widestContentWidth + horizontalPadding);
+  const reportHeightPx = Math.ceil(
+    Math.max(element.scrollHeight, element.offsetHeight, 600)
+  );
+  const pageWidthPx = Math.ceil(reportWidthPx + safeBufferPx);
+  const pageHeightPx = Math.ceil(reportHeightPx + safeBufferPx);
+
+  const originalTitle = document.title;
+  const requestedTitle = fileName.replace(/\.pdf$/i, '').trim();
+  const safeDocumentTitle = requestedTitle || 'Зведений_розклад';
+  const bodyAlreadyInPdfMode = document.body.classList.contains('pdf-print-mode');
+
+  document.getElementById(STYLE_ID)?.remove();
+  const styleElement = document.createElement('style');
+  styleElement.id = STYLE_ID;
+  styleElement.textContent = `
     @page {
       size: ${pageWidthPx}px ${pageHeightPx}px;
       margin: 0;
     }
     @media print {
-      body.pdf-print-mode {
-        background: #ffffff !important;
-        margin: 0 !important;
-        padding: 0 !important;
+      html {
         width: ${pageWidthPx}px !important;
+        min-width: ${pageWidthPx}px !important;
+        max-width: ${pageWidthPx}px !important;
+        overflow: visible !important;
       }
-      body.pdf-print-mode .no-print,
-      body.pdf-print-mode aside,
-      body.pdf-print-mode header,
-      body.pdf-print-mode nav,
-      body.pdf-print-mode footer {
-        display: none !important;
+      body.pdf-print-mode {
+        width: ${pageWidthPx}px !important;
+        min-width: ${pageWidthPx}px !important;
+        max-width: ${pageWidthPx}px !important;
+        overflow: visible !important;
       }
       body.pdf-print-mode [data-print-area="true"] {
-        width: ${pageWidthPx}px !important;
+        box-sizing: border-box !important;
+        width: ${reportWidthPx}px !important;
+        min-width: ${reportWidthPx}px !important;
         max-width: none !important;
-        min-width: ${pageWidthPx}px !important;
-        margin: 0 !important;
-        padding: 16px !important;
-        border: none !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        background: #ffffff !important;
-      }
-      body.pdf-print-mode [data-print-area="true"] .overflow-x-auto {
-        overflow: visible !important;
-        max-width: none !important;
-        width: 100% !important;
-      }
-      body.pdf-print-mode [data-print-area="true"] table {
-        max-width: none !important;
-        width: 100% !important;
+        padding: ${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px !important;
       }
     }
   `;
 
-  document.title = safeDocTitle;
+  document.head.appendChild(styleElement);
+  document.title = safeDocumentTitle;
   document.body.classList.add('pdf-print-mode');
+  printInProgress = true;
 
-  return new Promise((resolve) => {
-    let cleanedUp = false;
-    const cleanup = () => {
-      if (cleanedUp) return;
-      cleanedUp = true;
-      document.body.classList.remove('pdf-print-mode');
-      document.title = originalTitle;
-      if (styleEl && styleEl.parentNode) {
-        styleEl.parentNode.removeChild(styleEl);
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const finish = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener('afterprint', handleAfterPrint);
+      styleElement.remove();
+      if (!bodyAlreadyInPdfMode) {
+        document.body.classList.remove('pdf-print-mode');
       }
-      window.removeEventListener('afterprint', cleanup);
-      resolve();
+      document.title = originalTitle;
+      printInProgress = false;
+
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
     };
 
-    window.addEventListener('afterprint', cleanup, { once: true });
+    const handleAfterPrint = () => finish();
+    window.addEventListener('afterprint', handleAfterPrint, { once: true });
 
-    setTimeout(() => {
-      try {
-        window.print();
-      } catch (err) {
-        console.error('Error invoking window.print:', err);
-        cleanup();
-      }
-    }, 50);
+    try {
+      // Force style calculation before opening the modal print dialog while
+      // preserving the click's user activation.
+      void element.offsetHeight;
+      window.print();
 
-    // Timeout safety fallback
-    setTimeout(cleanup, 4000);
+      // window.print() is specified to block until the dialog closes. This is
+      // the fallback for browsers that do not dispatch afterprint reliably.
+      window.setTimeout(() => finish(), 0);
+    } catch (error) {
+      finish(error);
+    }
   });
 }

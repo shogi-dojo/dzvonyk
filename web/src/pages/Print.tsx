@@ -203,6 +203,14 @@ export function Print() {
     return computeAllClassesWeeklyLoad(sortedGroups, activities);
   }, [sortedGroups, activities]);
 
+  const canExportCurrentReport =
+    reportType === 'teacher-workload' ||
+    reportType === 'classes-workload' ||
+    (reportType === 'class' && Boolean(classGrid)) ||
+    (reportType === 'teacher' && Boolean(teacherGrid)) ||
+    (reportType === 'summary-classes' && Boolean(summaryClassesGrid)) ||
+    (reportType === 'summary-teachers' && Boolean(summaryTeachersGrid));
+
   const getCurrentReportHtml = (forPdf = false): string => {
     if (!rules) return '';
     const orientation =
@@ -286,7 +294,7 @@ export function Print() {
   };
 
   const handleExportPdf = async () => {
-    if (!printAreaRef.current || !rules) return;
+    if (!printAreaRef.current || !rules || !canExportCurrentReport) return;
     try {
       setExportingPdf(true);
       const titleMap: Record<ReportType, string> = {
@@ -393,7 +401,7 @@ export function Print() {
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               onClick={handleExportPdf}
-              disabled={exportingPdf}
+              disabled={exportingPdf || !canExportCurrentReport}
               className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
             >
               {exportingPdf ? (

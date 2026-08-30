@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { printReportElementToPdf } from './pdfExport';
 
 describe('printReportElementToPdf', () => {
@@ -8,80 +8,116 @@ describe('printReportElementToPdf', () => {
   beforeEach(() => {
     document.title = originalTitle;
     printSpy = vi.spyOn(window, 'print').mockImplementation(() => {
-      // Simulate browser firing afterprint event
       window.dispatchEvent(new Event('afterprint'));
     });
   });
 
   afterEach(() => {
     printSpy.mockRestore();
-    document.body.className = '';
-    const styleEl = document.getElementById('pdf-custom-page-size-style');
-    if (styleEl) styleEl.remove();
+    document.body.classList.remove('pdf-print-mode');
+    document.getElementById('pdf-custom-page-size-style')?.remove();
+    document.querySelectorAll('[data-pdf-test]').forEach((element) => element.remove());
   });
 
-  it('measures element, injects custom @page size, sets document.title, and invokes window.print', async () => {
+  function createContainer(): HTMLDivElement {
     const container = document.createElement('div');
+    container.dataset.pdfTest = 'true';
     container.setAttribute('data-print-area', 'true');
+    document.body.appendChild(container);
+    return container;
+  }
+
+  it('prints with the requested title and cleans up the temporary print state', async () => {
+    const container = createContainer();
     Object.defineProperty(container, 'scrollWidth', { value: 1600, configurable: true });
     Object.defineProperty(container, 'scrollHeight', { value: 900, configurable: true });
-    document.body.appendChild(container);
 
-    const promise = printReportElementToPdf(container, {
-      fileName: 'Зведений_розклад_класів_Гімназія_131.pdf',
-    });
-
-    // Check intermediate state during print trigger
-    await new Promise((r) => setTimeout(r, 60));
-
-    expect(printSpy).toHaveBeenCalled();
-    await promise;
-
-    // After afterprint, title and class should be restored and style cleaned up
-    expect(document.title).toBe(originalTitle);
-    expect(document.body.classList.contains('pdf-print-mode')).toBe(false);
-    expect(document.getElementById('pdf-custom-page-size-style')).toBeNull();
-
-    container.remove();
-  });
-
-  it('calculates page dimensions based on widest nested table/container', async () => {
-    const container = document.createElement('div');
-    const table = document.createElement('table');
-    table.className = 'timetable-grid';
-    Object.defineProperty(container, 'scrollWidth', { value: 800, configurable: true });
-    Object.defineProperty(table, 'scrollWidth', { value: 2400, configurable: true });
-    container.appendChild(table);
-    document.body.appendChild(container);
-
-    let capturedStyle = '';
+    let stateDuringPrint:
+      | { title: string; pdfMode: boolean; pageStyle: string }
+      | undefined;
     printSpy.mockImplementation(() => {
-      const styleEl = document.getElementById('pdf-custom-page-size-style');
-      if (styleEl) {
-        capturedStyle = styleEl.innerHTML;
-      }
+      stateDuringPrint = {
+        title: document.title,
+        pdfMode: document.body.classList.contains('pdf-print-mode'),
+        pageStyle: document.getElementById('pdf-custom-page-size-style')?.textContent || '',
+      };
       window.dispatchEvent(new Event('afterprint'));
     });
 
     await printReportElementToPdf(container, {
-      fileName: 'Тестовий_звіт.pdf',
+      fileName: 'Зведений_розклад_класів_Гімназія_131.pdf',
     });
 
-    expect(capturedStyle).toContain('2432px'); // 2400 + 32px buffer
-    container.remove();
+    expect(printSpy).toHaveBeenCalledOnce();
+    expect(stateDuringPrint).toMatchObject({
+      title: 'Зведений_розклад_класів_Гімназія_131',
+      pdfMode: true,
+    });
+    expect(stateDuringPrint?.pageStyle).toContain('@page');
+    expect(document.title).toBe(originalTitle);
+    expect(document.body.classList.contains('pdf-print-mode')).toBe(false);
+    expect(document.getElementById('pdf-custom-page-size-style')).toBeNull();
   });
 
-  it('handles multiple consecutive print calls safely without style leaks', async () => {
-    const container = document.createElement('div');
-    document.body.appendChild(container);
+  it('includes the preview padding around the widest nested table', async () => {
+    const container = createContainer();
+    container.style.padding = '24px 32px';
+    const table = document.createElement('table');
+    table.className = 'timetable-grid';
+    container.appendChild(table);
 
-    await printReportElementToPdf(container, { fileName: 'Report_1.pdf' });
+    Object.defineProperty(container, 'scrollWidth', { value: 800, configurable: true });
+    Object.defineProperty(container, 'scrollHeight', { value: 900, configurable: true });
+    Object.defineProperty(table, 'scrollWidth', { value: 2400, configurable: true });
+
+    let capturedStyle = '';
+    printSpy.mockImplementation(() => {
+      capturedStyle =
+        document.getElementById('pdf-custom-page-size-style')?.textContent || '';
+      window.dispatchEvent(new Event('afterprint'));
+    });
+
+    await printReportElementToPdf(container, { fileName: 'Тестовий_звіт.pdf' });
+
+    // 2400px table + 64px preview padding = 2464px report; + 4px safety buffer.
+    expect(capturedStyle).toContain('size: 2468px 904px');
+    expect(capturedStyle).toContain('width: 2464px');
+    expect(capturedStyle).toContain('padding: 24px 32px 24px 32px');
+  });
+
+  it('cleans up when the browser does not dispatch afterprint', async () => {
+    const container = createContainer();
+    printSpy.mockImplementation(() => undefined);
+
+    await printReportElementToPdf(container, { fileName: 'Fallback.pdf' });
+
+    expect(document.title).toBe(originalTitle);
+    expect(document.body.classList.contains('pdf-print-mode')).toBe(false);
     expect(document.getElementById('pdf-custom-page-size-style')).toBeNull();
+  });
 
-    await printReportElementToPdf(container, { fileName: 'Report_2.pdf' });
+  it('rejects print errors and still restores document state', async () => {
+    const container = createContainer();
+    printSpy.mockImplementation(() => {
+      throw new Error('Print unavailable');
+    });
+
+    await expect(
+      printReportElementToPdf(container, { fileName: 'Failure.pdf' })
+    ).rejects.toThrow('Print unavailable');
+
+    expect(document.title).toBe(originalTitle);
+    expect(document.body.classList.contains('pdf-print-mode')).toBe(false);
     expect(document.getElementById('pdf-custom-page-size-style')).toBeNull();
-    expect(printSpy).toHaveBeenCalledTimes(2);
+  });
 
-    container.remove();
+  it('rejects detached elements without changing the page', async () => {
+    const detached = document.createElement('div');
+
+    await expect(printReportElementToPdf(detached)).rejects.toThrow(
+      'not attached to the document'
+    );
+    expect(printSpy).not.toHaveBeenCalled();
+    expect(document.title).toBe(originalTitle);
   });
 });

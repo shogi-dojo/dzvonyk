@@ -516,17 +516,25 @@
     padding: 0 !important;
   }
 
+  body.pdf-print-mode #root,
+  body.pdf-print-mode [data-app-layout],
+  body.pdf-print-mode [data-app-content-shell],
   body.pdf-print-mode main,
-  body.pdf-print-mode #main-content {
+  body.pdf-print-mode #main-content,
+  body.pdf-print-mode [data-app-page-container] {
+    box-sizing: border-box !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
     max-width: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    transition: none !important;
   }
 
   body.pdf-print-mode [data-print-area="true"] {
     margin: 0 !important;
-    padding: 16px !important;
     border: none !important;
     box-shadow: none !important;
     background: #ffffff !important;
