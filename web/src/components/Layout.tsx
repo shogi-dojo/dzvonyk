@@ -143,8 +143,31 @@ export function Layout({ children }: LayoutProps) {
           </Button>
         </div>
         
+        {/* User Account & History Toolbar (Between header and school selector) */}
+        <div className="px-4 pt-3">
+          <div
+            className="flex min-w-0 items-center justify-between gap-2 p-1.5 rounded-lg border border-border/80 bg-background/50"
+            data-testid="sidebar-account-toolbar"
+          >
+            <UserProfileButton />
+            <div className="flex items-center gap-0.5">
+              <HistoryControls />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => dispatch(toggleDarkMode())}
+                aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
+                title={isDarkMode ? 'Світла тема' : 'Темна тема'}
+              >
+                {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Workspace Selector (Year / School) */}
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-2.5">
           <WorkspaceSelector />
         </div>
 
@@ -192,27 +215,6 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Pinned below the scroll area */}
         <div className="shrink-0 border-t border-border p-3.5 flex flex-col gap-2 bg-card">
-          {/* User Account & History Toolbar */}
-          <div
-            className="flex min-w-0 items-center justify-between gap-2 p-1.5 rounded-lg border border-border/80 bg-background/50"
-            data-testid="sidebar-account-toolbar"
-          >
-            <UserProfileButton />
-            <div className="flex items-center gap-0.5">
-              <HistoryControls />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => dispatch(toggleDarkMode())}
-                aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
-                title={isDarkMode ? 'Світла тема' : 'Темна тема'}
-              >
-                {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
-              </Button>
-            </div>
-          </div>
-
           <InstallPwaButton className="w-full justify-start text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20" />
           {DONATE_URL && (
             <a
