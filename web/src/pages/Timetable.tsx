@@ -21,6 +21,7 @@ import {
   buildTimetableGrid,
   buildAllClassesGrid,
   buildClassDayHourMatrix,
+  buildTeacherDayHourMatrix,
   validateSlotMove,
   findSolutionConflicts,
   type ViewType,
@@ -190,6 +191,25 @@ export function Timetable() {
       return null;
     }
     return buildClassDayHourMatrix({
+      solution: latestSolution,
+      rules,
+      activities,
+      teachers,
+      subjects,
+      groups,
+      subgroups,
+      rooms,
+      lockedActivityIds,
+      conflictsMap,
+    });
+  }, [showGrid, viewType, latestSolution, rules, activities, teachers, subjects, groups, subgroups, rooms, lockedActivityIds, conflictsMap]);
+
+  // Full-matrix day-hour grid (aSc style for teachers)
+  const teacherMatrixData = useMemo(() => {
+    if (!showGrid || viewType !== 'teacher-matrix' || !latestSolution || !rules) {
+      return null;
+    }
+    return buildTeacherDayHourMatrix({
       solution: latestSolution,
       rules,
       activities,
@@ -397,7 +417,7 @@ export function Timetable() {
   };
 
   const handleViewTimetable = () => {
-    if (viewType === 'all-classes' || viewType === 'full-matrix' || selectedEntity) {
+    if (viewType === 'all-classes' || viewType === 'full-matrix' || viewType === 'teacher-matrix' || selectedEntity) {
       setLoading(true);
       setTimeout(() => {
         setShowGrid(true);
@@ -419,7 +439,8 @@ export function Timetable() {
   };
 
   const getSelectedDisplayName = () => {
-    if (viewType === 'full-matrix') return t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу' });
+    if (viewType === 'full-matrix') return t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу (класи)' });
+    if (viewType === 'teacher-matrix') return t('timetable.teacherMatrixTitle', { defaultValue: 'Загальна матриця розкладу (вчителі)' });
     if (viewType === 'all-classes') return t('timetable.allClassesTitle', { defaultValue: 'Зведений розклад усіх класів' });
     if (viewType === 'teachers') return teachers.find((tt) => tt.name === selectedEntity || tt.id === selectedEntity)?.name || selectedEntity;
     if (viewType === 'students') return studentHierarchy.find((i) => i.id === selectedEntity)?.displayName || selectedEntity;
@@ -740,6 +761,7 @@ export function Timetable() {
             <CardContent className="space-y-2">
               {[
                 { type: 'full-matrix' as ViewType, icon: Grid3X3, label: t('timetable.byFullMatrix', { defaultValue: 'Загальна матриця (класи)' }), count: groups.length },
+                { type: 'teacher-matrix' as ViewType, icon: UserCircle, label: t('timetable.byTeacherMatrix', { defaultValue: 'Загальна матриця (вчителі)' }), count: teachers.length },
                 { type: 'teachers' as ViewType, icon: UserCircle, label: t('timetable.byTeacher'), count: teachers.length },
                 { type: 'students' as ViewType, icon: GraduationCap, label: t('timetable.byStudents'), count: studentHierarchy.length },
                 { type: 'rooms' as ViewType, icon: Building2, label: t('timetable.byRoom'), count: rooms.length },
@@ -751,7 +773,7 @@ export function Timetable() {
                   className="w-full justify-start gap-3"
                   onClick={() => {
                     setViewType(opt.type);
-                    setSelectedEntity(opt.type === 'all-classes' || opt.type === 'full-matrix' ? 'all' : null);
+                    setSelectedEntity(opt.type === 'all-classes' || opt.type === 'full-matrix' || opt.type === 'teacher-matrix' ? 'all' : null);
                   }}
                   aria-pressed={viewType === opt.type}
                 >
@@ -779,6 +801,8 @@ export function Timetable() {
                       ? t('timetable.byAllClasses')
                       : viewType === 'full-matrix'
                       ? t('timetable.byFullMatrix', { defaultValue: 'Матриця' })
+                      : viewType === 'teacher-matrix'
+                      ? t('timetable.byTeacherMatrix', { defaultValue: 'Матриця вчителів' })
                       : t('timetable.step2Placeholder'),
                 })}
               </CardTitle>
@@ -792,8 +816,14 @@ export function Timetable() {
               ) : viewType === 'full-matrix' ? (
                 <div className="py-8 text-center space-y-2">
                   <Grid3X3 className="h-8 w-8 mx-auto text-primary opacity-80" />
-                  <p className="font-medium text-foreground">{t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу' })}</p>
+                  <p className="font-medium text-foreground">{t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу (класи)' })}</p>
                   <p className="text-xs text-muted-foreground">{t('timetable.fullMatrixDescription', { defaultValue: 'Усі класи по вертикалі, дні та уроки по горизонталі' })}</p>
+                </div>
+              ) : viewType === 'teacher-matrix' ? (
+                <div className="py-8 text-center space-y-2">
+                  <UserCircle className="h-8 w-8 mx-auto text-primary opacity-80" />
+                  <p className="font-medium text-foreground">{t('timetable.teacherMatrixTitle', { defaultValue: 'Загальна матриця розкладу (вчителі)' })}</p>
+                  <p className="text-xs text-muted-foreground">{t('timetable.teacherMatrixDescription', { defaultValue: 'Усі вчителі по вертикалі, дні та уроки по горизонталі' })}</p>
                 </div>
               ) : viewType === 'all-classes' ? (
                 <div className="py-8 text-center space-y-2">
@@ -926,18 +956,23 @@ export function Timetable() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {viewType === 'full-matrix' && classMatrixData ? (
+              {(viewType === 'full-matrix' || viewType === 'teacher-matrix') &&
+              ((viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData) !== null) ? (
                 <div className="p-4 space-y-4">
                   <TimetableMatrix
-                    rows={classMatrixData.rows}
+                    rows={viewType === 'teacher-matrix' ? teacherMatrixData!.rows : classMatrixData!.rows}
                     days={rules.daysOfTheWeek}
                     hours={rules.hoursOfTheDay}
-                    cells={classMatrixData.cells}
+                    cells={viewType === 'teacher-matrix' ? teacherMatrixData!.cells : classMatrixData!.cells}
                     dropFeedback={dropFeedback}
                     onMove={handleMoveActivity}
                     onPair={handlePairActivities}
                     onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
-                    cornerLabel={t('students.stats.groups', { defaultValue: 'Класи' })}
+                    cornerLabel={
+                      viewType === 'teacher-matrix'
+                        ? t('teachers.title', { defaultValue: 'Вчителі' })
+                        : t('students.stats.groups', { defaultValue: 'Класи' })
+                    }
                   />
                   <UnplacedPanel
                     unplacedActivities={unplacedActivities}
