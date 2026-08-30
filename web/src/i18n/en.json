@@ -844,6 +844,9 @@
     "zoomFit": "All days",
     "zoom": "Zoom",
     "zoomHint": "Zoom — every day fits at the minimum",
+    "details": {
+      "empty": "Click a lesson to see its details"
+    },
     "pairParity": "Pair as numerator/denominator",
     "pairedSuccess": "Lessons paired as numerator/denominator",
     "pairPrompt": "Pair with the lesson in this slot as numerator/denominator",

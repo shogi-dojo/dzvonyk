@@ -238,6 +238,46 @@ test.describe('Matrix viewport and controls', () => {
   });
 });
 
+test.describe('Lesson details panel', () => {
+  test('shows the clicked lesson in the bottom-left card', async ({ page }) => {
+    await importFixture(page);
+    const matrix = await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    // Nothing selected yet: a prompt, not a stale card.
+    const panel = page.getByTestId('lesson-details');
+    await expect(panel).toHaveAttribute('data-empty', 'true');
+
+    await matrix.getByText('Ум', { exact: true }).first().click();
+
+    // Subject, class and teacher, as aSc shows them.
+    await expect(panel).not.toHaveAttribute('data-empty', 'true');
+    await expect(panel).toContainText('Українська мова');
+    await expect(panel).toContainText('5-А');
+    await expect(panel).toContainText('Франко');
+  });
+
+  test('clears when the lesson is deselected', async ({ page }) => {
+    await importFixture(page);
+    const matrix = await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    const lesson = matrix.getByText('Ум', { exact: true }).first();
+    await lesson.click();
+    await expect(page.getByTestId('lesson-details')).not.toHaveAttribute('data-empty', 'true');
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('lesson-details')).toHaveAttribute('data-empty', 'true');
+  });
+
+  test('describes an unplaced lesson picked from the tray', async ({ page }) => {
+    await importFixture(page);
+    await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    await page.getByTestId('unplaced-chip').first().click();
+    const panel = page.getByTestId('lesson-details');
+    await expect(panel).not.toHaveAttribute('data-empty', 'true');
+  });
+});
+
 test.describe('Row label column', () => {
   test('shows a teacher as surname over initials', async ({ page }) => {
     await importFixture(page);

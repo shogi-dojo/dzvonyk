@@ -39,6 +39,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { UnplacedPanel } from '@/components/timetable/UnplacedPanel';
+import { LessonDetails } from '@/components/timetable/LessonDetails';
 import { getUnplacedActivities } from '@/lib/unplacedActivities';
 import {
   printHtmlDocument,
@@ -514,6 +515,54 @@ export function Timetable() {
     : parity === 'denominator'
       ? t('activities.dialog.weekParityDenominator')
       : '';
+
+  // The clicked lesson, resolved out of the matrix that is currently rendered, so the
+  // detail panel shows the same data the cell does.
+  const selectedLesson = useMemo(() => {
+    if (!selectedActivityForMove) return null;
+    const matrix = viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData;
+
+    if (matrix) {
+      const hit = Array.from(matrix.cells.entries())
+        .map(([key, entries]) => ({
+          key,
+          entry: entries.find((c) => c.activityId === selectedActivityForMove),
+        }))
+        .find((candidate) => candidate.entry !== undefined);
+
+      if (hit && hit.entry) {
+        const parts = hit.key.split('|');
+        const day = Number(parts[1]);
+        const hour = Number(parts[2]);
+        return {
+          lesson: hit.entry,
+          placement: {
+            dayName: rules?.daysOfTheWeek[day]?.name ?? '',
+            hourName: rules?.hoursOfTheDay[hour]?.name ?? String(hour + 1),
+          },
+        };
+      }
+    }
+
+    // An unplaced lesson has no cell yet, so build a minimal card from the activity.
+    const act = activities.find((a) => a.id === selectedActivityForMove);
+    if (!act) return null;
+    const subj = subjects.find((sub) => sub.id === act.subjectId || sub.name === act.subjectId);
+    return {
+      lesson: {
+        activityId: act.id,
+        subject: subj?.name || act.subjectId,
+        subjectCode: subj?.code,
+        subjectColor: subj?.color,
+        teachers: act.teacherIds,
+        students: act.studentSetIds,
+        duration: act.duration,
+        activityTags: [],
+        weekParity: act.weekParity,
+      },
+      placement: null,
+    };
+  }, [selectedActivityForMove, viewType, teacherMatrixData, classMatrixData, rules, activities, subjects]);
 
   const handleChangeSelection = () => {
     setShowGrid(false);
@@ -1121,13 +1170,22 @@ export function Timetable() {
                         : t('students.stats.groups', { defaultValue: 'Класи' })
                     }
                   />
-                  <UnplacedPanel
-                    unplacedActivities={unplacedActivities}
-                    activeActivityId={selectedActivityForMove}
-                    onDragStart={beginDrag}
-                    onDragEnd={endDrag}
-                    onSelect={(id) => (selectedActivityForMove === id ? endDrag() : beginDrag(id))}
-                  />
+                  {/* Detail card on the left, unplaced tray on the right - the aSc layout. */}
+                  <div className="shrink-0 flex flex-col gap-3 lg:flex-row lg:items-stretch">
+                    <LessonDetails
+                      lesson={selectedLesson?.lesson ?? null}
+                      placement={selectedLesson?.placement ?? null}
+                      className="lg:w-72 lg:shrink-0"
+                    />
+                    <UnplacedPanel
+                      className="flex-1 min-w-0"
+                      unplacedActivities={unplacedActivities}
+                      activeActivityId={selectedActivityForMove}
+                      onDragStart={beginDrag}
+                      onDragEnd={endDrag}
+                      onSelect={(id) => (selectedActivityForMove === id ? endDrag() : beginDrag(id))}
+                    />
+                  </div>
                 </div>
               ) : (
                 <ScrollArea type="always" className="h-[650px] pb-2">
