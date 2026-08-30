@@ -633,9 +633,9 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
-      padding: 4px 5px;
+      padding: 3px 4px;
       vertical-align: top;
-      ${pageSize === 'auto' ? 'min-width: 95px;' : ''}
+      ${pageSize === 'auto' ? 'min-width: 120px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;
@@ -685,21 +685,21 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
                     colorMode && c.subjectColor
                       ? `border-left: 3px solid ${c.subjectColor}; background-color: ${c.subjectColor}15;`
                       : 'background-color: #f9f9f9;'
-                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3;">
-                    <div style="font-weight: bold; font-size: 10px; line-height: 1.3; color: #000; word-break: break-word;">${escapeHtml(
+                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3; overflow-wrap: break-word; word-break: break-word;">
+                    <div style="font-weight: bold; font-size: 9.5px; line-height: 1.25; color: #000; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                       c.subject
                     )}</div>
                     ${renderWeekParity(c.weekParity)}
                     ${
                       c.teachers.length > 0
-                        ? `<div style="font-size: 9px; color: #444; line-height: 1.25; margin-top: 1px; word-break: break-word;">${escapeHtml(
+                        ? `<div style="font-size: 8.5px; color: #444; line-height: 1.2; margin-top: 1px; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                             c.teachers[0]
                           )}</div>`
                         : ''
                     }
                     ${
                       c.room
-                        ? `<div style="font-size: 8.5px; color: #666; line-height: 1.2;">каб. ${escapeHtml(
+                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">каб. ${escapeHtml(
                             c.room
                           )}</div>`
                         : ''
@@ -817,9 +817,9 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
-      padding: 4px 5px;
+      padding: 3px 4px;
       vertical-align: top;
-      ${pageSize === 'auto' ? 'min-width: 95px;' : ''}
+      ${pageSize === 'auto' ? 'min-width: 120px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;
@@ -869,21 +869,21 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
                     colorMode && c.subjectColor
                       ? `border-left: 3px solid ${c.subjectColor}; background-color: ${c.subjectColor}15;`
                       : 'background-color: #f9f9f9;'
-                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3;">
-                    <div style="font-weight: bold; font-size: 10px; line-height: 1.3; color: #000; word-break: break-word;">${escapeHtml(
+                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3; overflow-wrap: break-word; word-break: break-word;">
+                    <div style="font-weight: bold; font-size: 9.5px; line-height: 1.25; color: #000; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                       c.subject
                     )}</div>
                     ${renderWeekParity(c.weekParity)}
                     ${
                       c.students.length > 0
-                        ? `<div style="font-size: 9px; color: #444; line-height: 1.25; margin-top: 1px; word-break: break-word;">${escapeHtml(
+                        ? `<div style="font-size: 8.5px; color: #444; line-height: 1.2; margin-top: 1px; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                             c.students.join(', ')
                           )}</div>`
                         : ''
                     }
                     ${
                       c.room
-                        ? `<div style="font-size: 8.5px; color: #666; line-height: 1.2;">каб. ${escapeHtml(
+                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">каб. ${escapeHtml(
                             c.room
                           )}</div>`
                         : ''

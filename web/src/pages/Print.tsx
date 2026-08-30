@@ -691,7 +691,7 @@ export function Print() {
                 <tr className="bg-neutral-100">
                   <th className="border border-black p-1.5 font-bold text-center min-w-[70px]">Час</th>
                   {summaryClassesGrid.groups.map((g) => (
-                    <th key={g.id} className="border border-black p-1.5 font-bold text-center min-w-[90px]">
+                    <th key={g.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {g.name}
                     </th>
                   ))}
@@ -712,17 +712,17 @@ export function Print() {
                             <div
                               key={i}
                               className={cn(
-                                'p-1 rounded text-[10px] mb-0.5 last:mb-0 border border-neutral-200',
-                                colorMode && c.subjectColor ? 'border-l-2' : 'bg-neutral-50'
+                                'p-1.5 rounded text-[10px] mb-1 last:mb-0 border border-neutral-200 leading-tight',
+                                colorMode && c.subjectColor ? 'border-l-4' : 'bg-neutral-50'
                               )}
-                              style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}12` } : undefined}
+                              style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}15` } : undefined}
                             >
-                              <div className="font-bold text-black truncate">{c.subject}</div>
+                              <div className="font-bold text-black break-words">{c.subject}</div>
                               {c.teachers.length > 0 && (
-                                <div className="text-[9px] text-neutral-600 truncate">{c.teachers[0]}</div>
+                                <div className="text-[9px] text-neutral-600 break-words mt-0.5">{c.teachers[0]}</div>
                               )}
                               {c.room && (
-                                <div className="text-[8px] text-neutral-500 truncate">{c.room}</div>
+                                <div className="text-[8.5px] text-neutral-500">{c.room}</div>
                               )}
                             </div>
                           ))}
@@ -744,7 +744,7 @@ export function Print() {
                 <tr className="bg-neutral-100">
                   <th className="border border-black p-1.5 font-bold text-center min-w-[70px]">Час</th>
                   {summaryTeachersGrid.teachers.map((t) => (
-                    <th key={t.id} className="border border-black p-1.5 font-bold text-center min-w-[90px]">
+                    <th key={t.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {t.name}
                     </th>
                   ))}
@@ -763,17 +763,17 @@ export function Print() {
                           <div
                             key={i}
                             className={cn(
-                              'p-1 rounded text-[10px] mb-0.5 last:mb-0 border border-neutral-200',
-                              colorMode && c.subjectColor ? 'border-l-2' : 'bg-neutral-50'
+                              'p-1.5 rounded text-[10px] mb-1 last:mb-0 border border-neutral-200 leading-tight',
+                              colorMode && c.subjectColor ? 'border-l-4' : 'bg-neutral-50'
                             )}
-                            style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}12` } : undefined}
+                            style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}15` } : undefined}
                           >
-                            <div className="font-bold text-black truncate">{c.subject}</div>
+                            <div className="font-bold text-black break-words">{c.subject}</div>
                             {c.students.length > 0 && (
-                              <div className="text-[9px] text-neutral-700 font-medium truncate">{c.students.join(', ')}</div>
+                              <div className="text-[9px] text-neutral-700 font-medium break-words mt-0.5">{c.students.join(', ')}</div>
                             )}
                             {c.room && (
-                              <div className="text-[8px] text-neutral-500 truncate">{c.room}</div>
+                              <div className="text-[8.5px] text-neutral-500">{c.room}</div>
                             )}
                           </div>
                         ))}
