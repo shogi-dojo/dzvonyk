@@ -35,7 +35,7 @@ import {
   computeTeacherWorkloadReportData,
   computeAllClassesWeeklyLoad,
 } from '@/lib/weeklyLoad';
-import { exportElementToPdf } from '@/lib/pdfExport';
+import { exportHtmlToPdf } from '@/lib/pdfExport';
 import { trackEvent } from '@/lib/analytics';
 
 type ReportType =
@@ -204,23 +204,31 @@ export function Print() {
     return computeAllClassesWeeklyLoad(sortedGroups, activities);
   }, [sortedGroups, activities]);
 
-  const handlePrint = () => {
-    if (!rules) return;
+  const getCurrentReportHtml = (forPdf = false): string => {
+    if (!rules) return '';
+    const orientation =
+      reportType === 'teacher-workload' || reportType === 'classes-workload'
+        ? 'portrait'
+        : 'landscape';
+    const effectivePageSize = forPdf ? 'auto' : pageSize;
 
     if (reportType === 'class') {
-      if (!classGrid) return;
-      trackEvent('print_exported', { format: 'print', view_type: 'students' });
-      const html = generateClassPrintHtml(selectedClassId, classGrid, rules, { includeApproval, colorMode });
-      printHtmlDocument(html);
+      if (!classGrid) return '';
+      return generateClassPrintHtml(selectedClassId, classGrid, rules, {
+        includeApproval,
+        colorMode,
+        orientation,
+      });
     } else if (reportType === 'teacher') {
-      if (!teacherGrid) return;
-      trackEvent('print_exported', { format: 'print', view_type: 'teachers' });
-      const html = generateTeacherPrintHtml(selectedTeacherId, teacherGrid, rules, { includeApproval, colorMode });
-      printHtmlDocument(html);
+      if (!teacherGrid) return '';
+      return generateTeacherPrintHtml(selectedTeacherId, teacherGrid, rules, {
+        includeApproval,
+        colorMode,
+        orientation,
+      });
     } else if (reportType === 'summary-classes') {
-      if (!latestSolution) return;
-      trackEvent('print_exported', { format: 'print', view_type: 'students' });
-      const html = generateSummaryClassesMatrixPrintHtml({
+      if (!latestSolution) return '';
+      return generateSummaryClassesMatrixPrintHtml({
         solution: latestSolution,
         rules,
         activities,
@@ -229,46 +237,58 @@ export function Print() {
         groups: sortedGroups,
         subgroups,
         rooms,
-        options: { includeApproval, colorMode, pageSize },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
       });
-      printHtmlDocument(html);
     } else if (reportType === 'summary-teachers') {
-      if (!latestSolution) return;
-      trackEvent('print_exported', { format: 'print', view_type: 'teachers' });
-      const html = generateSummaryTeachersMatrixPrintHtml({
+      if (!latestSolution) return '';
+      return generateSummaryTeachersMatrixPrintHtml({
         solution: latestSolution,
         rules,
         activities,
         teachers: sortedTeachers,
         subjects,
         rooms,
-        options: { includeApproval, colorMode, pageSize },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
       });
-      printHtmlDocument(html);
     } else if (reportType === 'teacher-workload') {
-      trackEvent('print_exported', { format: 'print', view_type: 'tariff' });
-      const html = generateTeacherWorkloadPrintHtml({
+      return generateTeacherWorkloadPrintHtml({
         rules,
         teachers: sortedTeachers,
         activities,
         subjects,
         options: { includeApproval, orientation: 'portrait' },
       });
-      printHtmlDocument(html);
     } else if (reportType === 'classes-workload') {
-      trackEvent('print_exported', { format: 'print', view_type: 'classes_workload' });
-      const html = generateClassesWorkloadMatrixPrintHtml({
+      return generateClassesWorkloadMatrixPrintHtml({
         rules,
         groups: sortedGroups,
         activities,
         options: { includeApproval, orientation: 'portrait' },
       });
-      printHtmlDocument(html);
     }
+    return '';
+  };
+
+  const handlePrint = () => {
+    const html = getCurrentReportHtml(false);
+    if (!html) return;
+    trackEvent('print_exported', {
+      format: 'print',
+      view_type:
+        reportType === 'teacher-workload'
+          ? 'tariff'
+          : reportType === 'classes-workload'
+          ? 'classes_workload'
+          : reportType === 'teacher' || reportType === 'summary-teachers'
+          ? 'teachers'
+          : 'students',
+    });
+    printHtmlDocument(html);
   };
 
   const handleExportPdf = async () => {
-    if (!printAreaRef.current || !rules) return;
+    const html = getCurrentReportHtml(true);
+    if (!html || !rules) return;
     try {
       setExportingPdf(true);
       const titleMap: Record<ReportType, string> = {
@@ -281,7 +301,7 @@ export function Print() {
       };
       const safeSchool = (rules.institutionName || 'Dzvonyk').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ_-]/g, '_');
       const fileName = `${titleMap[reportType] || 'Rozklad'}_${safeSchool}.pdf`;
-      await exportElementToPdf(printAreaRef.current, { fileName, scale: 2 });
+      await exportHtmlToPdf(html, { fileName, scale: 2 });
       trackEvent('print_exported', {
         format: 'pdf',
         view_type:

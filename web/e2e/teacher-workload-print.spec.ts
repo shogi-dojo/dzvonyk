@@ -54,6 +54,14 @@ test('Teacher workload accurately displays alternating-week fractional hours in 
   await expect(page.getByText('ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ')).toBeVisible();
   await expect(page.getByText('Сисова Оксана')).toBeVisible();
 
+  page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
+  page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
+
+  const downloadPromise = page.waitForEvent('download', { timeout: 8000 }).catch((e) => null);
+  await savePdfBtn.click();
+  const download = await downloadPromise;
+  console.log('DOWNLOAD EVENT RESULT:', download ? download.suggestedFilename() : 'NO DOWNLOAD EVENT');
+
   // Verify that hours are rendered and not NaN
   const row = page.locator('tr:has-text("Сисова Оксана")');
   await expect(row).toBeVisible();

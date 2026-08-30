@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { exportElementToPdf } from './pdfExport';
+import { exportHtmlToPdf } from './pdfExport';
 
 // Mock html2canvas and jspdf
 vi.mock('html2canvas', () => {
@@ -26,17 +26,13 @@ vi.mock('jspdf', () => {
   };
 });
 
-describe('exportElementToPdf', () => {
-  it('captures element and triggers PDF save without errors', async () => {
-    const el = document.createElement('div');
-    el.innerHTML = '<table><tr><td>Test Cell</td></tr></table>';
-    document.body.appendChild(el);
+describe('exportHtmlToPdf', () => {
+  it('renders sandboxed HTML and triggers PDF save without errors', async () => {
+    const html = '<html><body><table><tr><td>Test Cell</td></tr></table></body></html>';
 
-    await exportElementToPdf(el, { fileName: 'test_report.pdf' });
+    await exportHtmlToPdf(html, { fileName: 'test_report.pdf' });
 
     expect(mockAddImage).toHaveBeenCalled();
     expect(mockSave).toHaveBeenCalledWith('test_report.pdf');
-
-    document.body.removeChild(el);
   });
 });
