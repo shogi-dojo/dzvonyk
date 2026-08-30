@@ -1215,5 +1215,14 @@
     "deleteAccountTitle": "Delete Account and All Cloud Data?",
     "deleteAccountWarning": "This action is permanent and cannot be undone. All your schools, academic years, saved versions, and history will be permanently deleted from cloud storage.",
     "confirmDelete": "Permanently Delete"
+  },
+  "print": {
+    "dailyTeachers": "Daily (Teachers)",
+    "dailyClasses": "Daily (Classes)",
+    "dailyTitle": "Daily Timetable",
+    "dailyTeachersTitle": "DAILY TIMETABLE (TEACHERS)",
+    "dailyClassesTitle": "DAILY TIMETABLE (CLASSES)",
+    "shift1": "Shift 1",
+    "shift2": "Shift 2"
   }
 }
