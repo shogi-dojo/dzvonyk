@@ -156,4 +156,31 @@ describe('Persistent Undo and Redo Journal', () => {
     const act1 = await db.activities.get('act-1');
     expect(act1?.teacherIds).toEqual(['Григорій Сковорода']);
   });
+
+  it('prefers an explicit mutation label over the diff-derived description', async () => {
+    await db.withMutationLabel('Перенесено урок Математика 5-А: Понеділок, 1 → Вівторок, 3', () =>
+      workspaceRepository.saveTeacher(mockTeacher)
+    );
+
+    const [entry] = historyManager.getUndoStack().slice(-1);
+    expect(entry.description).toBe(
+      'Перенесено урок Математика 5-А: Понеділок, 1 → Вівторок, 3'
+    );
+  });
+
+  it('falls back to the derived description when no label is set', async () => {
+    await workspaceRepository.saveTeacher(mockTeacher);
+
+    const [entry] = historyManager.getUndoStack().slice(-1);
+    expect(entry.description).toContain('Григорій Сковорода');
+  });
+
+  it('does not leak a label into the next unlabelled write', async () => {
+    await db.withMutationLabel('Позначена дія', () => workspaceRepository.saveTeacher(mockTeacher));
+    await workspaceRepository.saveSubject(mockSubject);
+
+    const [entry] = historyManager.getUndoStack().slice(-1);
+    expect(entry.description).not.toBe('Позначена дія');
+    expect(entry.description).toContain('Філософія');
+  });
 });

@@ -238,6 +238,26 @@ test.describe('Matrix viewport and controls', () => {
   });
 });
 
+test.describe('Change history', () => {
+  test('names the lesson and both slots after a move', async ({ page }) => {
+    await importFixture(page);
+    const matrix = await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    await matrix.getByText('Ум', { exact: true }).first().click();
+    await page.locator('[data-verdict="valid"]').first().click();
+    await expect(page.getByTestId('lesson-details')).toBeVisible();
+
+    // Focus mode hides the sidebar, so step out before reaching the history button.
+    await page.getByTestId('focus-mode-toggle').click();
+    await page.getByRole('button', { name: /історія змін/i }).first().click();
+
+    // Not a bare "Змінено": the entry says which lesson went where.
+    await expect(page.getByText(/Перенесено урок Українська мова/).first()).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+});
+
 test.describe('Matrix chrome', () => {
   test('opens focused, with the stats strip on screen', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

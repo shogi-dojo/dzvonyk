@@ -24,8 +24,9 @@ export class HistoryManager {
     // history and cloud sync, including legacy call sites that write to Dexie directly.
     this.database.subscribeToTimetableMutations(async (changes) => {
       if (!this.isApplyingHistory) {
+        // A caller-supplied label beats a diff-derived guess when one is set.
         await this.recordAction(
-          this.describeChanges(changes),
+          this.database.consumeMutationLabel() || this.describeChanges(changes),
           changes.map((change) => ({ ...change, prev: change.next, next: change.prev })),
           changes
         );

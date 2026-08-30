@@ -50,6 +50,7 @@ import {
 } from '@/lib/printDocument';
 import { addTimeConstraint, deleteTimeConstraint, updateTimeConstraint } from '@/store/slices/constraintsSlice';
 import { updateActivity } from '@/store/slices/activitiesSlice';
+import { workspaceRepository } from '@/lib/workspace/workspaceRepository';
 import type { ActivityPreferredStartingTimeConstraint, ConstraintFields, Activity } from '@/types';
 
 interface StudentHierarchyItem {
@@ -315,6 +316,22 @@ export function Timetable() {
   }, [timetableData, rules]);
 
   // Handle moving an activity
+  // History entries used to read a bare "Змінено" because timetable edits wrote to
+  // Dexie directly. Name the lesson and the slot so the log can be scanned later.
+  const describeLesson = (activityId: string): string => {
+    const act = activities.find((a) => a.id === activityId);
+    if (!act) return activityId;
+    const subj = subjects.find((sub) => sub.id === act.subjectId || sub.name === act.subjectId);
+    const cls = act.studentSetIds[0] ? ` ${act.studentSetIds[0]}` : '';
+    return `${subj?.name || act.subjectId}${cls}`;
+  };
+
+  const describeSlot = (day: number, hour: number): string => {
+    const dayName = rules?.daysOfTheWeek[day]?.name ?? `${day + 1}`;
+    const hourName = rules?.hoursOfTheDay[hour]?.name ?? `${hour + 1}`;
+    return `${dayName}, ${hourName}`;
+  };
+
   const handleMoveActivity = async (activityId: string, targetDay: number, targetHour: number) => {
     if (!latestSolution || !rules) return;
 
@@ -360,7 +377,13 @@ export function Timetable() {
       isComplete,
     };
 
-    await db.solutions.put(updatedSolution);
+    const previous = latestSolution.placements.find((p) => p.activityId === activityId);
+    const moveLabel = previous
+      ? `Перенесено урок ${describeLesson(activityId)}: ${describeSlot(previous.day, previous.hour)} → ${describeSlot(targetDay, targetHour)}`
+      : `Поставлено урок ${describeLesson(activityId)}: ${describeSlot(targetDay, targetHour)}`;
+    await db.withMutationLabel(moveLabel, () =>
+      workspaceRepository.saveSolution(updatedSolution, moveLabel)
+    );
 
     // If activity is locked, update its constraint position as well
     const existingConstraint = timeConstraints.find(
@@ -455,11 +478,13 @@ export function Timetable() {
 
     const isComplete = updatedPlacements.length >= activities.length;
 
-    await db.solutions.put({
-      ...latestSolution,
-      placements: updatedPlacements,
-      isComplete,
-    });
+    const pairLabel = `Зʼєднано як чисельник/знаменник: ${describeLesson(activityAId)} + ${describeLesson(activityBId)} (${describeSlot(targetDay, targetHour)})`;
+    await db.withMutationLabel(pairLabel, () =>
+      workspaceRepository.saveSolution(
+        { ...latestSolution, placements: updatedPlacements, isComplete },
+        pairLabel
+      )
+    );
 
     setSelectedActivityForMove(null);
     setMoveSuccess(t('timetable.pairedSuccess', { defaultValue: 'Уроки спаровано як чисельник/знаменник' }));
@@ -476,7 +501,10 @@ export function Timetable() {
 
     if (isLocked) {
       if (existingConstraint) {
-        await db.timeConstraints.delete(existingConstraint.id);
+        const unlockLabel = `Відкріплено урок ${describeLesson(activityId)} (${describeSlot(day, hour)})`;
+        await db.withMutationLabel(unlockLabel, () =>
+          workspaceRepository.deleteTimeConstraint(existingConstraint.id, unlockLabel)
+        );
         dispatch(deleteTimeConstraint(existingConstraint.id));
       }
     } else {
@@ -491,7 +519,10 @@ export function Timetable() {
         active: true,
         comments: 'Locked from Timetable UI',
       };
-      await db.timeConstraints.put(newConstraint);
+      const lockLabel = `Закріплено урок ${describeLesson(activityId)} (${describeSlot(day, hour)})`;
+      await db.withMutationLabel(lockLabel, () =>
+        workspaceRepository.saveTimeConstraint(newConstraint, lockLabel)
+      );
       if (existingConstraint) {
         dispatch(updateTimeConstraint(newConstraint));
       } else {

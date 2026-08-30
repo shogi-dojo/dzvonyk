@@ -67,6 +67,7 @@ export class FETDatabase extends Dexie {
   private timetableMutationListeners = new Set<TimetableMutationListener>();
   private pendingTransactionChanges = new WeakMap<Transaction, Map<string, EntityChange<unknown>>>();
   private mutationTrackingSuppressionDepth = 0;
+  private pendingMutationLabel: string | null = null;
   // Active materialised timetable tables
   rules!: Table<TimetableRules, string>;
   teachers!: Table<Teacher, string>;
@@ -239,6 +240,28 @@ export class FETDatabase extends Dexie {
   public subscribeToTimetableMutations(listener: TimetableMutationListener): () => void {
     this.timetableMutationListeners.add(listener);
     return () => this.timetableMutationListeners.delete(listener);
+  }
+
+  /**
+   * Labels whatever the operation writes, so history shows what the user did rather
+   * than a diff-derived guess. History is recorded from a Dexie subscription, which
+   * cannot otherwise know the caller's intent.
+   */
+  public async withMutationLabel<T>(label: string, operation: () => Promise<T>): Promise<T> {
+    const previous = this.pendingMutationLabel;
+    this.pendingMutationLabel = label;
+    try {
+      return await operation();
+    } finally {
+      this.pendingMutationLabel = previous;
+    }
+  }
+
+  /** Reads and clears the label set by withMutationLabel, if any. */
+  public consumeMutationLabel(): string | null {
+    const label = this.pendingMutationLabel;
+    this.pendingMutationLabel = null;
+    return label;
   }
 
   public async withoutTimetableMutationTracking<T>(operation: () => Promise<T>): Promise<T> {
