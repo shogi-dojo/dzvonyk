@@ -4,14 +4,14 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users2, BookOpen, GraduationCap, Calendar,
   Building2, Shield, Play, Grid3X3, Printer, Settings, Menu, X, Bell, Sun, Moon, Info,
-  Heart, ExternalLink
+  Heart, ExternalLink, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useAppSelector, useAppDispatch } from '@/hooks';
-import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
+import { toggleSidebar, toggleDarkMode, toggleDesktopSidebar } from '@/store/slices/appSlice';
 import { PageTransition } from './PageTransition';
 import { InstallPwaButton } from './InstallPwaButton';
 import { ConsentBanner } from './ConsentBanner';
@@ -35,15 +35,17 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
+  // Data the завуч edits constantly, then the two pages she actually works in.
   { key: 'teachers', href: '/teachers', icon: Users2 },
   { key: 'subjects', href: '/subjects', icon: BookOpen },
   { key: 'students', href: '/students', icon: GraduationCap },
   { key: 'activities', href: '/activities', icon: Calendar },
-  { key: 'rooms', href: '/rooms', icon: Building2 },
-  { key: 'constraints', href: '/constraints', icon: Shield },
   { key: 'generate', href: '/generate', icon: Play },
   { key: 'timetable', href: '/timetable', icon: Grid3X3 },
   { key: 'print', href: '/print', icon: Printer },
+  // Rarely touched: rooms and constraints sit below the daily-use pages.
+  { key: 'rooms', href: '/rooms', icon: Building2 },
+  { key: 'constraints', href: '/constraints', icon: Shield },
   { key: 'settings', href: '/settings', icon: Settings },
   { key: 'about', href: '/about', icon: Info },
 ];
@@ -53,6 +55,7 @@ export function Layout({ children }: LayoutProps) {
   useKeyboardShortcuts();
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.app.sidebarOpen);
+  const desktopSidebarCollapsed = useAppSelector((state) => state.app.desktopSidebarCollapsed);
   const isDarkMode = useAppSelector((state) => state.app.isDarkMode);
   const location = useLocation();
   const { t } = useTranslation();
@@ -118,41 +121,58 @@ export function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 flex flex-col transform transition-transform duration-300 ease-out lg:translate-x-0 no-print",
+          "fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 ease-out lg:translate-x-0 no-print",
           "bg-card border-r border-border",
+          desktopSidebarCollapsed ? "w-72 lg:w-20" : "w-72 lg:w-72",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
         role="navigation"
         aria-label={t('app.name')}
       >
-        {/* Logo */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-border">
+        {/* Logo & Desktop Collapse Toggle */}
+        <div className={cn("flex h-16 shrink-0 items-center justify-between border-b border-border", desktopSidebarCollapsed ? "px-3" : "px-5")}>
           <Link to="/" className="flex items-center gap-3 group" aria-label={t('app.home')}>
             <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110 shadow-sm">
               <Bell className="h-5 w-5 text-primary-foreground fill-current" aria-hidden="true" />
             </div>
-            <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
+            {!desktopSidebarCollapsed && (
+              <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
+            )}
           </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden h-8 w-8"
-            onClick={() => dispatch(toggleSidebar())}
-            aria-label={t('app.closeMenu')}
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </Button>
+          <div className="flex items-center">
+            {/* Desktop Collapse Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:inline-flex h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => dispatch(toggleDesktopSidebar())}
+              title={desktopSidebarCollapsed ? t('app.expandSidebar', { defaultValue: 'Розгорнути бічну панель' }) : t('app.collapseSidebar', { defaultValue: 'Згорнути бічну панель' })}
+              aria-label={desktopSidebarCollapsed ? t('app.expandSidebar', { defaultValue: 'Розгорнути бічну панель' }) : t('app.collapseSidebar', { defaultValue: 'Згорнути бічну панель' })}
+            >
+              {desktopSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
+            {/* Mobile Close Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden h-8 w-8"
+              onClick={() => dispatch(toggleSidebar())}
+              aria-label={t('app.closeMenu')}
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
         
         {/* User Account & History Toolbar (Between header and school selector) */}
-        <div className="px-4 pt-3">
+        <div className={cn("pt-3", desktopSidebarCollapsed ? "px-2" : "px-4")}>
           <div
-            className="flex min-w-0 items-center justify-between gap-2 p-1.5 rounded-lg border border-border/80 bg-background/50"
+            className={cn("flex min-w-0 items-center justify-between gap-1 p-1.5 rounded-lg border border-border/80 bg-background/50", desktopSidebarCollapsed && "flex-col")}
             data-testid="sidebar-account-toolbar"
           >
-            <UserProfileButton />
-            <div className="flex items-center gap-0.5">
-              <HistoryControls />
+            <UserProfileButton compact={desktopSidebarCollapsed} />
+            <div className={cn("flex items-center gap-0.5", desktopSidebarCollapsed && "flex-col")}>
+              <HistoryControls vertical={desktopSidebarCollapsed} />
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -166,7 +186,7 @@ export function Layout({ children }: LayoutProps) {
                       {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="flex items-center gap-2">
+                  <TooltipContent side={desktopSidebarCollapsed ? "right" : "bottom"} className="flex items-center gap-2">
                     <span>{isDarkMode ? 'Світла тема' : 'Темна тема'}</span>
                     <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted text-foreground border border-border rounded">
                       ⌥T
@@ -179,61 +199,92 @@ export function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Workspace Selector (Year / School) */}
-        <div className="px-4 pt-2.5">
-          <WorkspaceSelector />
-        </div>
+        {!desktopSidebarCollapsed && (
+          <div className="px-4 pt-2.5">
+            <WorkspaceSelector />
+          </div>
+        )}
 
         <ScrollArea className="flex-1 min-h-0">
-          <nav className="flex flex-col gap-1 p-4" aria-label="Primary">
-            {navigation.map((item, index) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.key}
-                  to={item.href}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-lg gradient-glow"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                  style={{ animationDelay: `${index * 30}ms` }}
-                  onClick={() => {
-                    if (window.innerWidth < 1024) {
-                      dispatch(toggleSidebar());
-                    }
-                  }}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <item.icon className={cn(
-                    "h-5 w-5 transition-transform duration-200",
-                    isActive ? "" : "group-hover:scale-110"
-                  )} aria-hidden="true" />
-                  <div className="flex-1">
-                    <div>{t(`nav.${item.key}`)}</div>
-                    {!isActive && (
-                      <div className="text-xs opacity-60 mt-0.5">{t(`nav.${item.key}Desc`)}</div>
+          <nav className={cn("flex flex-col gap-1", desktopSidebarCollapsed ? "p-2 items-center" : "p-4")} aria-label="Primary">
+            <TooltipProvider delayDuration={150}>
+              {navigation.map((item, index) => {
+                const isActive = location.pathname === item.href;
+                const linkElement = (
+                  <Link
+                    key={item.key}
+                    to={item.href}
+                    className={cn(
+                      "group flex items-center rounded-lg text-sm font-medium transition-all duration-200",
+                      desktopSidebarCollapsed ? "p-3 justify-center w-12 h-12" : "gap-3 px-4 py-3",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-lg gradient-glow"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
-                  </div>
-                  {isActive && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" aria-hidden="true" />
-                  )}
-                </Link>
-              );
-            })}
+                    style={{ animationDelay: `${index * 30}ms` }}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        dispatch(toggleSidebar());
+                      }
+                    }}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <item.icon className={cn(
+                      "h-5 w-5 transition-transform duration-200 shrink-0",
+                      isActive ? "" : "group-hover:scale-110"
+                    )} aria-hidden="true" />
+                    {!desktopSidebarCollapsed && (
+                      <>
+                        <div className="flex-1">
+                          <div>{t(`nav.${item.key}`)}</div>
+                          <div className="text-xs opacity-60 mt-0.5">{t(`nav.${item.key}Desc`)}</div>
+                        </div>
+                        {isActive && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" aria-hidden="true" />
+                        )}
+                      </>
+                    )}
+                  </Link>
+                );
 
+                if (desktopSidebarCollapsed) {
+                  return (
+                    <Tooltip key={item.key}>
+                      <TooltipTrigger asChild>
+                        {linkElement}
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium">
+                        {t(`nav.${item.key}`)}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return linkElement;
+              })}
+            </TooltipProvider>
           </nav>
         </ScrollArea>
 
         {/* Pinned below the scroll area */}
-        <div className="shrink-0 border-t border-border p-3.5 flex flex-col gap-2 bg-card">
-          <InstallPwaButton className="w-full justify-start text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20" />
+        <div className={cn("shrink-0 border-t border-border flex flex-col gap-2 bg-card", desktopSidebarCollapsed ? "p-2 items-center" : "p-3.5")}>
+          <InstallPwaButton
+            showText={!desktopSidebarCollapsed}
+            variant={desktopSidebarCollapsed ? "ghost" : "default"}
+            className={cn(
+              desktopSidebarCollapsed ? "h-9 w-9 p-0 justify-center" : "w-full justify-start text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20"
+            )}
+          />
           {DONATE_URL && (
             <a
               href={DONATE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground"
+              className={cn(
+                "group flex items-center rounded-lg text-xs font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground",
+                desktopSidebarCollapsed ? "p-2 justify-center w-9 h-9" : "gap-2.5 px-3 py-2"
+              )}
+              title={desktopSidebarCollapsed ? t('support.donate') : undefined}
               onClick={() => {
                 if (window.innerWidth < 1024) {
                   dispatch(toggleSidebar());
@@ -241,8 +292,12 @@ export function Layout({ children }: LayoutProps) {
               }}
             >
               <Heart className="h-4 w-4 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
-              <span className="flex-1">{t('support.donate')}</span>
-              <ExternalLink className="h-3.5 w-3.5 opacity-50 shrink-0" aria-hidden="true" />
+              {!desktopSidebarCollapsed && (
+                <>
+                  <span className="flex-1">{t('support.donate')}</span>
+                  <ExternalLink className="h-3.5 w-3.5 opacity-50 shrink-0" aria-hidden="true" />
+                </>
+              )}
             </a>
           )}
         </div>
@@ -259,7 +314,10 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content area */}
       <div
-        className="flex-1 flex flex-col transition-all duration-300 ease-out lg:pl-72"
+        className={cn(
+          "flex-1 flex flex-col transition-all duration-300 ease-out",
+          desktopSidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
+        )}
         data-app-content-shell
       >
         <main 

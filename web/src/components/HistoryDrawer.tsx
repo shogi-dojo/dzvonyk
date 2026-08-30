@@ -15,7 +15,7 @@ interface HistoryItem {
   timestamp: string;
 }
 
-export function HistoryControls() {
+export function HistoryControls({ vertical = false }: { vertical?: boolean } = {}) {
   const { t } = useTranslation();
   const reloadAllReduxState = useReloadTimetableState();
   const isMac = useMemo(() => isMacPlatform(), []);
@@ -83,7 +83,7 @@ export function HistoryControls() {
   return (
     <>
       <TooltipProvider delayDuration={200}>
-        <div className="flex items-center gap-1">
+        <div className={cn('flex items-center gap-1', vertical && 'flex-col')}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

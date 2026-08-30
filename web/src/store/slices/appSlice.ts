@@ -9,6 +9,7 @@ interface AppState {
   isDarkMode: boolean;
   language: string;
   sidebarOpen: boolean;
+  desktopSidebarCollapsed: boolean;
   isLoading: boolean;
   error: string | null;
 }
@@ -24,11 +25,17 @@ const getInitialDarkMode = (): boolean => {
   return false;
 };
 
+const getInitialSidebarCollapsed = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('dzvonyk-sidebar-collapsed') === 'true';
+};
+
 const initialState: AppState = {
   currentRulesId: null,
   isDarkMode: getInitialDarkMode(),
   language: 'uk',
   sidebarOpen: true,
+  desktopSidebarCollapsed: getInitialSidebarCollapsed(),
   isLoading: false,
   error: null,
 };
@@ -65,6 +72,18 @@ const appSlice = createSlice({
     setSidebarOpen: (state, action: PayloadAction<boolean>) => {
       state.sidebarOpen = action.payload;
     },
+    toggleDesktopSidebar: (state) => {
+      state.desktopSidebarCollapsed = !state.desktopSidebarCollapsed;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dzvonyk-sidebar-collapsed', String(state.desktopSidebarCollapsed));
+      }
+    },
+    setDesktopSidebarCollapsed: (state, action: PayloadAction<boolean>) => {
+      state.desktopSidebarCollapsed = action.payload;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dzvonyk-sidebar-collapsed', String(action.payload));
+      }
+    },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
@@ -84,6 +103,8 @@ export const {
   setLanguage,
   toggleSidebar,
   setSidebarOpen,
+  toggleDesktopSidebar,
+  setDesktopSidebarCollapsed,
   setLoading,
   setError,
   clearError,

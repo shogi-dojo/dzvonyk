@@ -1,17 +1,18 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Download, Eye, UserCircle, Building2, Loader2,
   Calendar, Clock, AlertTriangle, Grid3X3, CheckCircle2,
   GraduationCap, Users, RotateCcw, Printer, Archive,
-  Lock, Unlock, Move, AlertCircle, LayoutGrid, X
+  Lock, Unlock, Move, AlertCircle, LayoutGrid, X,
+  Maximize2, Minimize2, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
+import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db';
@@ -20,10 +21,26 @@ import JSZip from 'jszip';
 import {
   buildTimetableGrid,
   buildAllClassesGrid,
+  canPairAsParity,
+  buildClassDayHourMatrix,
+  buildTeacherDayHourMatrix,
   validateSlotMove,
   findSolutionConflicts,
   type ViewType,
 } from '@/lib/timetableGrid';
+import { TimetableMatrix, MAX_ZOOM } from '@/components/timetable/TimetableMatrix';
+import { useDropFeedback } from '@/components/timetable/useDropFeedback';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { UnplacedPanel } from '@/components/timetable/UnplacedPanel';
+import { LessonDetails } from '@/components/timetable/LessonDetails';
+import { getUnplacedActivities } from '@/lib/unplacedActivities';
 import {
   printHtmlDocument,
   generateClassPrintHtml,
@@ -32,7 +49,9 @@ import {
   
 } from '@/lib/printDocument';
 import { addTimeConstraint, deleteTimeConstraint, updateTimeConstraint } from '@/store/slices/constraintsSlice';
-import type { ActivityPreferredStartingTimeConstraint, ConstraintFields } from '@/types';
+import { updateActivity } from '@/store/slices/activitiesSlice';
+import { workspaceRepository } from '@/lib/workspace/workspaceRepository';
+import type { ActivityPreferredStartingTimeConstraint, ConstraintFields, Activity } from '@/types';
 
 interface StudentHierarchyItem {
   id: string;
@@ -67,12 +86,58 @@ export function Timetable() {
   const [bulkProgress, setBulkProgress] = useState<BulkExportProgress | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Edit / Move state
-  const [selectedActivityForMove, setSelectedActivityForMove] = useState<string | null>(null);
+  const latestSolution = useLiveQuery(() => db.solutions.orderBy('generatedAt').reverse().first());
+
+  // Edit / Move state with red/green drop feedback
+  const {
+    activeActivityId: selectedActivityForMove,
+    dropFeedback,
+    beginDrag,
+    endDrag,
+    setActiveActivityId: setSelectedActivityForMove,
+  } = useDropFeedback({
+    currentSolution: latestSolution || null,
+    rules: rules || null,
+    activities,
+    teachers,
+    studentsGroups: groups,
+    studentsSubgroups: subgroups,
+    studentsYears: years,
+    rooms,
+    timeConstraints,
+  });
+
+  const [pendingPair, setPendingPair] = useState<{
+    activityAId: string;
+    activityBId: string;
+    day: number;
+    hour: number;
+  } | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [moveSuccess, setMoveSuccess] = useState<string | null>(null);
+  const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
 
-  const latestSolution = useLiveQuery(() => db.solutions.orderBy('generatedAt').reverse().first());
+  // Chrome is hidden via a body class rather than z-index: the sidebar is transformed
+  // and so forms its own stacking context that an overlay cannot reliably out-stack.
+  useEffect(() => {
+    document.body.classList.toggle('matrix-focus', isFocusMode);
+    return () => document.body.classList.remove('matrix-focus');
+  }, [isFocusMode]);
+
+  // 0 = every day visible at once; higher = bigger drop targets.
+  const [matrixZoom, setMatrixZoom] = useState(0);
+  // 0 means "size the label column from the zoom step"; a drag pins it in px.
+  const [labelWidthPx, setLabelWidthPx] = useState(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFocusMode) {
+        setIsFocusMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFocusMode]);
 
   // Locked activities set from timeConstraints
   const lockedActivityIds = useMemo(() => {
@@ -161,6 +226,56 @@ export function Timetable() {
     });
   }, [showGrid, viewType, latestSolution, rules, activities, teachers, subjects, groups, subgroups, rooms, lockedActivityIds, conflictsMap]);
 
+  // Full-matrix day-hour grid (aSc style for classes)
+  const classMatrixData = useMemo(() => {
+    if (!showGrid || viewType !== 'full-matrix' || !latestSolution || !rules) {
+      return null;
+    }
+    return buildClassDayHourMatrix({
+      solution: latestSolution,
+      rules,
+      activities,
+      teachers,
+      subjects,
+      groups,
+      subgroups,
+      rooms,
+      lockedActivityIds,
+      conflictsMap,
+    });
+  }, [showGrid, viewType, latestSolution, rules, activities, teachers, subjects, groups, subgroups, rooms, lockedActivityIds, conflictsMap]);
+
+  // Full-matrix day-hour grid (aSc style for teachers)
+  const teacherMatrixData = useMemo(() => {
+    if (!showGrid || viewType !== 'teacher-matrix' || !latestSolution || !rules) {
+      return null;
+    }
+    return buildTeacherDayHourMatrix({
+      solution: latestSolution,
+      rules,
+      activities,
+      teachers,
+      subjects,
+      groups,
+      subgroups,
+      rooms,
+      lockedActivityIds,
+      conflictsMap,
+    });
+  }, [showGrid, viewType, latestSolution, rules, activities, teachers, subjects, groups, subgroups, rooms, lockedActivityIds, conflictsMap]);
+
+  // Unplaced activities
+  const unplacedActivities = useMemo(() => {
+    return getUnplacedActivities({
+      activities,
+      solution: latestSolution || null,
+      subjects,
+      teachers,
+      groups,
+      subgroups,
+    });
+  }, [activities, latestSolution, subjects, teachers, groups, subgroups]);
+
   const statistics = useMemo(() => {
     if (!timetableData || !rules) return null;
 
@@ -201,6 +316,22 @@ export function Timetable() {
   }, [timetableData, rules]);
 
   // Handle moving an activity
+  // History entries used to read a bare "Змінено" because timetable edits wrote to
+  // Dexie directly. Name the lesson and the slot so the log can be scanned later.
+  const describeLesson = (activityId: string): string => {
+    const act = activities.find((a) => a.id === activityId);
+    if (!act) return activityId;
+    const subj = subjects.find((sub) => sub.id === act.subjectId || sub.name === act.subjectId);
+    const cls = act.studentSetIds[0] ? ` ${act.studentSetIds[0]}` : '';
+    return `${subj?.name || act.subjectId}${cls}`;
+  };
+
+  const describeSlot = (day: number, hour: number): string => {
+    const dayName = rules?.daysOfTheWeek[day]?.name ?? `${day + 1}`;
+    const hourName = rules?.hoursOfTheDay[hour]?.name ?? `${hour + 1}`;
+    return `${dayName}, ${hourName}`;
+  };
+
   const handleMoveActivity = async (activityId: string, targetDay: number, targetHour: number) => {
     if (!latestSolution || !rules) return;
 
@@ -228,19 +359,31 @@ export function Timetable() {
       return;
     }
 
-    const updatedPlacements = latestSolution.placements.map((p) => {
-      if (p.activityId === activityId) {
-        return { ...p, day: targetDay, hour: targetHour };
-      }
-      return p;
-    });
+    const hasPlacement = latestSolution.placements.some((p) => p.activityId === activityId);
+    const updatedPlacements = hasPlacement
+      ? latestSolution.placements.map((p) => {
+          if (p.activityId === activityId) {
+            return { ...p, day: targetDay, hour: targetHour };
+          }
+          return p;
+        })
+      : [...latestSolution.placements, { activityId, day: targetDay, hour: targetHour }];
+
+    const isComplete = updatedPlacements.length >= activities.length;
 
     const updatedSolution = {
       ...latestSolution,
       placements: updatedPlacements,
+      isComplete,
     };
 
-    await db.solutions.put(updatedSolution);
+    const previous = latestSolution.placements.find((p) => p.activityId === activityId);
+    const moveLabel = previous
+      ? `Перенесено урок ${describeLesson(activityId)}: ${describeSlot(previous.day, previous.hour)} → ${describeSlot(targetDay, targetHour)}`
+      : `Поставлено урок ${describeLesson(activityId)}: ${describeSlot(targetDay, targetHour)}`;
+    await db.withMutationLabel(moveLabel, () =>
+      workspaceRepository.saveSolution(updatedSolution, moveLabel)
+    );
 
     // If activity is locked, update its constraint position as well
     const existingConstraint = timeConstraints.find(
@@ -261,6 +404,93 @@ export function Timetable() {
     setTimeout(() => setMoveSuccess(null), 3000);
   };
 
+  // Pair two activities as numerator/denominator in a single slot
+  // Pairing is only legitimate when the resident lesson is the sole blocker.
+  const canPairActivities = (
+    activityAId: string,
+    residentActivityId: string,
+    targetDay: number,
+    targetHour: number
+  ): boolean => {
+    if (!latestSolution || !rules) return false;
+    return canPairAsParity({
+      activityId: activityAId,
+      residentActivityId,
+      targetDay,
+      targetHour,
+      currentSolution: latestSolution,
+      activities,
+      teachers,
+      studentsGroups: groups,
+      studentsSubgroups: subgroups,
+      studentsYears: years,
+      rooms,
+      timeConstraints,
+      rules,
+    });
+  };
+
+  // Ask first: pairing rewrites weekParity on two lessons, so an accidental drop
+  // must not silently change the data.
+  const subjectNameOf = (activityId: string): string => {
+    const act = activities.find((a) => a.id === activityId);
+    if (!act) return activityId;
+    const subj = subjects.find((sub) => sub.id === act.subjectId || sub.name === act.subjectId);
+    const cls = act.studentSetIds[0] ? ` ${act.studentSetIds[0]}` : '';
+    return `${subj?.name || act.subjectId}${cls}`;
+  };
+
+  const requestPairActivities = (
+    activityAId: string,
+    activityBId: string,
+    day: number,
+    hour: number
+  ) => {
+    setPendingPair({ activityAId, activityBId, day, hour });
+  };
+
+  const confirmPairActivities = async (
+    activityAId: string,
+    activityBId: string,
+    targetDay: number,
+    targetHour: number
+  ) => {
+    if (!latestSolution || !rules) return;
+
+    const actA = activities.find((a) => a.id === activityAId);
+    const actB = activities.find((a) => a.id === activityBId);
+    if (!actA || !actB) return;
+
+    const updatedA: Activity = { ...actA, weekParity: 'numerator' };
+    const updatedB: Activity = { ...actB, weekParity: 'denominator' };
+
+    await dispatch(updateActivity(updatedA)).unwrap();
+    await dispatch(updateActivity(updatedB)).unwrap();
+
+    const filteredPlacements = latestSolution.placements.filter(
+      (p) => p.activityId !== activityAId && p.activityId !== activityBId
+    );
+    const updatedPlacements = [
+      ...filteredPlacements,
+      { activityId: activityAId, day: targetDay, hour: targetHour },
+      { activityId: activityBId, day: targetDay, hour: targetHour },
+    ];
+
+    const isComplete = updatedPlacements.length >= activities.length;
+
+    const pairLabel = `Зʼєднано як чисельник/знаменник: ${describeLesson(activityAId)} + ${describeLesson(activityBId)} (${describeSlot(targetDay, targetHour)})`;
+    await db.withMutationLabel(pairLabel, () =>
+      workspaceRepository.saveSolution(
+        { ...latestSolution, placements: updatedPlacements, isComplete },
+        pairLabel
+      )
+    );
+
+    setSelectedActivityForMove(null);
+    setMoveSuccess(t('timetable.pairedSuccess', { defaultValue: 'Уроки спаровано як чисельник/знаменник' }));
+    setTimeout(() => setMoveSuccess(null), 3000);
+  };
+
   // Toggle lock for an activity
   const handleToggleLock = async (activityId: string, day: number, hour: number) => {
     const isLocked = lockedActivityIds.has(activityId);
@@ -271,7 +501,10 @@ export function Timetable() {
 
     if (isLocked) {
       if (existingConstraint) {
-        await db.timeConstraints.delete(existingConstraint.id);
+        const unlockLabel = `Відкріплено урок ${describeLesson(activityId)} (${describeSlot(day, hour)})`;
+        await db.withMutationLabel(unlockLabel, () =>
+          workspaceRepository.deleteTimeConstraint(existingConstraint.id, unlockLabel)
+        );
         dispatch(deleteTimeConstraint(existingConstraint.id));
       }
     } else {
@@ -286,7 +519,10 @@ export function Timetable() {
         active: true,
         comments: 'Locked from Timetable UI',
       };
-      await db.timeConstraints.put(newConstraint);
+      const lockLabel = `Закріплено урок ${describeLesson(activityId)} (${describeSlot(day, hour)})`;
+      await db.withMutationLabel(lockLabel, () =>
+        workspaceRepository.saveTimeConstraint(newConstraint, lockLabel)
+      );
       if (existingConstraint) {
         dispatch(updateTimeConstraint(newConstraint));
       } else {
@@ -296,10 +532,15 @@ export function Timetable() {
   };
 
   const handleViewTimetable = () => {
-    if (viewType === 'all-classes' || selectedEntity) {
+    if (viewType === 'all-classes' || viewType === 'full-matrix' || viewType === 'teacher-matrix' || selectedEntity) {
       setLoading(true);
       setTimeout(() => {
         setShowGrid(true);
+        // The matrices exist to be edited, and editing wants the whole screen -
+        // open them focused. Escape or the toolbar button steps back out.
+        if (viewType === 'full-matrix' || viewType === 'teacher-matrix') {
+          setIsFocusMode(true);
+        }
         setLoading(false);
       }, 100);
     }
@@ -311,13 +552,143 @@ export function Timetable() {
       ? t('activities.dialog.weekParityDenominator')
       : '';
 
+  // The clicked lesson, resolved out of the matrix that is currently rendered, so the
+  // detail panel shows the same data the cell does.
+  const selectedLesson = useMemo(() => {
+    if (!selectedActivityForMove) return null;
+    const matrix = viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData;
+
+    if (matrix) {
+      const hit = Array.from(matrix.cells.entries())
+        .map(([key, entries]) => ({
+          key,
+          entry: entries.find((c) => c.activityId === selectedActivityForMove),
+        }))
+        .find((candidate) => candidate.entry !== undefined);
+
+      if (hit && hit.entry) {
+        const parts = hit.key.split('|');
+        const day = Number(parts[1]);
+        const hour = Number(parts[2]);
+        return {
+          lesson: hit.entry,
+          placement: {
+            dayName: rules?.daysOfTheWeek[day]?.name ?? '',
+            hourName: rules?.hoursOfTheDay[hour]?.name ?? String(hour + 1),
+          },
+        };
+      }
+    }
+
+    // An unplaced lesson has no cell yet, so build a minimal card from the activity.
+    const act = activities.find((a) => a.id === selectedActivityForMove);
+    if (!act) return null;
+    const subj = subjects.find((sub) => sub.id === act.subjectId || sub.name === act.subjectId);
+    return {
+      lesson: {
+        activityId: act.id,
+        subject: subj?.name || act.subjectId,
+        subjectCode: subj?.code,
+        subjectColor: subj?.color,
+        teachers: act.teacherIds,
+        students: act.studentSetIds,
+        duration: act.duration,
+        activityTags: [],
+        weekParity: act.weekParity,
+      },
+      placement: null,
+    };
+  }, [selectedActivityForMove, viewType, teacherMatrixData, classMatrixData, rules, activities, subjects]);
+
+  // The single-entity statistics come from timetableData, which the matrices do not
+  // build. Derive the same figures across every row of whichever matrix is shown.
+  const matrixStatistics = useMemo(() => {
+    const matrix = viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData;
+    if (!matrix || !rules) return null;
+
+    let totalPeriods = 0;
+    let totalGaps = 0;
+
+    for (const row of matrix.rows) {
+      for (let day = 0; day < rules.nDaysPerWeek; day++) {
+        let first = -1;
+        let last = -1;
+        let occupied = 0;
+
+        for (let hour = 0; hour < rules.nHoursPerDay; hour++) {
+          const entries = matrix.cells.get(`${row.id}|${day}|${hour}`);
+          if (!entries || entries.length === 0) continue;
+          if (first === -1) first = hour;
+          last = hour;
+          occupied += 1;
+          totalPeriods += entries.length;
+        }
+
+        if (first !== -1) totalGaps += last - first + 1 - occupied;
+      }
+    }
+
+    const daysWithLessons = rules.nDaysPerWeek * Math.max(matrix.rows.length, 1);
+    return {
+      totalPeriods,
+      totalGaps,
+      averagePerDay: daysWithLessons > 0 ? totalPeriods / daysWithLessons : 0,
+    };
+  }, [viewType, teacherMatrixData, classMatrixData, rules]);
+
+  const shownStatistics = matrixStatistics ?? statistics;
+
+  // One compact line instead of four tall cards. Rendered inside the matrix column
+  // when focused (so it stays on screen) and under the grid otherwise.
+  const statsStrip = (
+    <div
+      data-testid="timetable-stats"
+      className="flex items-center gap-x-6 gap-y-1 flex-wrap rounded-lg border border-border bg-card px-3 py-2 text-sm shrink-0"
+    >
+      {shownStatistics && (
+        <>
+          <span className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">{t('timetable.stats.totalPeriods')}:</span>
+            <span className="font-semibold tabular-nums">{shownStatistics.totalPeriods}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">{t('timetable.stats.averagePerDay')}:</span>
+            <span className="font-semibold tabular-nums">{shownStatistics.averagePerDay.toFixed(1)}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">{t('timetable.stats.totalGaps')}:</span>
+            <span className="font-semibold tabular-nums">{shownStatistics.totalGaps}</span>
+          </span>
+        </>
+      )}
+      <span className="flex items-center gap-1.5">
+        <AlertTriangle
+          className={cn('h-3.5 w-3.5', conflictsMap.size > 0 ? 'text-destructive' : 'text-muted-foreground')}
+          aria-hidden="true"
+        />
+        <span className="text-muted-foreground">{t('timetable.stats.conflicts')}:</span>
+        <span className={cn('font-semibold tabular-nums', conflictsMap.size > 0 && 'text-destructive')}>
+          {conflictsMap.size}
+        </span>
+      </span>
+    </div>
+  );
+
   const handleChangeSelection = () => {
     setShowGrid(false);
     setSelectedActivityForMove(null);
     setMoveError(null);
+    // Leaving the grid must also leave focus mode, or the view picker renders
+    // inside a full-screen overlay with the app chrome still hidden.
+    setIsFocusMode(false);
   };
 
   const getSelectedDisplayName = () => {
+    if (viewType === 'full-matrix') return t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу (класи)' });
+    if (viewType === 'teacher-matrix') return t('timetable.teacherMatrixTitle', { defaultValue: 'Загальна матриця розкладу (вчителі)' });
     if (viewType === 'all-classes') return t('timetable.allClassesTitle', { defaultValue: 'Зведений розклад усіх класів' });
     if (viewType === 'teachers') return teachers.find((tt) => tt.name === selectedEntity || tt.id === selectedEntity)?.name || selectedEntity;
     if (viewType === 'students') return studentHierarchy.find((i) => i.id === selectedEntity)?.displayName || selectedEntity;
@@ -596,30 +967,30 @@ export function Timetable() {
 
       {/* Solution Summary */}
       <Card className={cn('animate-slide-up', latestSolution.isComplete ? 'border-accent/50' : 'border-warning/50')}>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              {latestSolution.isComplete ? (
-                <CheckCircle2 className="h-6 w-6 text-accent" aria-hidden="true" />
-              ) : (
-                <AlertTriangle className="h-6 w-6 text-warning" aria-hidden="true" />
-              )}
-              <div>
-                <p className={cn('font-medium', latestSolution.isComplete ? 'text-accent' : 'text-warning')}>
-                  {latestSolution.isComplete ? t('timetable.complete') : t('timetable.partial')}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t('timetable.activitiesMeta', { count: latestSolution.placements.length, when: new Date(latestSolution.generatedAt).toLocaleString() })}
-                  {conflictsMap.size > 0 && (
-                    <span className="ml-2 text-destructive font-semibold">
-                      • {t('timetable.stats.conflicts')}: {conflictsMap.size}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
+        <CardContent className="py-2 px-3">
+          {/* One compact line - the grid needs the vertical space more than this does. */}
+          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-sm">
+            {latestSolution.isComplete ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+            )}
+            <span className={cn('font-medium', latestSolution.isComplete ? 'text-accent' : 'text-warning')}>
+              {latestSolution.isComplete ? t('timetable.complete') : t('timetable.partial')}
+            </span>
+            <span className="text-muted-foreground">
+              {t('timetable.activitiesMeta', {
+                count: latestSolution.placements.length,
+                when: new Date(latestSolution.generatedAt).toLocaleDateString(),
+              })}
+            </span>
+            {conflictsMap.size > 0 && (
+              <span className="text-destructive font-semibold">
+                {t('timetable.stats.conflicts')}: {conflictsMap.size}
+              </span>
+            )}
             {!latestSolution.isComplete && (
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="ghost" size="sm" className="ml-auto h-7 text-xs">
                 <Link to="/generate">{t('timetable.regenerate')}</Link>
               </Button>
             )}
@@ -637,6 +1008,8 @@ export function Timetable() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
+                { type: 'full-matrix' as ViewType, icon: Grid3X3, label: t('timetable.byFullMatrix', { defaultValue: 'Загальна матриця (класи)' }), count: groups.length },
+                { type: 'teacher-matrix' as ViewType, icon: UserCircle, label: t('timetable.byTeacherMatrix', { defaultValue: 'Загальна матриця (вчителі)' }), count: teachers.length },
                 { type: 'teachers' as ViewType, icon: UserCircle, label: t('timetable.byTeacher'), count: teachers.length },
                 { type: 'students' as ViewType, icon: GraduationCap, label: t('timetable.byStudents'), count: studentHierarchy.length },
                 { type: 'rooms' as ViewType, icon: Building2, label: t('timetable.byRoom'), count: rooms.length },
@@ -648,7 +1021,7 @@ export function Timetable() {
                   className="w-full justify-start gap-3"
                   onClick={() => {
                     setViewType(opt.type);
-                    setSelectedEntity(opt.type === 'all-classes' ? 'all' : null);
+                    setSelectedEntity(opt.type === 'all-classes' || opt.type === 'full-matrix' || opt.type === 'teacher-matrix' ? 'all' : null);
                   }}
                   aria-pressed={viewType === opt.type}
                 >
@@ -674,6 +1047,10 @@ export function Timetable() {
                       ? t('timetable.step2Room')
                       : viewType === 'all-classes'
                       ? t('timetable.byAllClasses')
+                      : viewType === 'full-matrix'
+                      ? t('timetable.byFullMatrix', { defaultValue: 'Матриця' })
+                      : viewType === 'teacher-matrix'
+                      ? t('timetable.byTeacherMatrix', { defaultValue: 'Матриця вчителів' })
                       : t('timetable.step2Placeholder'),
                 })}
               </CardTitle>
@@ -684,6 +1061,18 @@ export function Timetable() {
             <CardContent>
               {!viewType ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">{t('timetable.step2EmptyPrompt')}</p>
+              ) : viewType === 'full-matrix' ? (
+                <div className="py-8 text-center space-y-2">
+                  <Grid3X3 className="h-8 w-8 mx-auto text-primary opacity-80" />
+                  <p className="font-medium text-foreground">{t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу (класи)' })}</p>
+                  <p className="text-xs text-muted-foreground">{t('timetable.fullMatrixDescription', { defaultValue: 'Усі класи по вертикалі, дні та уроки по горизонталі' })}</p>
+                </div>
+              ) : viewType === 'teacher-matrix' ? (
+                <div className="py-8 text-center space-y-2">
+                  <UserCircle className="h-8 w-8 mx-auto text-primary opacity-80" />
+                  <p className="font-medium text-foreground">{t('timetable.teacherMatrixTitle', { defaultValue: 'Загальна матриця розкладу (вчителі)' })}</p>
+                  <p className="text-xs text-muted-foreground">{t('timetable.teacherMatrixDescription', { defaultValue: 'Усі вчителі по вертикалі, дні та уроки по горизонталі' })}</p>
+                </div>
               ) : viewType === 'all-classes' ? (
                 <div className="py-8 text-center space-y-2">
                   <LayoutGrid className="h-8 w-8 mx-auto text-primary opacity-80" />
@@ -783,8 +1172,8 @@ export function Timetable() {
 
       {showGrid && (
         <>
-          <Card className="animate-slide-up" ref={printRef}>
-            <CardHeader>
+          <Card data-testid="timetable-card" data-focus-mode={isFocusMode ? "on" : "off"} className={cn(isFocusMode ? "fixed inset-0 h-screen w-screen z-[60] rounded-none border-0 bg-background flex flex-col p-4 overflow-auto" : "animate-slide-up")} ref={printRef}>
+            <CardHeader className={cn(isFocusMode && "shrink-0 pb-3")}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   {viewType === 'teachers' && <UserCircle className="h-5 w-5 text-primary" aria-hidden="true" />}
@@ -808,16 +1197,114 @@ export function Timetable() {
                     </CardDescription>
                   </div>
                 </div>
-                <Button variant="outline" onClick={handleChangeSelection} className="gap-2">
-                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                  {t('timetable.change')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {(viewType === 'full-matrix' || viewType === 'teacher-matrix') && (
+                    <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        data-testid="zoom-out"
+                        disabled={matrixZoom <= 0}
+                        onClick={() => setMatrixZoom((z) => Math.max(z - 1, 0))}
+                        className="h-7 w-7 p-0"
+                        title={t('timetable.zoomOut', { defaultValue: 'Зменшити' })}
+                      >
+                        <ZoomOut className="h-3.5 w-3.5" />
+                      </Button>
+                      <input
+                        type="range"
+                        min={0}
+                        max={MAX_ZOOM}
+                        step={1}
+                        value={matrixZoom}
+                        data-testid="zoom-slider"
+                        onChange={(e) => setMatrixZoom(Number(e.target.value))}
+                        className="h-7 w-24 accent-primary cursor-pointer"
+                        aria-label={t('timetable.zoom', { defaultValue: 'Масштаб' })}
+                        title={t('timetable.zoomHint', {
+                          defaultValue: 'Масштаб — на мінімумі видно всі дні',
+                        })}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        data-testid="zoom-in"
+                        disabled={matrixZoom >= MAX_ZOOM}
+                        onClick={() => setMatrixZoom((z) => Math.min(z + 1, MAX_ZOOM))}
+                        className="h-7 w-7 p-0"
+                        title={t('timetable.zoomIn', { defaultValue: 'Збільшити' })}
+                      >
+                        <ZoomIn className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="focus-mode-toggle"
+                    onClick={() => setIsFocusMode(!isFocusMode)}
+                    className="gap-1.5 text-xs h-8"
+                    title={isFocusMode ? t('timetable.exitFocusMode', { defaultValue: 'Вийти з фокусування' }) : t('timetable.focusMode', { defaultValue: 'Режим фокусування' })}
+                  >
+                    {isFocusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                    <span className="hidden sm:inline">
+                      {isFocusMode ? t('timetable.exitFocusMode', { defaultValue: 'Вийти з фокусування' }) : t('timetable.focusMode', { defaultValue: 'Режим фокусування' })}
+                    </span>
+                  </Button>
+                  <Button variant="outline" onClick={handleChangeSelection} className="gap-2 h-8 text-xs">
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                    {t('timetable.change')}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea type="always" className="h-[650px] pb-2">
-                <div className="min-w-max p-4">
-                  {viewType === 'all-classes' && allClassesData ? (
+            <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+              {(viewType === 'full-matrix' || viewType === 'teacher-matrix') &&
+              ((viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData) !== null) ? (
+                <div className="p-3 gap-3 flex-1 min-h-0 flex flex-col">
+                  <TimetableMatrix
+                    rows={viewType === 'teacher-matrix' ? teacherMatrixData!.rows : classMatrixData!.rows}
+                    days={rules.daysOfTheWeek}
+                    hours={rules.hoursOfTheDay}
+                    cells={viewType === 'teacher-matrix' ? teacherMatrixData!.cells : classMatrixData!.cells}
+                    dropFeedback={dropFeedback}
+                    onMove={handleMoveActivity}
+                    onPair={requestPairActivities}
+                    canPair={canPairActivities}
+                    onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
+                    zoom={matrixZoom}
+                    onZoomChange={setMatrixZoom}
+                    labelWidthPx={labelWidthPx || undefined}
+                    onLabelWidthChange={setLabelWidthPx}
+                    className="flex-1 min-h-0"
+                    cornerLabel={
+                      viewType === 'teacher-matrix'
+                        ? t('teachers.title', { defaultValue: 'Вчителі' })
+                        : t('students.stats.groups', { defaultValue: 'Класи' })
+                    }
+                  />
+                  {isFocusMode && statsStrip}
+                  {/* Detail card on the left, unplaced tray on the right - the aSc layout. */}
+                  <div className="shrink-0 flex flex-col gap-3 lg:flex-row lg:items-stretch">
+                    <LessonDetails
+                      lesson={selectedLesson?.lesson ?? null}
+                      placement={selectedLesson?.placement ?? null}
+                      className="lg:w-72 lg:shrink-0"
+                    />
+                    <UnplacedPanel
+                      className="flex-1 min-w-0"
+                      unplacedActivities={unplacedActivities}
+                      activeActivityId={selectedActivityForMove}
+                      onDragStart={beginDrag}
+                      onDragEnd={endDrag}
+                      onSelect={(id) => (selectedActivityForMove === id ? endDrag() : beginDrag(id))}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <ScrollArea type="always" className="h-[650px] pb-2">
+                  <div className="min-w-max p-4">
+                    {viewType === 'all-classes' && allClassesData ? (
                     /* All Classes Combined Table */
                     <table className="w-full border-collapse timetable-grid text-xs" role="grid" aria-label="All Classes Timetable">
                       <thead>
@@ -1111,35 +1598,48 @@ export function Timetable() {
                 </div>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
+              )}
             </CardContent>
           </Card>
 
-          {statistics && viewType !== 'all-classes' && (
-            <div className="grid gap-4 md:grid-cols-4 stagger-children">
-              <StatCard
-                title={t('timetable.stats.totalPeriods')}
-                value={statistics.totalPeriods}
-                icon={<Calendar className="h-5 w-5" aria-hidden="true" />}
-              />
-              <StatCard
-                title={t('timetable.stats.averagePerDay')}
-                value={statistics.averagePerDay.toFixed(1)}
-                icon={<Clock className="h-5 w-5" aria-hidden="true" />}
-              />
-              <StatCard
-                title={t('timetable.stats.totalGaps')}
-                value={statistics.totalGaps}
-                icon={<AlertTriangle className="h-5 w-5" aria-hidden="true" />}
-              />
-              <StatCard
-                title={t('timetable.stats.conflicts')}
-                value={conflictsMap.size}
-                icon={<AlertTriangle className="h-5 w-5" aria-hidden="true" />}
-              />
-            </div>
-          )}
+          {!isFocusMode && statsStrip}
         </>
       )}
+
+      <Dialog open={Boolean(pendingPair)} onOpenChange={(open) => !open && setPendingPair(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t('timetable.pairConfirmTitle', { defaultValue: 'Зʼєднати як чисельник/знаменник?' })}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingPair
+                ? t('timetable.pairConfirmBody', {
+                    a: subjectNameOf(pendingPair.activityAId),
+                    b: subjectNameOf(pendingPair.activityBId),
+                    defaultValue:
+                      'Уроки стануть в один слот: перший у чисельнику, другий у знаменнику.',
+                  })
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingPair(null)}>
+              {t('timetable.pairConfirmCancel', { defaultValue: 'Скасувати' })}
+            </Button>
+            <Button
+              onClick={() => {
+                if (!pendingPair) return;
+                const { activityAId, activityBId, day, hour } = pendingPair;
+                setPendingPair(null);
+                void confirmPairActivities(activityAId, activityBId, day, hour);
+              }}
+            >
+              {t('timetable.pairConfirmAction', { defaultValue: 'Зʼєднати' })}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
