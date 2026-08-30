@@ -15,6 +15,18 @@ export interface DayReportHeaderRow {
   cells: DayReportHeaderCell[];
 }
 
+/**
+ * Default shift names. Print output is hardcoded Ukrainian (as in printDocument.ts),
+ * while the UI passes translated labels through `options`.
+ */
+export const DEFAULT_SHIFT1_LABEL = 'I зміна';
+export const DEFAULT_SHIFT2_LABEL = 'II зміна';
+
+export interface DayReportHeaderOptions {
+  shift1Label?: string;
+  shift2Label?: string;
+}
+
 export interface DayReportHeader {
   lessonNumbers: number[];
   shiftRows: DayReportHeaderRow[];
@@ -26,7 +38,15 @@ export interface DayReportHeader {
  * time labels populated only within each shift's active range [firstHour, lastHour].
  * Without shifts, returns a single row with label: null and all time labels filled.
  */
-export function buildDayReportHeader(rules: TimetableRules): DayReportHeader {
+export function buildDayReportHeader(
+  rules: TimetableRules,
+  options: DayReportHeaderOptions = {}
+): DayReportHeader {
+  const {
+    shift1Label = DEFAULT_SHIFT1_LABEL,
+    shift2Label = DEFAULT_SHIFT2_LABEL,
+  } = options;
+
   const nHours = rules.nHoursPerDay || rules.hoursOfTheDay?.length || 8;
   const lessonNumbers = Array.from({ length: nHours }, (_, i) => i + 1);
 
@@ -35,7 +55,7 @@ export function buildDayReportHeader(rules: TimetableRules): DayReportHeader {
 
     if (rules.shifts.shift1) {
       shiftRows.push({
-        label: 'I зміна',
+        label: shift1Label,
         cells: Array.from({ length: nHours }, (_, h) => ({
           lessonLabel: formatTimetableLessonLabel(h + 1),
           timeLabel:
@@ -48,7 +68,7 @@ export function buildDayReportHeader(rules: TimetableRules): DayReportHeader {
 
     if (rules.shifts.shift2) {
       shiftRows.push({
-        label: 'II зміна',
+        label: shift2Label,
         cells: Array.from({ length: nHours }, (_, h) => ({
           lessonLabel: formatTimetableLessonLabel(h + 1),
           timeLabel:

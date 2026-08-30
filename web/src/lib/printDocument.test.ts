@@ -417,6 +417,76 @@ describe('printDocument', () => {
 
       const noShiftRowsCount = (htmlNoShifts.match(/class="tr-shift-time"/g) || []).length;
       expect(noShiftRowsCount).toBe(1);
+
+      // Two unlabelled rows of bell times are unreadable: the завуч cannot tell
+      // which row is which shift. Each shift row must name itself.
+      expect(htmlWithShifts).toContain('I зміна');
+      expect(htmlWithShifts).toContain('II зміна');
+      const shiftLabelCount = (htmlWithShifts.match(/class="th-shift-label"/g) || []).length;
+      expect(shiftLabelCount).toBe(2);
+
+      // A single unnamed row carries no label cell, so the axis header spans it.
+      // Scope to the table head: the class name always exists in the <style> block.
+      const noShiftThead = htmlNoShifts.slice(
+        htmlNoShifts.indexOf('<thead>'),
+        htmlNoShifts.indexOf('</thead>')
+      );
+      expect(noShiftThead).not.toContain('th-shift-label');
+      expect(noShiftThead).toContain('rowspan="2"');
+    });
+
+    it('keeps every header row the same column count when shifts are labelled', () => {
+      const rules: TimetableRules = {
+        id: 'rules-geom',
+        mode: 0,
+        institutionName: 'Тест',
+        nDaysPerWeek: 1,
+        nHoursPerDay: 3,
+        daysOfTheWeek: [{ name: 'Понеділок' }],
+        hoursOfTheDay: [
+          { name: '1 урок', longName: '08:00 – 08:45' },
+          { name: '2 урок', longName: '08:55 – 09:40' },
+          { name: '3 урок', longName: '09:55 – 10:40' },
+        ],
+        shifts: {
+          shift1: { firstHour: 0, lastHour: 1 },
+          shift2: { firstHour: 1, lastHour: 2 },
+        },
+        modified: false,
+        createdAt: '',
+        updatedAt: '',
+      };
+
+      const html = generateDailyMatrixPrintHtml({
+        rowAxis: 'teachers',
+        solution: {
+          id: 'sol',
+          rulesId: 'rules-geom',
+          placements: [],
+          conflicts: [],
+          isComplete: true,
+          generatedAt: new Date(),
+        },
+        rules,
+        activities: [],
+        teachers: [{ id: 't1', name: 'Сисова Оксана Григорівна' }],
+        subjects: [],
+        groups: [],
+        subgroups: [],
+        rooms: [],
+      });
+
+      const thead = html.slice(html.indexOf('<thead>'), html.indexOf('</thead>'));
+      const headerRows = thead.split('<tr').slice(1);
+      expect(headerRows).toHaveLength(3);
+
+      // Row 1: axis header + 3 lesson numbers. Rows 2-3: shift label + 3 times.
+      for (const row of headerRows) {
+        expect((row.match(/<th/g) || []).length).toBe(4);
+      }
+
+      // The axis header must not span into the shift rows, or the columns shear.
+      expect(thead).toContain('rowspan="1"');
     });
 
     it('escapes dangerous HTML characters in entity names', () => {

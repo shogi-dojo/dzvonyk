@@ -236,8 +236,11 @@ export function Print() {
   // Daily header definition (for preview)
   const dailyHeader = useMemo(() => {
     if (!rules) return null;
-    return buildDayReportHeader(rules);
-  }, [rules]);
+    return buildDayReportHeader(rules, {
+      shift1Label: t('print.shift1', { defaultValue: 'I зміна' }),
+      shift2Label: t('print.shift2', { defaultValue: 'II зміна' }),
+    });
+  }, [rules, t]);
 
   // Teacher workload report data (itemized by subject & class)
   const teacherWorkloadData = useMemo(() => {
@@ -1032,8 +1035,10 @@ export function Print() {
               if (!currentGrid) return null;
 
               const firstColLabel = reportType === 'daily-teachers' ? 'Викладач' : 'Клас';
-              const totalShiftRows = dailyHeader.shiftRows.length;
-              const firstColRowSpan = 1 + totalShiftRows;
+              // Named shift rows put their name in the first column, so the axis
+              // header only spans the lesson-number row (mirrors printDocument.ts).
+              const hasShiftLabels = dailyHeader.shiftRows.some((r) => r.label !== null);
+              const firstColRowSpan = hasShiftLabels ? 1 : 1 + dailyHeader.shiftRows.length;
 
               return (
                 <div key={dIdx} className="break-after-page mb-8 last:mb-0">
@@ -1063,6 +1068,11 @@ export function Print() {
                         </tr>
                         {dailyHeader.shiftRows.map((shiftRow, sIdx) => (
                           <tr key={sIdx} className="bg-neutral-50">
+                            {shiftRow.label !== null && (
+                              <th className="border border-black p-1 text-left text-[10px] font-bold bg-neutral-100 whitespace-nowrap">
+                                {shiftRow.label}
+                              </th>
+                            )}
                             {shiftRow.cells.map((cell, cIdx) => (
                               <th
                                 key={cIdx}

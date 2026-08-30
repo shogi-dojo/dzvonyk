@@ -2,7 +2,11 @@
 // Copyright (C) 2026 dzvonyk contributors
 
 import { describe, expect, it } from 'vitest';
-import { buildDayReportHeader } from './dayReportHeader';
+import {
+  buildDayReportHeader,
+  DEFAULT_SHIFT1_LABEL,
+  DEFAULT_SHIFT2_LABEL,
+} from './dayReportHeader';
 import type { TimetableRules } from '@/types';
 
 describe('dayReportHeader', () => {
@@ -139,5 +143,49 @@ describe('dayReportHeader', () => {
     expect(header.shiftRows[0].cells[0].timeLabel).toBe('1 урок');
     expect(header.shiftRows[0].cells[1].timeLabel).toBe('2 урок');
     expect(header.shiftRows[0].cells[2].timeLabel).toBe('10:20 – 11:05');
+  });
+
+  it('labels each shift row so the two time rows can be told apart', () => {
+    const rules = {
+      id: 'r',
+      mode: 0,
+      institutionName: 'Тест',
+      nDaysPerWeek: 1,
+      nHoursPerDay: 3,
+      daysOfTheWeek: [{ name: 'Понеділок' }],
+      hoursOfTheDay: [
+        { name: '1 урок', longName: '08:00 – 08:45' },
+        { name: '2 урок', longName: '08:55 – 09:40' },
+        { name: '3 урок', longName: '09:55 – 10:40' },
+      ],
+      shifts: {
+        shift1: { firstHour: 0, lastHour: 1 },
+        shift2: { firstHour: 1, lastHour: 2 },
+      },
+      modified: false,
+      createdAt: '',
+      updatedAt: '',
+    } as unknown as TimetableRules;
+
+    const header = buildDayReportHeader(rules);
+    expect(header.shiftRows.map((r) => r.label)).toEqual([
+      DEFAULT_SHIFT1_LABEL,
+      DEFAULT_SHIFT2_LABEL,
+    ]);
+
+    // Callers with an i18n catalog supply their own names.
+    const translated = buildDayReportHeader(rules, {
+      shift1Label: 'First shift',
+      shift2Label: 'Second shift',
+    });
+    expect(translated.shiftRows.map((r) => r.label)).toEqual([
+      'First shift',
+      'Second shift',
+    ]);
+
+    // Every row keeps one cell per lesson regardless of labelling.
+    for (const row of translated.shiftRows) {
+      expect(row.cells).toHaveLength(header.lessonNumbers.length);
+    }
   });
 });

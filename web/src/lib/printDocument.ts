@@ -1319,18 +1319,18 @@ export function generateDailyMatrixPrintHtml(params: {
       `;
     }
 
-    const reportTitle =
-      rowAxis === 'teachers'
-        ? `РОЗКЛАД УРОКІВ — ${escapeHtml(dayName.toUpperCase())}`
-        : `РОЗКЛАД УРОКІВ — ${escapeHtml(dayName.toUpperCase())}`;
+    const reportTitle = `РОЗКЛАД УРОКІВ — ${escapeHtml(dayName.toUpperCase())}`;
 
     const firstColLabel = rowAxis === 'teachers' ? 'Викладач' : 'Клас';
-    const totalShiftRows = header.shiftRows.length;
-    const firstColRowSpan = 1 + totalShiftRows;
+    // An unlabelled shift row is just two anonymous rows of times, so the shift
+    // name occupies the first column of its own row. The axis header therefore
+    // spans only the lesson-number row when the shifts are named.
+    const labelledShiftRows = header.shiftRows.filter((r) => r.label !== null);
+    const axisRowSpan = labelledShiftRows.length > 0 ? 1 : 1 + header.shiftRows.length;
 
     let theadHtml = `
       <tr>
-        <th rowspan="${firstColRowSpan}" class="th-row-axis">${firstColLabel}</th>
+        <th rowspan="${axisRowSpan}" class="th-row-axis">${firstColLabel}</th>
         ${header.lessonNumbers.map((num) => `<th class="th-lesson-num">${num}</th>`).join('')}
       </tr>
     `;
@@ -1338,6 +1338,11 @@ export function generateDailyMatrixPrintHtml(params: {
     for (const shiftRow of header.shiftRows) {
       theadHtml += `
         <tr class="tr-shift-time">
+          ${
+            shiftRow.label !== null
+              ? `<th class="th-shift-label">${escapeHtml(shiftRow.label)}</th>`
+              : ''
+          }
           ${shiftRow.cells
             .map(
               (cell) =>
@@ -1430,6 +1435,14 @@ export function generateDailyMatrixPrintHtml(params: {
     .th-lesson-num {
       font-size: 11px;
       padding: 4px 2px;
+    }
+    .th-shift-label {
+      font-size: 9px;
+      font-weight: bold;
+      text-align: left !important;
+      padding-left: 6px !important;
+      background: #e8e8e8;
+      white-space: nowrap;
     }
     .th-shift-time {
       font-size: 8.5px;
