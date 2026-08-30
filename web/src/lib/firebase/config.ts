@@ -9,7 +9,7 @@ export interface FirebaseAppConfig {
 }
 
 export const firebaseConfig: FirebaseAppConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'test-ci-placeholder-key',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'dzvonyk.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'dzvonyk',
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'dzvonyk.firebasestorage.app',

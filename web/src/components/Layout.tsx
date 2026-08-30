@@ -100,7 +100,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <HistoryControls />
-          <UserProfileButton />
+          <UserProfileButton compact />
           <InstallPwaButton variant="ghost" size="icon" showText={false} className="h-9 w-9" />
           <Button
             variant="ghost"
@@ -133,8 +133,6 @@ export function Layout({ children }: LayoutProps) {
             <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
           </Link>
           <div className="flex items-center gap-1">
-            <HistoryControls />
-            <UserProfileButton />
             <Button
               variant="ghost"
               size="icon"
@@ -159,6 +157,13 @@ export function Layout({ children }: LayoutProps) {
         
         <div className="px-4 pt-4">
           <WorkspaceSelector />
+          <div
+            className="mt-2 flex min-w-0 items-center justify-between gap-2 rounded-lg border border-border/70 bg-background/40 px-2 py-1"
+            data-testid="sidebar-account-toolbar"
+          >
+            <HistoryControls />
+            <UserProfileButton />
+          </div>
         </div>
 
         <ScrollArea className="flex-1 min-h-0">

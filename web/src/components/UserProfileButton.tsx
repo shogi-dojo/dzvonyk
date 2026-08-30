@@ -29,7 +29,7 @@ export function GoogleIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-export function UserProfileButton() {
+export function UserProfileButton({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { user, loading } = useAppSelector((state) => state.auth);
@@ -55,13 +55,15 @@ export function UserProfileButton() {
     return (
       <Button
         variant="outline"
-        size="sm"
+        size={compact ? 'icon' : 'sm'}
         disabled={loading}
         onClick={handleSignIn}
-        className="gap-2 h-9 text-xs font-medium border-border/80 hover:bg-primary/5 hover:border-primary/40"
+        className="gap-2 h-9 shrink-0 text-xs font-medium border-border/80 hover:bg-primary/5 hover:border-primary/40"
       >
         <GoogleIcon />
-        <span className="hidden sm:inline">{t('auth.signIn', 'Увійти')}</span>
+        <span className={compact ? 'sr-only' : 'hidden sm:inline'}>
+          {t('auth.signIn', 'Увійти')}
+        </span>
       </Button>
     );
   }
