@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
+import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db';
@@ -505,6 +505,11 @@ export function Timetable() {
       setLoading(true);
       setTimeout(() => {
         setShowGrid(true);
+        // The matrices exist to be edited, and editing wants the whole screen -
+        // open them focused. Escape or the toolbar button steps back out.
+        if (viewType === 'full-matrix' || viewType === 'teacher-matrix') {
+          setIsFocusMode(true);
+        }
         setLoading(false);
       }, 100);
     }
@@ -563,6 +568,83 @@ export function Timetable() {
       placement: null,
     };
   }, [selectedActivityForMove, viewType, teacherMatrixData, classMatrixData, rules, activities, subjects]);
+
+  // The single-entity statistics come from timetableData, which the matrices do not
+  // build. Derive the same figures across every row of whichever matrix is shown.
+  const matrixStatistics = useMemo(() => {
+    const matrix = viewType === 'teacher-matrix' ? teacherMatrixData : classMatrixData;
+    if (!matrix || !rules) return null;
+
+    let totalPeriods = 0;
+    let totalGaps = 0;
+
+    for (const row of matrix.rows) {
+      for (let day = 0; day < rules.nDaysPerWeek; day++) {
+        let first = -1;
+        let last = -1;
+        let occupied = 0;
+
+        for (let hour = 0; hour < rules.nHoursPerDay; hour++) {
+          const entries = matrix.cells.get(`${row.id}|${day}|${hour}`);
+          if (!entries || entries.length === 0) continue;
+          if (first === -1) first = hour;
+          last = hour;
+          occupied += 1;
+          totalPeriods += entries.length;
+        }
+
+        if (first !== -1) totalGaps += last - first + 1 - occupied;
+      }
+    }
+
+    const daysWithLessons = rules.nDaysPerWeek * Math.max(matrix.rows.length, 1);
+    return {
+      totalPeriods,
+      totalGaps,
+      averagePerDay: daysWithLessons > 0 ? totalPeriods / daysWithLessons : 0,
+    };
+  }, [viewType, teacherMatrixData, classMatrixData, rules]);
+
+  const shownStatistics = matrixStatistics ?? statistics;
+
+  // One compact line instead of four tall cards. Rendered inside the matrix column
+  // when focused (so it stays on screen) and under the grid otherwise.
+  const statsStrip = (
+    <div
+      data-testid="timetable-stats"
+      className="flex items-center gap-x-6 gap-y-1 flex-wrap rounded-lg border border-border bg-card px-3 py-2 text-sm shrink-0"
+    >
+      {shownStatistics && (
+        <>
+          <span className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">{t('timetable.stats.totalPeriods')}:</span>
+            <span className="font-semibold tabular-nums">{shownStatistics.totalPeriods}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">{t('timetable.stats.averagePerDay')}:</span>
+            <span className="font-semibold tabular-nums">{shownStatistics.averagePerDay.toFixed(1)}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">{t('timetable.stats.totalGaps')}:</span>
+            <span className="font-semibold tabular-nums">{shownStatistics.totalGaps}</span>
+          </span>
+        </>
+      )}
+      <span className="flex items-center gap-1.5">
+        <AlertTriangle
+          className={cn('h-3.5 w-3.5', conflictsMap.size > 0 ? 'text-destructive' : 'text-muted-foreground')}
+          aria-hidden="true"
+        />
+        <span className="text-muted-foreground">{t('timetable.stats.conflicts')}:</span>
+        <span className={cn('font-semibold tabular-nums', conflictsMap.size > 0 && 'text-destructive')}>
+          {conflictsMap.size}
+        </span>
+      </span>
+    </div>
+  );
 
   const handleChangeSelection = () => {
     setShowGrid(false);
@@ -854,30 +936,30 @@ export function Timetable() {
 
       {/* Solution Summary */}
       <Card className={cn('animate-slide-up', latestSolution.isComplete ? 'border-accent/50' : 'border-warning/50')}>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              {latestSolution.isComplete ? (
-                <CheckCircle2 className="h-6 w-6 text-accent" aria-hidden="true" />
-              ) : (
-                <AlertTriangle className="h-6 w-6 text-warning" aria-hidden="true" />
-              )}
-              <div>
-                <p className={cn('font-medium', latestSolution.isComplete ? 'text-accent' : 'text-warning')}>
-                  {latestSolution.isComplete ? t('timetable.complete') : t('timetable.partial')}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t('timetable.activitiesMeta', { count: latestSolution.placements.length, when: new Date(latestSolution.generatedAt).toLocaleString() })}
-                  {conflictsMap.size > 0 && (
-                    <span className="ml-2 text-destructive font-semibold">
-                      • {t('timetable.stats.conflicts')}: {conflictsMap.size}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
+        <CardContent className="py-2 px-3">
+          {/* One compact line - the grid needs the vertical space more than this does. */}
+          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-sm">
+            {latestSolution.isComplete ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+            )}
+            <span className={cn('font-medium', latestSolution.isComplete ? 'text-accent' : 'text-warning')}>
+              {latestSolution.isComplete ? t('timetable.complete') : t('timetable.partial')}
+            </span>
+            <span className="text-muted-foreground">
+              {t('timetable.activitiesMeta', {
+                count: latestSolution.placements.length,
+                when: new Date(latestSolution.generatedAt).toLocaleDateString(),
+              })}
+            </span>
+            {conflictsMap.size > 0 && (
+              <span className="text-destructive font-semibold">
+                {t('timetable.stats.conflicts')}: {conflictsMap.size}
+              </span>
+            )}
             {!latestSolution.isComplete && (
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="ghost" size="sm" className="ml-auto h-7 text-xs">
                 <Link to="/generate">{t('timetable.regenerate')}</Link>
               </Button>
             )}
@@ -1170,6 +1252,7 @@ export function Timetable() {
                         : t('students.stats.groups', { defaultValue: 'Класи' })
                     }
                   />
+                  {isFocusMode && statsStrip}
                   {/* Detail card on the left, unplaced tray on the right - the aSc layout. */}
                   <div className="shrink-0 flex flex-col gap-3 lg:flex-row lg:items-stretch">
                     <LessonDetails
@@ -1488,30 +1571,7 @@ export function Timetable() {
             </CardContent>
           </Card>
 
-          {statistics && viewType !== 'all-classes' && (
-            <div className="grid gap-4 md:grid-cols-4 stagger-children">
-              <StatCard
-                title={t('timetable.stats.totalPeriods')}
-                value={statistics.totalPeriods}
-                icon={<Calendar className="h-5 w-5" aria-hidden="true" />}
-              />
-              <StatCard
-                title={t('timetable.stats.averagePerDay')}
-                value={statistics.averagePerDay.toFixed(1)}
-                icon={<Clock className="h-5 w-5" aria-hidden="true" />}
-              />
-              <StatCard
-                title={t('timetable.stats.totalGaps')}
-                value={statistics.totalGaps}
-                icon={<AlertTriangle className="h-5 w-5" aria-hidden="true" />}
-              />
-              <StatCard
-                title={t('timetable.stats.conflicts')}
-                value={conflictsMap.size}
-                icon={<AlertTriangle className="h-5 w-5" aria-hidden="true" />}
-              />
-            </div>
-          )}
+          {!isFocusMode && statsStrip}
         </>
       )}
 

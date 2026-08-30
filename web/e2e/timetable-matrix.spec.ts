@@ -238,6 +238,35 @@ test.describe('Matrix viewport and controls', () => {
   });
 });
 
+test.describe('Matrix chrome', () => {
+  test('opens focused, with the stats strip on screen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await importFixture(page);
+    await openMatrix(page, /загальна матриця \(класи\)/i);
+
+    // A matrix is for editing, so it opens focused without a second click.
+    await expect(page.getByTestId('timetable-card')).toHaveAttribute('data-focus-mode', 'on');
+
+    // The figures stay visible while focused, and carry real values.
+    const stats = page.getByTestId('timetable-stats');
+    await expect(stats).toBeVisible();
+    await expect(stats).toContainText(/Всього уроків:\s*[1-9]/);
+  });
+
+  test('a single-entity view still opens unfocused', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await importFixture(page);
+    await page.goto('/#/timetable');
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: /за класами/i }).click();
+    await page.getByRole('option', { name: /5-А/i }).first().click();
+    await page.getByRole('button', { name: /переглянути розклад|показати розклад/i }).click();
+
+    await expect(page.getByTestId('timetable-card')).toHaveAttribute('data-focus-mode', 'off');
+  });
+});
+
 test.describe('Lesson details panel', () => {
   test('shows the clicked lesson in the bottom-left card', async ({ page }) => {
     await importFixture(page);
@@ -324,7 +353,11 @@ test.describe('Zen / focus mode', () => {
     await importFixture(page);
     await openMatrix(page, /загальна матриця \(класи\)/i);
 
+    // A matrix now opens focused, so step out and back in to exercise the toggle.
     const card = page.getByTestId('timetable-card');
+    await expect(card).toHaveAttribute('data-focus-mode', 'on');
+
+    await page.getByTestId('focus-mode-toggle').click();
     await expect(card).toHaveAttribute('data-focus-mode', 'off');
 
     await page.getByTestId('focus-mode-toggle').click();
@@ -356,7 +389,6 @@ test.describe('Zen / focus mode', () => {
     await importFixture(page);
     await openMatrix(page, /загальна матриця \(класи\)/i);
 
-    await page.getByTestId('focus-mode-toggle').click();
     await expect(page.getByTestId('timetable-card')).toHaveAttribute('data-focus-mode', 'on');
 
     // "Змінити" returns to the view picker; it must not leave the app chrome hidden.
