@@ -478,6 +478,30 @@
 }
 
 /* Print styles */
+
+/* Zen / focus mode: strip every bit of app chrome so the matrix owns the screen.
+   Hiding the sidebar outright is more robust than out-stacking it — the aside is
+   transformed, which creates its own stacking context that an overlay cannot
+   reliably paint above. */
+body.matrix-focus [data-app-layout] > header,
+body.matrix-focus aside,
+body.matrix-focus [data-app-layout] > div[aria-hidden="true"] {
+  display: none !important;
+}
+
+body.matrix-focus [data-app-content-shell] {
+  padding-left: 0 !important;
+}
+
+body.matrix-focus [data-app-page-container] {
+  padding: 0 !important;
+  max-width: none !important;
+}
+
+body.matrix-focus {
+  overflow: hidden;
+}
+
 @media print {
   @page {
     size: A4 landscape;
