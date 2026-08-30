@@ -108,19 +108,39 @@ export function Dashboard() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await db.rules.add(newRules);
-      
-      if (data.teachers.length > 0) await db.teachers.bulkAdd(data.teachers);
-      if (data.subjects.length > 0) await db.subjects.bulkAdd(data.subjects);
-      if (data.activityTags.length > 0) await db.activityTags.bulkAdd(data.activityTags);
-      if (data.studentsYears.length > 0) await db.studentsYears.bulkAdd(data.studentsYears);
-      if (data.studentsGroups.length > 0) await db.studentsGroups.bulkAdd(data.studentsGroups);
-      if (data.studentsSubgroups.length > 0) await db.studentsSubgroups.bulkAdd(data.studentsSubgroups);
-      if (data.activities.length > 0) await db.activities.bulkAdd(data.activities);
-      if (data.buildings.length > 0) await db.buildings.bulkAdd(data.buildings);
-      if (data.rooms.length > 0) await db.rooms.bulkAdd(data.rooms);
-      if (data.timeConstraints.length > 0) await db.timeConstraints.bulkAdd(data.timeConstraints);
-      if (data.spaceConstraints.length > 0) await db.spaceConstraints.bulkAdd(data.spaceConstraints);
+
+      await db.transaction(
+        'rw',
+        [
+          db.rules,
+          db.teachers,
+          db.subjects,
+          db.activityTags,
+          db.studentsYears,
+          db.studentsGroups,
+          db.studentsSubgroups,
+          db.activities,
+          db.buildings,
+          db.rooms,
+          db.timeConstraints,
+          db.spaceConstraints,
+        ],
+        async () => {
+          await db.rules.add(newRules);
+          
+          if (data.teachers.length > 0) await db.teachers.bulkAdd(data.teachers);
+          if (data.subjects.length > 0) await db.subjects.bulkAdd(data.subjects);
+          if (data.activityTags.length > 0) await db.activityTags.bulkAdd(data.activityTags);
+          if (data.studentsYears.length > 0) await db.studentsYears.bulkAdd(data.studentsYears);
+          if (data.studentsGroups.length > 0) await db.studentsGroups.bulkAdd(data.studentsGroups);
+          if (data.studentsSubgroups.length > 0) await db.studentsSubgroups.bulkAdd(data.studentsSubgroups);
+          if (data.activities.length > 0) await db.activities.bulkAdd(data.activities);
+          if (data.buildings.length > 0) await db.buildings.bulkAdd(data.buildings);
+          if (data.rooms.length > 0) await db.rooms.bulkAdd(data.rooms);
+          if (data.timeConstraints.length > 0) await db.timeConstraints.bulkAdd(data.timeConstraints);
+          if (data.spaceConstraints.length > 0) await db.spaceConstraints.bulkAdd(data.spaceConstraints);
+        }
+      );
       
       dispatch(setRules(newRules));
       dispatch(setTeachers(data.teachers));
