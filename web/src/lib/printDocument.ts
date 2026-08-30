@@ -20,6 +20,7 @@ import {
   type CellData,
 } from './timetableGrid';
 import { hourTimeLabel } from './bellSchedule';
+import { sumWeeklyLoad, formatWeeklyLoad, formatHours } from './weeklyLoad';
 
 export interface PrintOptions {
   includeApproval?: boolean;
@@ -875,7 +876,7 @@ export function generateTeacherWorkloadPrintHtml(params: {
       new Set(teacherActs.flatMap((a) => a.studentSetIds))
     );
 
-    const totalHours = teacherActs.reduce((sum, a) => sum + (a.duration || 1), 0);
+    const load = sumWeeklyLoad(teacherActs);
 
     return {
       index: index + 1,
@@ -883,12 +884,13 @@ export function generateTeacherWorkloadPrintHtml(params: {
       longName: teacher.longName,
       subjects: subjectNames,
       classes: classNames,
-      totalHours,
+      load,
+      averageHours: load.average,
       targetHours: teacher.targetNumberOfHours,
     };
   });
 
-  const totalSchoolHours = rows.reduce((sum, r) => sum + r.totalHours, 0);
+  const totalSchoolHours = rows.reduce((sum, r) => sum + r.averageHours, 0);
 
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -943,8 +945,8 @@ export function generateTeacherWorkloadPrintHtml(params: {
             <td>${escapeHtml(r.subjects.join(', ') || '—')}</td>
             <td>${escapeHtml(r.classes.join(', ') || '—')}</td>
             <td style="text-align: center; font-weight: bold; font-size: 12px;">
-              ${r.totalHours}
-              ${r.targetHours > 0 ? `<div style="font-size: 9px; font-weight: normal; color: #666;">(план: ${r.targetHours})</div>` : ''}
+              ${formatWeeklyLoad(r.load)}
+              ${r.targetHours > 0 ? `<div style="font-size: 9px; font-weight: normal; color: #666;">(план: ${formatHours(r.targetHours)})</div>` : ''}
             </td>
           </tr>
         `
@@ -952,7 +954,7 @@ export function generateTeacherWorkloadPrintHtml(params: {
           .join('')}
         <tr style="background: #f0f0f0; font-weight: bold;">
           <td colspan="4" style="text-align: right;">РАЗОМ ГОДИН ПО ЗАКЛАДУ:</td>
-          <td style="text-align: center; font-size: 13px;">${totalSchoolHours}</td>
+          <td style="text-align: center; font-size: 13px;">${formatHours(totalSchoolHours)}</td>
         </tr>
       </tbody>
     </table>
