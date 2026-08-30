@@ -18,6 +18,12 @@ export interface TimetableMatrixProps {
   dropFeedback?: DropFeedback | null;
   onMove?: (activityId: string, day: number, hour: number) => void;
   onPair?: (activityAId: string, activityBId: string, day: number, hour: number) => void;
+  /**
+   * Decides whether a blocked drop onto an occupied slot may be resolved by pairing
+   * the two lessons as чисельник/знаменник. The page owns this because it needs the
+   * full solution to prove the resident lesson is the *only* blocker.
+   */
+  canPair?: (activityAId: string, activityBId: string, day: number, hour: number) => boolean;
   onDragStateChange?: (activityId: string | null) => void;
   density?: 'compact' | 'comfortable';
   className?: string;
@@ -32,6 +38,7 @@ export function TimetableMatrix({
   dropFeedback,
   onMove,
   onPair,
+  canPair,
   onDragStateChange,
   density = 'comfortable',
   className,
@@ -49,6 +56,7 @@ export function TimetableMatrix({
 
   return (
     <div
+      data-testid="timetable-matrix"
       className={cn(
         'overflow-auto relative rounded-lg border border-border bg-card shadow-xs max-h-[700px]',
         className
@@ -61,6 +69,7 @@ export function TimetableMatrix({
           <tr>
             <th
               rowSpan={2}
+              data-testid="matrix-corner"
               className="sticky left-0 z-30 bg-muted/95 backdrop-blur-xs px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-r border-border min-w-[110px] max-w-[160px] align-middle shadow-[1px_0_0_0_hsl(var(--border))]"
             >
               {cornerLabel || 'Клас / Вчитель'}
@@ -98,7 +107,10 @@ export function TimetableMatrix({
           {rows.map((row) => (
             <tr key={row.id} className="hover:bg-muted/20 transition-colors">
               {/* Row Label (Sticky Left Column) */}
-              <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-xs px-3 py-1.5 text-xs font-medium border-b border-r border-border shadow-[1px_0_0_0_hsl(var(--border))] truncate">
+              <td
+                data-testid="matrix-row-label"
+                data-row-id={row.id}
+                className="sticky left-0 z-10 bg-card/95 backdrop-blur-xs px-3 py-1.5 text-xs font-medium border-b border-r border-border shadow-[1px_0_0_0_hsl(var(--border))] truncate">
                 <div className="font-semibold text-foreground truncate">{row.label}</div>
                 {row.sublabel && (
                   <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
@@ -133,6 +145,16 @@ export function TimetableMatrix({
                   return (
                     <td
                       key={`${dIdx}-${hIdx}`}
+                      data-testid="matrix-cell"
+                      data-slot={`${dIdx}|${hIdx}`}
+                      data-available={isAvailable ? 'true' : 'false'}
+                      data-verdict={
+                        isDropTargetActive && verdict
+                          ? verdict.valid
+                            ? 'valid'
+                            : 'invalid'
+                          : undefined
+                      }
                       title={cellTitle}
                       onClick={() => handleCellClick(dIdx, hIdx, isAvailable)}
                       onDragOver={(e) => {
@@ -145,13 +167,18 @@ export function TimetableMatrix({
                         e.preventDefault();
                         const actId = e.dataTransfer.getData('text/plain');
                         if (actId) {
-                          if (cellEntries.length === 1 && onPair && cellEntries[0].activityId !== actId) {
-                            const v = dropFeedback?.verdicts.get(`${dIdx}|${hIdx}`);
-                            if (!v?.valid) {
-                              onPair(actId, cellEntries[0].activityId, dIdx, hIdx);
-                            } else if (onMove) {
-                              onMove(actId, dIdx, hIdx);
-                            }
+                          const residentId = cellEntries.length === 1 ? cellEntries[0].activityId : null;
+                          const verdict = dropFeedback?.verdicts.get(`${dIdx}|${hIdx}`);
+                          // Offer pairing only when the drop is blocked *solely* by the one
+                          // lesson already here — never for an out-of-shift or unavailable slot.
+                          if (
+                            residentId &&
+                            residentId !== actId &&
+                            onPair &&
+                            !verdict?.valid &&
+                            canPair?.(actId, residentId, dIdx, hIdx)
+                          ) {
+                            onPair(actId, residentId, dIdx, hIdx);
                           } else if (onMove) {
                             onMove(actId, dIdx, hIdx);
                           }

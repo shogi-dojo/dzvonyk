@@ -21,6 +21,7 @@ import JSZip from 'jszip';
 import {
   buildTimetableGrid,
   buildAllClassesGrid,
+  canPairAsParity,
   buildClassDayHourMatrix,
   buildTeacherDayHourMatrix,
   validateSlotMove,
@@ -29,6 +30,14 @@ import {
 } from '@/lib/timetableGrid';
 import { TimetableMatrix } from '@/components/timetable/TimetableMatrix';
 import { useDropFeedback } from '@/components/timetable/useDropFeedback';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { UnplacedPanel } from '@/components/timetable/UnplacedPanel';
 import { getUnplacedActivities } from '@/lib/unplacedActivities';
 import {
@@ -96,9 +105,23 @@ export function Timetable() {
     timeConstraints,
   });
 
+  const [pendingPair, setPendingPair] = useState<{
+    activityAId: string;
+    activityBId: string;
+    day: number;
+    hour: number;
+  } | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [moveSuccess, setMoveSuccess] = useState<string | null>(null);
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+
+  // Chrome is hidden via a body class rather than z-index: the sidebar is transformed
+  // and so forms its own stacking context that an overlay cannot reliably out-stack.
+  useEffect(() => {
+    document.body.classList.toggle('matrix-focus', isFocusMode);
+    return () => document.body.classList.remove('matrix-focus');
+  }, [isFocusMode]);
+
   const [matrixDensity, setMatrixDensity] = useState<'compact' | 'comfortable'>('comfortable');
 
   useEffect(() => {
@@ -355,7 +378,51 @@ export function Timetable() {
   };
 
   // Pair two activities as numerator/denominator in a single slot
-  const handlePairActivities = async (
+  // Pairing is only legitimate when the resident lesson is the sole blocker.
+  const canPairActivities = (
+    activityAId: string,
+    residentActivityId: string,
+    targetDay: number,
+    targetHour: number
+  ): boolean => {
+    if (!latestSolution || !rules) return false;
+    return canPairAsParity({
+      activityId: activityAId,
+      residentActivityId,
+      targetDay,
+      targetHour,
+      currentSolution: latestSolution,
+      activities,
+      teachers,
+      studentsGroups: groups,
+      studentsSubgroups: subgroups,
+      studentsYears: years,
+      rooms,
+      timeConstraints,
+      rules,
+    });
+  };
+
+  // Ask first: pairing rewrites weekParity on two lessons, so an accidental drop
+  // must not silently change the data.
+  const subjectNameOf = (activityId: string): string => {
+    const act = activities.find((a) => a.id === activityId);
+    if (!act) return activityId;
+    const subj = subjects.find((sub) => sub.id === act.subjectId || sub.name === act.subjectId);
+    const cls = act.studentSetIds[0] ? ` ${act.studentSetIds[0]}` : '';
+    return `${subj?.name || act.subjectId}${cls}`;
+  };
+
+  const requestPairActivities = (
+    activityAId: string,
+    activityBId: string,
+    day: number,
+    hour: number
+  ) => {
+    setPendingPair({ activityAId, activityBId, day, hour });
+  };
+
+  const confirmPairActivities = async (
     activityAId: string,
     activityBId: string,
     targetDay: number,
@@ -937,7 +1004,7 @@ export function Timetable() {
 
       {showGrid && (
         <>
-          <Card className={cn(isFocusMode ? "fixed inset-0 z-50 rounded-none border-0 bg-background flex flex-col p-4 overflow-auto" : "animate-slide-up")} ref={printRef}>
+          <Card data-testid="timetable-card" data-focus-mode={isFocusMode ? "on" : "off"} className={cn(isFocusMode ? "fixed inset-0 h-screen w-screen z-[60] rounded-none border-0 bg-background flex flex-col p-4 overflow-auto" : "animate-slide-up")} ref={printRef}>
             <CardHeader className={cn(isFocusMode && "shrink-0 pb-3")}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
@@ -979,6 +1046,7 @@ export function Timetable() {
                   <Button
                     variant="outline"
                     size="sm"
+                    data-testid="focus-mode-toggle"
                     onClick={() => setIsFocusMode(!isFocusMode)}
                     className="gap-1.5 text-xs h-8"
                     title={isFocusMode ? t('timetable.exitFocusMode', { defaultValue: 'Вийти з фокусування' }) : t('timetable.focusMode', { defaultValue: 'Режим фокусування' })}
@@ -1006,7 +1074,8 @@ export function Timetable() {
                     cells={viewType === 'teacher-matrix' ? teacherMatrixData!.cells : classMatrixData!.cells}
                     dropFeedback={dropFeedback}
                     onMove={handleMoveActivity}
-                    onPair={handlePairActivities}
+                    onPair={requestPairActivities}
+                    canPair={canPairActivities}
                     onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
                     density={matrixDensity}
                     cornerLabel={
@@ -1350,6 +1419,41 @@ export function Timetable() {
           )}
         </>
       )}
+
+      <Dialog open={Boolean(pendingPair)} onOpenChange={(open) => !open && setPendingPair(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t('timetable.pairConfirmTitle', { defaultValue: 'Зʼєднати як чисельник/знаменник?' })}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingPair
+                ? t('timetable.pairConfirmBody', {
+                    a: subjectNameOf(pendingPair.activityAId),
+                    b: subjectNameOf(pendingPair.activityBId),
+                    defaultValue:
+                      'Уроки стануть в один слот: перший у чисельнику, другий у знаменнику.',
+                  })
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingPair(null)}>
+              {t('timetable.pairConfirmCancel', { defaultValue: 'Скасувати' })}
+            </Button>
+            <Button
+              onClick={() => {
+                if (!pendingPair) return;
+                const { activityAId, activityBId, day, hour } = pendingPair;
+                setPendingPair(null);
+                void confirmPairActivities(activityAId, activityBId, day, hour);
+              }}
+            >
+              {t('timetable.pairConfirmAction', { defaultValue: 'Зʼєднати' })}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

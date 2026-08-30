@@ -340,6 +340,60 @@ export function validateSlotMove(params: {
 /**
  * Builds a 2D timetable grid (hours × days) for a single entity (teacher, class/subgroup, or room).
  */
+/**
+ * Determines whether a blocked drop may legitimately be resolved by pairing the
+ * two lessons as чисельник/знаменник (alternating weeks).
+ *
+ * Pairing is only meaningful when the *sole* blocker is the single lesson already
+ * sitting in the target slot. If the slot is also out of shift, hit by an
+ * unavailability constraint, or clashing with some other lesson, marking parity
+ * would not make the placement legal — it would just silently rewrite two
+ * activities and force an invalid timetable.
+ */
+export function canPairAsParity(params: {
+  activityId: string;
+  residentActivityId: string;
+  targetDay: number;
+  targetHour: number;
+  currentSolution: TimetableSolution;
+  activities: Activity[];
+  teachers: Teacher[];
+  studentsGroups: StudentsGroup[];
+  studentsSubgroups: StudentsSubgroup[];
+  studentsYears?: StudentsYear[];
+  rooms: Room[];
+  timeConstraints: TimeConstraint[];
+  rules: TimetableRules;
+}): boolean {
+  const { activityId, residentActivityId, currentSolution, activities } = params;
+
+  if (activityId === residentActivityId) return false;
+
+  const activity = activities.find((a) => a.id === activityId);
+  const resident = activities.find((a) => a.id === residentActivityId);
+  if (!activity || !resident) return false;
+
+  // Parity only splits single-hour lessons across two weeks.
+  if ((activity.duration || 1) !== 1 || (resident.duration || 1) !== 1) return false;
+
+  // Both must be free to take a parity: an already-marked lesson is not re-marked.
+  const aParity = activity.weekParity || 'both';
+  const bParity = resident.weekParity || 'both';
+  if (aParity !== 'both' || bParity !== 'both') return false;
+
+  // The move must be blocked as things stand...
+  if (validateSlotMove(params).valid) return false;
+
+  // ...and become legal once the resident lesson is out of the way, which proves
+  // the resident was the only thing in the way.
+  const withoutResident: TimetableSolution = {
+    ...currentSolution,
+    placements: currentSolution.placements.filter((p) => p.activityId !== residentActivityId),
+  };
+
+  return validateSlotMove({ ...params, currentSolution: withoutResident }).valid;
+}
+
 export function buildTimetableGrid(params: {
   entityId: string;
   entityType: ViewType;

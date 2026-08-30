@@ -9,6 +9,7 @@ import {
   buildAllClassesGrid,
   buildClassDayHourMatrix,
   buildTeacherDayHourMatrix,
+  canPairAsParity,
 } from './timetableGrid';
 import { createTestTimetableData } from './__fixtures__/timetableFixture';
 
@@ -587,6 +588,107 @@ describe('timetableGrid', () => {
       const rowTeacherA = matrix?.rows.find((r) => r.id === 't-1');
       expect(rowTeacherA?.availableSlots?.(4, 0)).toBe(false);
       expect(rowTeacherA?.availableSlots?.(4, 1)).toBe(true);
+    });
+  });
+
+  describe('canPairAsParity', () => {
+    const fixture = createTestTimetableData();
+
+    const base = (overrides: Record<string, unknown> = {}) => ({
+      currentSolution: fixture.solution,
+      activities: fixture.activities,
+      teachers: fixture.teachers,
+      studentsGroups: fixture.groups,
+      studentsSubgroups: fixture.subgroups,
+      studentsYears: fixture.years,
+      rooms: fixture.rooms,
+      timeConstraints: fixture.timeConstraints,
+      rules: fixture.rules,
+      ...overrides,
+    });
+
+    it('allows pairing when the resident lesson is the only blocker', () => {
+      // act-2 (5-А) dropped onto act-1's slot (Mon period 2) clashes only on the class.
+      expect(
+        canPairAsParity({
+          activityId: 'act-2',
+          residentActivityId: 'act-1',
+          targetDay: 0,
+          targetHour: 1,
+          ...base(),
+        })
+      ).toBe(true);
+    });
+
+    it('refuses pairing when the slot is blocked by something else as well', () => {
+      // Friday period 1 is a TeacherNotAvailableTimes slot for Вчитель А, so removing
+      // the resident lesson would still leave the drop illegal.
+      const solution = {
+        ...fixture.solution,
+        placements: [{ activityId: 'act-2', day: 4, hour: 0 }],
+      };
+      expect(
+        canPairAsParity({
+          activityId: 'act-1',
+          residentActivityId: 'act-2',
+          targetDay: 4,
+          targetHour: 0,
+          ...base({ currentSolution: solution }),
+        })
+      ).toBe(false);
+    });
+
+    it('refuses pairing when the drop is already legal', () => {
+      expect(
+        canPairAsParity({
+          activityId: 'act-2',
+          residentActivityId: 'act-1',
+          targetDay: 3,
+          targetHour: 3,
+          ...base(),
+        })
+      ).toBe(false);
+    });
+
+    it('refuses pairing a lesson with itself', () => {
+      expect(
+        canPairAsParity({
+          activityId: 'act-1',
+          residentActivityId: 'act-1',
+          targetDay: 0,
+          targetHour: 1,
+          ...base(),
+        })
+      ).toBe(false);
+    });
+
+    it('refuses pairing when a lesson already carries a parity', () => {
+      const solution = {
+        ...fixture.solution,
+        placements: [{ activityId: 'act-4-num', day: 0, hour: 3 }],
+      };
+      expect(
+        canPairAsParity({
+          activityId: 'act-5-den',
+          residentActivityId: 'act-4-num',
+          targetDay: 0,
+          targetHour: 3,
+          ...base({ currentSolution: solution }),
+        })
+      ).toBe(false);
+    });
+
+    it('refuses pairing multi-hour lessons', () => {
+      // act-3 has duration 2 and cannot be split across alternating weeks.
+      expect(
+        canPairAsParity({
+          activityId: 'act-3',
+          residentActivityId: 'act-1',
+          targetDay: 0,
+          targetHour: 1,
+          ...base(),
+        })
+      ).toBe(false);
     });
   });
 });
