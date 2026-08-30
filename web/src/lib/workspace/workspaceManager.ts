@@ -309,6 +309,42 @@ export class WorkspaceManager {
   }
 
   /**
+   * Renames a workspace label
+   */
+  async renameWorkspace(workspaceId: string, newLabel: string): Promise<AcademicYearWorkspace> {
+    const ws = await this.database.workspaces.get(workspaceId);
+    if (!ws) throw new Error(`Workspace ${workspaceId} not found`);
+
+    const updated: AcademicYearWorkspace = {
+      ...ws,
+      label: newLabel.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.database.workspaces.put(updated);
+    return updated;
+  }
+
+  /**
+   * Duplicates a workspace with its data or structure
+   */
+  async duplicateWorkspace(
+    workspaceId: string,
+    newLabel: string,
+    options?: { cloneStructureOnly?: boolean }
+  ): Promise<AcademicYearWorkspace> {
+    const source = await this.database.workspaces.get(workspaceId);
+    if (!source) throw new Error(`Workspace ${workspaceId} not found`);
+
+    const cloned = await this.createWorkspace(source.schoolId, newLabel.trim(), {
+      cloneFromWorkspaceId: workspaceId,
+      cloneStructureOnly: options?.cloneStructureOnly ?? false,
+    });
+
+    return cloned;
+  }
+
+  /**
    * Deletes a workspace and its snapshots
    */
   async deleteWorkspace(workspaceId: string): Promise<void> {

@@ -115,6 +115,67 @@ export const createWorkspaceAction = createAsyncThunk(
   }
 );
 
+export const renameWorkspaceAction = createAsyncThunk(
+  'workspace/renameWorkspace',
+  async ({ workspaceId, label }: { workspaceId: string; label: string }) => {
+    const updated = await workspaceManager.renameWorkspace(workspaceId, label);
+    const workspaces = await workspaceManager.listWorkspaces();
+    const activeContext = await workspaceManager.getActiveContext();
+    return {
+      workspace: updated,
+      workspaces,
+      activeWorkspace: activeContext.workspace,
+    };
+  }
+);
+
+export const duplicateWorkspaceAction = createAsyncThunk(
+  'workspace/duplicateWorkspace',
+  async ({
+    workspaceId,
+    label,
+    cloneStructureOnly,
+  }: {
+    workspaceId: string;
+    label: string;
+    cloneStructureOnly?: boolean;
+  }) => {
+    const duplicated = await workspaceManager.duplicateWorkspace(workspaceId, label, {
+      cloneStructureOnly,
+    });
+    const context = await workspaceManager.switchWorkspace(duplicated.id);
+    await historyManager.init(context.workspace.id);
+    const workspaces = await workspaceManager.listWorkspaces();
+    const versions = await workspaceManager.listVersions(context.workspace.id);
+
+    return {
+      activeSchool: context.school,
+      activeWorkspace: context.workspace,
+      isGuest: context.isGuest,
+      workspaces,
+      versions,
+    };
+  }
+);
+
+export const forceSaveWorkspaceAction = createAsyncThunk(
+  'workspace/forceSave',
+  async (name: string | undefined = undefined, { getState }) => {
+    const context = await workspaceManager.getActiveContext();
+    const version = await workspaceManager.saveSnapshotVersion(
+      context.workspace.id,
+      'manual',
+      name || `Ручне збереження ${new Date().toLocaleTimeString('uk-UA')}`
+    );
+    const versions = await workspaceManager.listVersions(context.workspace.id);
+    const state = getState() as { auth: { user: { uid: string } | null } };
+    if (state.auth.user) {
+      await syncService.syncActiveWorkspace(state.auth.user.uid);
+    }
+    return { version, versions };
+  }
+);
+
 export const deleteWorkspaceAction = createAsyncThunk(
   'workspace/deleteWorkspace',
   async (workspaceId: string) => {
@@ -216,6 +277,25 @@ const workspaceSlice = createSlice({
       // Create workspace
       .addCase(createWorkspaceAction.fulfilled, (state, action) => {
         state.workspaces = action.payload.workspaces;
+      })
+      // Rename workspace
+      .addCase(renameWorkspaceAction.fulfilled, (state, action) => {
+        state.workspaces = action.payload.workspaces;
+        if (state.activeWorkspace?.id === action.payload.workspace.id) {
+          state.activeWorkspace.label = action.payload.workspace.label;
+        }
+      })
+      // Duplicate workspace
+      .addCase(duplicateWorkspaceAction.fulfilled, (state, action) => {
+        state.activeSchool = action.payload.activeSchool;
+        state.activeWorkspace = action.payload.activeWorkspace;
+        state.isGuest = action.payload.isGuest;
+        state.workspaces = action.payload.workspaces;
+        state.versions = action.payload.versions;
+      })
+      // Force save
+      .addCase(forceSaveWorkspaceAction.fulfilled, (state, action) => {
+        state.versions = action.payload.versions;
       })
       // Delete workspace
       .addCase(deleteWorkspaceAction.fulfilled, (state, action) => {

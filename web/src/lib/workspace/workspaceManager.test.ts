@@ -118,4 +118,29 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
     const recovery = versions.find((v) => v.name?.includes('Автозбереження перед відновленням'));
     expect(recovery).toBeDefined();
   });
+
+  it('renames and duplicates workspaces cleanly', async () => {
+    await workspaceManager.init();
+    await db.teachers.put(mockTeacher);
+
+    // 1. Rename workspace
+    const renamed = await workspaceManager.renameWorkspace(GUEST_WORKSPACE_ID, '2025-2026 (I семестр)');
+    expect(renamed.label).toBe('2025-2026 (I семестр)');
+
+    const fetched = await db.workspaces.get(GUEST_WORKSPACE_ID);
+    expect(fetched?.label).toBe('2025-2026 (I семестр)');
+
+    // 2. Duplicate workspace
+    const duplicated = await workspaceManager.duplicateWorkspace(
+      GUEST_WORKSPACE_ID,
+      '2025-2026 (II семестр)'
+    );
+    expect(duplicated.label).toBe('2025-2026 (II семестр)');
+    expect(duplicated.id).not.toBe(GUEST_WORKSPACE_ID);
+
+    // Verify snapshot was created for duplicated workspace
+    const dupVersions = await workspaceManager.listVersions(duplicated.id);
+    expect(dupVersions.length).toBeGreaterThan(0);
+    expect(dupVersions[0].snapshotEnvelope?.data.teachers[0].name).toBe('Франко І. Я.');
+  });
 });
