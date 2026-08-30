@@ -125,45 +125,27 @@ export function Layout({ children }: LayoutProps) {
         aria-label={t('app.name')}
       >
         {/* Logo */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-border">
+        <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-border">
           <Link to="/" className="flex items-center gap-3 group" aria-label={t('app.home')}>
             <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110 shadow-sm">
               <Bell className="h-5 w-5 text-primary-foreground fill-current" aria-hidden="true" />
             </div>
             <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
           </Link>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => dispatch(toggleDarkMode())}
-              aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
-              title={isDarkMode ? 'Світла тема' : 'Темна тема'}
-            >
-              {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => dispatch(toggleSidebar())}
-              aria-label={t('app.closeMenu')}
-            >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden h-8 w-8"
+            onClick={() => dispatch(toggleSidebar())}
+            aria-label={t('app.closeMenu')}
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </Button>
         </div>
         
+        {/* Workspace Selector (Year / School) */}
         <div className="px-4 pt-4">
           <WorkspaceSelector />
-          <div
-            className="mt-2 flex min-w-0 items-center justify-between gap-2 rounded-lg border border-border/70 bg-background/40 px-2 py-1"
-            data-testid="sidebar-account-toolbar"
-          >
-            <HistoryControls />
-            <UserProfileButton />
-          </div>
         </div>
 
         <ScrollArea className="flex-1 min-h-0">
@@ -208,23 +190,43 @@ export function Layout({ children }: LayoutProps) {
           </nav>
         </ScrollArea>
 
-        {/* Pinned below the scroll area so it stays visible without scrolling,
-            however long the nav list gets. */}
-        <div className="shrink-0 border-t border-border p-4 flex flex-col gap-1 bg-card">
-          <InstallPwaButton className="w-full justify-start text-xs h-10 bg-primary/5 hover:bg-primary/10 border-primary/20" />
+        {/* Pinned below the scroll area */}
+        <div className="shrink-0 border-t border-border p-3.5 flex flex-col gap-2 bg-card">
+          {/* User Account & History Toolbar */}
+          <div
+            className="flex min-w-0 items-center justify-between gap-2 p-1.5 rounded-lg border border-border/80 bg-background/50"
+            data-testid="sidebar-account-toolbar"
+          >
+            <UserProfileButton />
+            <div className="flex items-center gap-0.5">
+              <HistoryControls />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => dispatch(toggleDarkMode())}
+                aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
+                title={isDarkMode ? 'Світла тема' : 'Темна тема'}
+              >
+                {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+              </Button>
+            </div>
+          </div>
+
+          <InstallPwaButton className="w-full justify-start text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20" />
           {DONATE_URL && (
             <a
               href={DONATE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground"
+              className="group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground"
               onClick={() => {
                 if (window.innerWidth < 1024) {
                   dispatch(toggleSidebar());
                 }
               }}
             >
-              <Heart className="h-5 w-5 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+              <Heart className="h-4 w-4 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
               <span className="flex-1">{t('support.donate')}</span>
               <ExternalLink className="h-3.5 w-3.5 opacity-50 shrink-0" aria-hidden="true" />
             </a>
