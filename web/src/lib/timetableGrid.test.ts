@@ -4,6 +4,7 @@ import {
   activitiesShareStudents,
   findSolutionConflicts,
   validateSlotMove,
+  parityCompatible,
   buildTimetableGrid,
   buildAllClassesGrid,
   buildClassDayHourMatrix,
@@ -346,15 +347,14 @@ describe('timetableGrid', () => {
       expect(studentClash.reason).toContain('вже має інший урок');
     });
 
-    it('demonstrates unhandled parity in validateSlotMove (BUG: fixed in task 5)', () => {
+    it('allows moving an activity into the same slot as an opposite-parity activity without clash', () => {
       // act-5-den is placed at day 1, hour 2 in solution
       const paritySolution = {
         ...fixture.solution,
         placements: [{ activityId: 'act-5-den', day: 1, hour: 2 }],
       };
 
-      // Moving act-4-num (numerator) to same slot as act-5-den (denominator)
-      // BUG: Currently validateSlotMove ignores weekParity and flags a false student clash.
+      // Moving act-4-num (numerator) to same slot as act-5-den (denominator) is legal
       const result = validateSlotMove({
         activityId: 'act-4-num',
         targetDay: 1,
@@ -370,8 +370,22 @@ describe('timetableGrid', () => {
         rules: fixture.rules,
       });
 
-      // Assert current buggy behavior: returns valid: false instead of valid: true
-      expect(result.valid).toBe(false);
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('parityCompatible', () => {
+    it('identifies alternating numerator and denominator as compatible', () => {
+      expect(parityCompatible({ weekParity: 'numerator' }, { weekParity: 'denominator' })).toBe(true);
+      expect(parityCompatible({ weekParity: 'denominator' }, { weekParity: 'numerator' })).toBe(true);
+    });
+
+    it('identifies same-parity or both/undefined as incompatible', () => {
+      expect(parityCompatible({ weekParity: 'numerator' }, { weekParity: 'numerator' })).toBe(false);
+      expect(parityCompatible({ weekParity: 'denominator' }, { weekParity: 'denominator' })).toBe(false);
+      expect(parityCompatible({ weekParity: 'both' }, { weekParity: 'numerator' })).toBe(false);
+      expect(parityCompatible({}, { weekParity: 'denominator' })).toBe(false);
+      expect(parityCompatible({}, {})).toBe(false);
     });
   });
 

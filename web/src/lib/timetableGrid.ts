@@ -83,6 +83,22 @@ export function activitiesShareStudents(
 }
 
 /**
+ * Checks if two activities have alternating biweekly parities (numerator + denominator).
+ * Two activities with compatible parity may share the same time slot without clashing.
+ */
+export function parityCompatible(
+  a: { weekParity?: Activity['weekParity'] },
+  b: { weekParity?: Activity['weekParity'] }
+): boolean {
+  const pA = a.weekParity || 'both';
+  const pB = b.weekParity || 'both';
+  return (
+    (pA === 'numerator' && pB === 'denominator') ||
+    (pA === 'denominator' && pB === 'numerator')
+  );
+}
+
+/**
  * Finds all clashes and conflicts across placements in a solution.
  */
 export function findSolutionConflicts(
@@ -120,10 +136,7 @@ export function findSolutionConflicts(
       const a2End = p2.hour + (a2.duration || 1);
       const overlaps = Math.max(p1.hour, p2.hour) < Math.min(a1End, a2End);
       if (!overlaps) continue;
-      if (
-        (a1.weekParity === 'numerator' && a2.weekParity === 'denominator') ||
-        (a1.weekParity === 'denominator' && a2.weekParity === 'numerator')
-      ) continue;
+      if (parityCompatible(a1, a2)) continue;
 
       // 1. Teacher clash
       const commonTeachers = a1.teacherIds.filter((t1) =>
@@ -289,6 +302,7 @@ export function validateSlotMove(params: {
     const myEnd = targetHour + duration;
     const overlaps = Math.max(targetHour, p.hour) < Math.min(myEnd, otherEnd);
     if (!overlaps) continue;
+    if (parityCompatible(activity, otherAct)) continue;
 
     // Check teacher clash
     const commonTeachers = activity.teacherIds.filter((t1) =>
