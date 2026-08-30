@@ -3,6 +3,7 @@ import {
   generateClassPrintHtml,
   generateTeacherWorkloadPrintHtml,
   generateClassesWorkloadMatrixPrintHtml,
+  generateSummaryClassesMatrixPrintHtml,
 } from './printDocument';
 import type { GridCell } from './timetableGrid';
 import type { TimetableRules } from '../types';
@@ -155,5 +156,51 @@ describe('printDocument', () => {
     expect(html).toContain('30,5');
     expect(html).toContain('Різниця 1 год');
     expect(html).toContain('Збалансовано');
+  });
+
+  it('uses full matrix labels when space is available and compact labels on fixed paper sizes', () => {
+    const rules: TimetableRules = {
+      id: 'rules',
+      mode: 0,
+      institutionName: 'Тестова школа',
+      nDaysPerWeek: 1,
+      nHoursPerDay: 1,
+      daysOfTheWeek: [{ name: 'Понеділок' }],
+      hoursOfTheDay: [{ name: '08:30', longName: '08:30 – 09:15' }],
+      modified: false,
+      createdAt: '',
+      updatedAt: '',
+    };
+    const params = {
+      rules,
+      solution: {
+        id: 'solution',
+        rulesId: 'rules',
+        placements: [],
+        conflicts: [],
+        isComplete: true,
+        generatedAt: new Date(),
+      },
+      activities: [],
+      teachers: [],
+      subjects: [],
+      groups: [{ id: 'g1', name: '5-А', studentIds: [], subgroups: [] }],
+      subgroups: [],
+      rooms: [],
+    };
+
+    const autoHtml = generateSummaryClassesMatrixPrintHtml({
+      ...params,
+      options: { pageSize: 'auto' as const },
+    });
+    expect(autoHtml).toContain('<strong>Понеділок</strong>');
+    expect(autoHtml).toContain('1 урок');
+
+    const a4Html = generateSummaryClassesMatrixPrintHtml({
+      ...params,
+      options: { pageSize: 'a4' as const },
+    });
+    expect(a4Html).toContain('<strong>Пон</strong>');
+    expect(a4Html).toContain('1 ур.');
   });
 });

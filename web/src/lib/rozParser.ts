@@ -73,7 +73,7 @@ const UKRAINIAN_DAYS: Day[] = [
   { name: 'Пʼятниця', longName: 'Пʼятниця' },
 ];
 
-const DAY_ABBRS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'];
+const DAY_ABBRS = ['Пон', 'Вів', 'Сер', 'Чет', 'Пʼя'];
 
 const DAYBIT_MAP: Record<number, number> = {
   1: 0,  // Mon

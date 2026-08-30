@@ -141,6 +141,11 @@ test('Teacher workload accurately displays alternating-week fractional hours in 
 
   for (const report of remainingReports) {
     await page.getByRole('main').getByRole('button', { name: report.button }).click();
+    if (report.button === 'Зведений (Класи)') {
+      const printArea = page.locator('[data-print-area="true"]');
+      await expect(printArea.getByText('Понеділок', { exact: true }).first()).toBeVisible();
+      await expect(printArea.getByText('1 урок', { exact: true }).first()).toBeVisible();
+    }
     if (report.button === 'Окремий вчитель') {
       await page.getByRole('main').getByRole('combobox').selectOption({ label: 'Сисова Оксана' });
     }

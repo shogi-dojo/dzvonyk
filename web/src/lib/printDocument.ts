@@ -21,6 +21,11 @@ import {
 } from './timetableGrid';
 import { hourTimeLabel } from './bellSchedule';
 import {
+  formatConfiguredLessonLabel,
+  formatTimetableDayLabel,
+  formatTimetableLessonLabel,
+} from './timetableLabels';
+import {
   formatWeeklyLoad,
   formatHours,
   computeTeacherWorkloadReportData,
@@ -616,6 +621,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
     rooms,
   });
   if (!matrix) return '';
+  const compactMatrixLabels = pageSize !== 'auto';
 
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -671,8 +677,13 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
           .map((row) => `
           <tr ${row.hour === 0 ? 'style="border-top: 2px solid #000;"' : ''}>
             <td class="day-header-cell">
-              <div><strong>${escapeHtml(row.dayName.slice(0, 2))}</strong></div>
-              <div style="font-size: 9px; font-weight: normal; color: #555;">${row.hour + 1} ур.</div>
+              <div style="white-space: nowrap;"><strong>${escapeHtml(
+                formatTimetableDayLabel(row.dayName, compactMatrixLabels)
+              )}</strong></div>
+              <div style="font-size: 9px; font-weight: normal; color: #555; white-space: nowrap;">${formatTimetableLessonLabel(
+                row.hour + 1,
+                compactMatrixLabels
+              )}</div>
             </td>
             ${row.cells
               .map((cellItems) => `
@@ -735,6 +746,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
 }): string {
   const { solution, rules, activities, teachers, subjects, rooms, options = {} } = params;
   const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4' } = options;
+  const compactMatrixLabels = pageSize !== 'auto';
 
   const sortedTeachers = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'uk'));
   const actMap = new Map(activities.map((a) => [a.id, a]));
@@ -855,8 +867,12 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
           .map((row) => `
           <tr>
             <td class="day-header-cell">
-              <div><strong>${escapeHtml(row.dayName.slice(0, 2))}</strong></div>
-              <div style="font-size: 9px; font-weight: normal; color: #555;">${escapeHtml(row.hourName)}</div>
+              <div style="white-space: nowrap;"><strong>${escapeHtml(
+                formatTimetableDayLabel(row.dayName, compactMatrixLabels)
+              )}</strong></div>
+              <div style="font-size: 9px; font-weight: normal; color: #555; white-space: nowrap;">${escapeHtml(
+                formatConfiguredLessonLabel(row.hourName, compactMatrixLabels)
+              )}</div>
             </td>
             ${row.cells
               .map((cellItems) => `

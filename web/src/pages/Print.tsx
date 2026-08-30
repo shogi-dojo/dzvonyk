@@ -36,6 +36,11 @@ import {
 } from '@/lib/weeklyLoad';
 import { printReportElementToPdf } from '@/lib/pdfExport';
 import { trackEvent } from '@/lib/analytics';
+import {
+  formatConfiguredLessonLabel,
+  formatTimetableDayLabel,
+  formatTimetableLessonLabel,
+} from '@/lib/timetableLabels';
 
 type ReportType =
   | 'class'
@@ -695,7 +700,7 @@ export function Print() {
             <table className="w-full border-collapse border border-black text-[11px] timetable-grid">
               <thead>
                 <tr className="bg-neutral-100">
-                  <th className="border border-black p-1.5 font-bold text-center min-w-[70px]">Час</th>
+                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">Час</th>
                   {summaryClassesGrid.groups.map((g) => (
                     <th key={g.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {g.name}
@@ -709,8 +714,12 @@ export function Print() {
                   return (
                     <tr key={rIdx} className={cn(isFirstHour && 'border-t-2 border-black')}>
                       <td className="border border-black p-1 text-left bg-neutral-50 font-medium">
-                        <div className="font-bold">{row.dayName.slice(0, 2)}</div>
-                        <div className="text-[9px] text-neutral-600">{row.hour + 1} ур.</div>
+                        <div className="font-bold whitespace-nowrap">
+                          {formatTimetableDayLabel(row.dayName)}
+                        </div>
+                        <div className="text-[9px] text-neutral-600 whitespace-nowrap">
+                          {formatTimetableLessonLabel(row.hour + 1)}
+                        </div>
                       </td>
                       {row.cells.map((cellItems, gIdx) => (
                         <td key={gIdx} className="border border-black p-1 align-top">
@@ -748,7 +757,7 @@ export function Print() {
             <table className="w-full border-collapse border border-black text-[11px] timetable-grid">
               <thead>
                 <tr className="bg-neutral-100">
-                  <th className="border border-black p-1.5 font-bold text-center min-w-[70px]">Час</th>
+                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">Час</th>
                   {summaryTeachersGrid.teachers.map((t) => (
                     <th key={t.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {t.name}
@@ -760,8 +769,12 @@ export function Print() {
                 {summaryTeachersGrid.rows.map((row, rIdx) => (
                   <tr key={rIdx}>
                     <td className="border border-black p-1 text-left bg-neutral-50 font-medium">
-                      <div className="font-bold">{row.dayName.slice(0, 2)}</div>
-                      <div className="text-[9px] text-neutral-600">{row.hourName}</div>
+                      <div className="font-bold whitespace-nowrap">
+                        {formatTimetableDayLabel(row.dayName)}
+                      </div>
+                      <div className="text-[9px] text-neutral-600 whitespace-nowrap">
+                        {formatConfiguredLessonLabel(row.hourName)}
+                      </div>
                     </td>
                     {row.cells.map((cellItems, tIdx) => (
                       <td key={tIdx} className="border border-black p-1 align-top">
