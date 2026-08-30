@@ -41,32 +41,34 @@ export const updateTeacher = createAsyncThunk(
     const state = getState() as { teachers: TeachersState };
     const oldTeacher = state.teachers.items.find(t => t.id === teacher.id);
     
-    await db.teachers.put(teacher);
-    
-    // If the name changed, update all activities that reference this teacher
-    if (oldTeacher && oldTeacher.name !== teacher.name) {
-      const activities = await db.activities.toArray();
-      const activitiesToUpdate = activities.filter(a => 
-        a.teacherIds.includes(oldTeacher.name) || a.teacherIds.includes(oldTeacher.id)
-      );
+    await db.transaction('rw', [db.teachers, db.activities, db.timeConstraints], async () => {
+      await db.teachers.put(teacher);
       
-      for (const activity of activitiesToUpdate) {
-        const updatedTeacherIds = activity.teacherIds.map(id => 
-          (id === oldTeacher.name || id === oldTeacher.id) ? teacher.name : id
+      // If the name changed, update all activities that reference this teacher
+      if (oldTeacher && oldTeacher.name !== teacher.name) {
+        const activities = await db.activities.toArray();
+        const activitiesToUpdate = activities.filter(a => 
+          a.teacherIds.includes(oldTeacher.name) || a.teacherIds.includes(oldTeacher.id)
         );
-        await db.activities.update(activity.id, { teacherIds: updatedTeacherIds });
-      }
-      
-      // Also update constraints that reference this teacher
-      const timeConstraints = await db.timeConstraints.toArray();
-      for (const constraint of timeConstraints) {
-        const c = constraint as ConstraintFields;
-        if (c.teacherId === oldTeacher.name || c.teacherId === oldTeacher.id) {
-          const updated = { ...constraint, teacherId: teacher.name } as TimeConstraint;
-          await db.timeConstraints.put(updated);
+        
+        for (const activity of activitiesToUpdate) {
+          const updatedTeacherIds = activity.teacherIds.map(id => 
+            (id === oldTeacher.name || id === oldTeacher.id) ? teacher.name : id
+          );
+          await db.activities.update(activity.id, { teacherIds: updatedTeacherIds });
+        }
+        
+        // Also update constraints that reference this teacher
+        const timeConstraints = await db.timeConstraints.toArray();
+        for (const constraint of timeConstraints) {
+          const c = constraint as ConstraintFields;
+          if (c.teacherId === oldTeacher.name || c.teacherId === oldTeacher.id) {
+            const updated = { ...constraint, teacherId: teacher.name } as TimeConstraint;
+            await db.timeConstraints.put(updated);
+          }
         }
       }
-    }
+    });
     
     return { teacher, oldName: oldTeacher?.name };
   }
@@ -78,27 +80,27 @@ export const deleteTeacher = createAsyncThunk(
     const state = getState() as { teachers: TeachersState };
     const teacher = state.teachers.items.find(t => t.id === id);
     
-    await db.teachers.delete(id);
-    
-    // Remove teacher from activities
-    if (teacher) {
-      const activities = await db.activities.toArray();
-      const activitiesToUpdate = activities.filter(a => 
-        a.teacherIds.includes(teacher.name) || a.teacherIds.includes(teacher.id)
-      );
+    await db.transaction('rw', [db.teachers, db.activities], async () => {
+      await db.teachers.delete(id);
       
-      for (const activity of activitiesToUpdate) {
-        const updatedTeacherIds = activity.teacherIds.filter(tid => 
-          tid !== teacher.name && tid !== teacher.id
+      // Remove teacher from activities
+      if (teacher) {
+        const activities = await db.activities.toArray();
+        const activitiesToUpdate = activities.filter(a => 
+          a.teacherIds.includes(teacher.name) || a.teacherIds.includes(teacher.id)
         );
-        if (updatedTeacherIds.length > 0) {
-          await db.activities.update(activity.id, { teacherIds: updatedTeacherIds });
-        } else {
-          // Activity would have no teachers, deactivate it
-          await db.activities.update(activity.id, { active: false });
+        
+        for (const activity of activitiesToUpdate) {
+          const updatedTeacherIds = activity.teacherIds.filter(t => t !== teacher.name && t !== teacher.id);
+          if (updatedTeacherIds.length > 0) {
+            await db.activities.update(activity.id, { teacherIds: updatedTeacherIds });
+          } else {
+            // If no teachers left, mark activity as inactive or remove
+            await db.activities.update(activity.id, { active: false });
+          }
         }
       }
-    }
+    });
     
     return id;
   }

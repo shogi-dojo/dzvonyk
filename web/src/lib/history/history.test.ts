@@ -121,4 +121,39 @@ describe('Persistent Undo and Redo Journal', () => {
     expect(teacherInDb).toBeDefined();
     expect(subjectInDb).toBeUndefined();
   });
+
+  it('records multi-table cascading transactions as a single history entry', async () => {
+    // 1. Initial teacher and 3 activities
+    await db.teachers.put(mockTeacher);
+    await db.activities.bulkAdd([
+      { id: 'act-1', teacherIds: [mockTeacher.name], subjectId: 'Math', studentsGroupIds: ['1A'], duration: 1, totalHours: 1, active: true },
+      { id: 'act-2', teacherIds: [mockTeacher.name], subjectId: 'Physics', studentsGroupIds: ['1B'], duration: 1, totalHours: 1, active: true },
+      { id: 'act-3', teacherIds: [mockTeacher.name], subjectId: 'Chemistry', studentsGroupIds: ['1C'], duration: 1, totalHours: 1, active: true },
+    ]);
+
+    await historyManager.init('test-ws');
+    const initialStackLength = historyManager.getUndoStack().length;
+
+    // 2. Perform cascading rename inside a transaction
+    await db.transaction('rw', [db.teachers, db.activities], async () => {
+      await db.teachers.put({ ...mockTeacher, name: 'Іван Франко' });
+      await db.activities.update('act-1', { teacherIds: ['Іван Франко'] });
+      await db.activities.update('act-2', { teacherIds: ['Іван Франко'] });
+      await db.activities.update('act-3', { teacherIds: ['Іван Франко'] });
+    });
+
+    const stack = historyManager.getUndoStack();
+    // Exactly 1 new entry should have been created for the whole transaction!
+    expect(stack.length).toBe(initialStackLength + 1);
+    const lastEntry = stack[stack.length - 1];
+    expect(lastEntry.description).toContain('Іван Франко');
+
+    // 3. Undo should revert both teacher and all 3 activities in one single step
+    await historyManager.undo();
+    const teacher = await db.teachers.get(mockTeacher.id);
+    expect(teacher?.name).toBe('Григорій Сковорода');
+
+    const act1 = await db.activities.get('act-1');
+    expect(act1?.teacherIds).toEqual(['Григорій Сковорода']);
+  });
 });

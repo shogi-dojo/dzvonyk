@@ -39,12 +39,51 @@ export class HistoryManager {
   private describeChanges(changes: EntityChange<unknown>[]): string {
     if (changes.length === 1) {
       const change = changes[0];
-      const record = (change.next ?? change.prev) as { name?: unknown } | null;
-      const label = typeof record?.name === 'string' ? `: ${record.name}` : '';
+      const record = (change.next ?? change.prev) as { name?: unknown; institutionName?: unknown; label?: unknown } | null;
+      const labelName = record?.name || record?.institutionName || record?.label;
+      const label = typeof labelName === 'string' ? `: ${labelName}` : '';
       if (change.prev === null) return `Додано${label}`;
       if (change.next === null) return `Видалено${label}`;
       return `Змінено${label}`;
     }
+
+    // Check if there is a primary entity change that drove this batch (like teacher, subject, room, students)
+    const teacherChange = changes.find((c) => c.table === 'teachers');
+    if (teacherChange) {
+      const rec = (teacherChange.next ?? teacherChange.prev) as { name?: unknown } | null;
+      const name = typeof rec?.name === 'string' ? `: ${rec.name}` : '';
+      if (teacherChange.prev === null) return `Додано вчителя${name}`;
+      if (teacherChange.next === null) return `Видалено вчителя${name}`;
+      return `Змінено вчителя${name}`;
+    }
+
+    const subjectChange = changes.find((c) => c.table === 'subjects');
+    if (subjectChange) {
+      const rec = (subjectChange.next ?? subjectChange.prev) as { name?: unknown } | null;
+      const name = typeof rec?.name === 'string' ? `: ${rec.name}` : '';
+      if (subjectChange.prev === null) return `Додано предмет${name}`;
+      if (subjectChange.next === null) return `Видалено предмет${name}`;
+      return `Змінено предмет${name}`;
+    }
+
+    const roomChange = changes.find((c) => c.table === 'rooms');
+    if (roomChange) {
+      const rec = (roomChange.next ?? roomChange.prev) as { name?: unknown } | null;
+      const name = typeof rec?.name === 'string' ? `: ${rec.name}` : '';
+      if (roomChange.prev === null) return `Додано кабінет${name}`;
+      if (roomChange.next === null) return `Видалено кабінет${name}`;
+      return `Змінено кабінет${name}`;
+    }
+
+    const studentChange = changes.find((c) => c.table.startsWith('students'));
+    if (studentChange) {
+      const rec = (studentChange.next ?? studentChange.prev) as { name?: unknown } | null;
+      const name = typeof rec?.name === 'string' ? `: ${rec.name}` : '';
+      if (studentChange.prev === null) return `Додано учнів${name}`;
+      if (studentChange.next === null) return `Видалено учнів${name}`;
+      return `Змінено учнів${name}`;
+    }
+
     return `Оновлено дані розкладу (${changes.length})`;
   }
 
