@@ -35,15 +35,17 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
+  // Data the завуч edits constantly, then the two pages she actually works in.
   { key: 'teachers', href: '/teachers', icon: Users2 },
   { key: 'subjects', href: '/subjects', icon: BookOpen },
   { key: 'students', href: '/students', icon: GraduationCap },
   { key: 'activities', href: '/activities', icon: Calendar },
-  { key: 'rooms', href: '/rooms', icon: Building2 },
-  { key: 'constraints', href: '/constraints', icon: Shield },
   { key: 'generate', href: '/generate', icon: Play },
   { key: 'timetable', href: '/timetable', icon: Grid3X3 },
   { key: 'print', href: '/print', icon: Printer },
+  // Rarely touched: rooms and constraints sit below the daily-use pages.
+  { key: 'rooms', href: '/rooms', icon: Building2 },
+  { key: 'constraints', href: '/constraints', icon: Shield },
   { key: 'settings', href: '/settings', icon: Settings },
   { key: 'about', href: '/about', icon: Info },
 ];
@@ -235,9 +237,7 @@ export function Layout({ children }: LayoutProps) {
                       <>
                         <div className="flex-1">
                           <div>{t(`nav.${item.key}`)}</div>
-                          {!isActive && (
-                            <div className="text-xs opacity-60 mt-0.5">{t(`nav.${item.key}Desc`)}</div>
-                          )}
+                          <div className="text-xs opacity-60 mt-0.5">{t(`nav.${item.key}Desc`)}</div>
                         </div>
                         {isActive && (
                           <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" aria-hidden="true" />
