@@ -24,16 +24,20 @@ test.describe('Дзвоник smoke tests', () => {
     const sidebar = page.locator('aside');
     const toolbar = page.getByTestId('sidebar-account-toolbar');
     const signIn = toolbar.getByRole('button', { name: /увійти/i });
+    const workspaceSelector = page.getByRole('button', { name: /вибір навчального року/i });
     await expect(signIn).toBeVisible();
+    await expect(workspaceSelector).toBeVisible();
 
-    const [sidebarBox, toolbarBox, signInBox] = await Promise.all([
+    const [sidebarBox, toolbarBox, signInBox, selectorBox] = await Promise.all([
       sidebar.boundingBox(),
       toolbar.boundingBox(),
       signIn.boundingBox(),
+      workspaceSelector.boundingBox(),
     ]);
     expect(sidebarBox).not.toBeNull();
     expect(toolbarBox).not.toBeNull();
     expect(signInBox).not.toBeNull();
+    expect(selectorBox).not.toBeNull();
     expect(toolbarBox!.x).toBeGreaterThanOrEqual(sidebarBox!.x);
     expect(toolbarBox!.x + toolbarBox!.width).toBeLessThanOrEqual(
       sidebarBox!.x + sidebarBox!.width
@@ -41,6 +45,8 @@ test.describe('Дзвоник smoke tests', () => {
     expect(signInBox!.x + signInBox!.width).toBeLessThanOrEqual(
       sidebarBox!.x + sidebarBox!.width
     );
+    // Both dropdown/toolbars must have the exact same width
+    expect(Math.round(selectorBox!.width)).toEqual(Math.round(toolbarBox!.width));
   });
 
   test('all routes render without crashing', async ({ page }) => {

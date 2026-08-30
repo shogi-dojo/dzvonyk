@@ -84,23 +84,25 @@ export function WorkspaceSelector() {
 
   return (
     <>
-      <div className="relative">
+      <div className="relative w-full">
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/80 bg-background/50 hover:bg-muted/60 transition-colors text-xs text-left max-w-[200px] sm:max-w-xs"
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-border/80 bg-background/50 hover:bg-muted/60 transition-colors text-xs text-left"
           aria-expanded={dropdownOpen}
           aria-label={t('workspace.selector', 'Вибір навчального року')}
         >
-          <SchoolIcon className="h-4 w-4 text-primary shrink-0" />
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-foreground truncate leading-tight">
-              {activeSchool?.name || t('workspace.guestSchool', 'Локальний розклад')}
-            </p>
-            <p className="text-[11px] text-muted-foreground truncate leading-tight flex items-center gap-1">
-              <Calendar className="h-3 w-3 inline" />
-              {activeWorkspace?.label || t('workspace.defaultYear', 'Основний')}
-              {isGuest && <span className="text-[10px] text-amber-500 font-medium">(Локально)</span>}
-            </p>
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <SchoolIcon className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground truncate leading-tight">
+                {activeSchool?.name || t('workspace.guestSchool', 'Локальний розклад')}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate leading-tight flex items-center gap-1 mt-0.5">
+                <Calendar className="h-3 w-3 inline shrink-0" />
+                <span className="truncate">{activeWorkspace?.label || t('workspace.defaultYear', 'Основний')}</span>
+                {isGuest && <span className="text-[10px] text-amber-500 font-medium shrink-0">(Локально)</span>}
+              </p>
+            </div>
           </div>
           <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         </button>
@@ -112,7 +114,7 @@ export function WorkspaceSelector() {
               onClick={() => setDropdownOpen(false)}
               aria-hidden="true"
             />
-            <div className="absolute left-0 mt-2 w-72 rounded-xl bg-card border border-border shadow-2xl p-2 z-50 animate-scale-in text-xs">
+            <div className="absolute left-0 right-0 mt-2 w-full rounded-xl bg-card border border-border shadow-2xl p-2 z-50 animate-scale-in text-xs">
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {schools.map((school) => {
                   const schoolWorkspaces = workspaces.filter((ws) => ws.schoolId === school.id);
