@@ -28,13 +28,18 @@ const EXPECTED_SCREENSHOT_IDS = [
 describe('FAQ Screenshot Walkthrough Assets Integrity', () => {
   const faqPublicDir = path.resolve(__dirname, '../../../public/faq');
 
-  it('contains exactly 18 expected screenshot image files on disk', () => {
+  it('contains exactly 18 expected screenshot PNG and WebP files on disk', () => {
     for (const id of EXPECTED_SCREENSHOT_IDS) {
-      const filePath = path.join(faqPublicDir, `${id}.png`);
-      expect(fs.existsSync(filePath), `Missing screenshot: ${id}.png`).toBe(true);
+      const pngPath = path.join(faqPublicDir, `${id}.png`);
+      expect(fs.existsSync(pngPath), `Missing screenshot: ${id}.png`).toBe(true);
+      const pngStats = fs.statSync(pngPath);
+      expect(pngStats.size, `Screenshot ${id}.png is empty or too small`).toBeGreaterThan(1000);
 
-      const stats = fs.statSync(filePath);
-      expect(stats.size, `Screenshot ${id}.png is empty or too small`).toBeGreaterThan(1000);
+      const webpPath = path.join(faqPublicDir, `${id}.webp`);
+      expect(fs.existsSync(webpPath), `Missing screenshot: ${id}.webp`).toBe(true);
+      const webpStats = fs.statSync(webpPath);
+      expect(webpStats.size, `Screenshot ${id}.webp is empty or too small`).toBeGreaterThan(1000);
+      expect(webpStats.size, `WebP should be smaller than PNG`).toBeLessThan(pngStats.size);
     }
   });
 
@@ -47,8 +52,8 @@ describe('FAQ Screenshot Walkthrough Assets Integrity', () => {
       expect(item.screenshotCaption?.trim().length).toBeGreaterThan(5);
       expect(item.screenshotAlt?.trim().length).toBeGreaterThan(5);
 
-      const filePath = path.join(faqPublicDir, `${item.screenshotId}.png`);
-      expect(fs.existsSync(filePath)).toBe(true);
+      const webpPath = path.join(faqPublicDir, `${item.screenshotId}.webp`);
+      expect(fs.existsSync(webpPath)).toBe(true);
     }
   });
 });

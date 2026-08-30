@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   CircleHelp,
@@ -16,6 +16,8 @@ import {
   ArrowRight,
   AlertTriangle,
   ZoomIn,
+  Link2,
+  Check,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageTransition';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,13 +56,36 @@ const CATEGORY_ICONS: Record<FAQCategoryId, React.ComponentType<{ className?: st
 
 export function FAQ() {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<FAQCategoryId | 'all'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+
+  const targetId = searchParams.get('id') || (location.hash ? location.hash.replace(/^#/, '') : null);
+  const queryParam = searchParams.get('q') || '';
+  const catParam = searchParams.get('cat') as FAQCategoryId | null;
+
+  const [searchQuery, setSearchQuery] = useState(queryParam);
+  const [activeCategory, setActiveCategory] = useState<FAQCategoryId | 'all'>(
+    catParam && FAQ_CATEGORIES.some((c) => c.id === catParam) ? catParam : 'all'
+  );
+  const [openItems, setOpenItems] = useState<string[]>(() => (targetId ? [targetId] : []));
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedScreenshot, setSelectedScreenshot] = useState<{
     url: string;
     caption?: string;
     alt?: string;
   } | null>(null);
+
+  // Scroll target into view if opened via deep-link
+  useEffect(() => {
+    if (!targetId) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`faq-item-${targetId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [targetId]);
 
   const filteredItems = useMemo(() => {
     return searchFAQ({
@@ -76,6 +101,15 @@ export function FAQ() {
     }
     return counts;
   }, []);
+
+  const handleCopyLink = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}${window.location.pathname}#/faq?id=${itemId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(itemId);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto" data-testid="faq-page">
@@ -95,7 +129,15 @@ export function FAQ() {
             <Input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                const nextVal = e.target.value;
+                setSearchQuery(nextVal);
+                if (nextVal) {
+                  setSearchParams({ q: nextVal });
+                } else {
+                  setSearchParams({});
+                }
+              }}
               placeholder="Пошук у довідці (наприклад: чисельник, імпорт roz, вікна, друк, санітарні норми)..."
               className="pl-10 pr-10 h-11 text-base bg-background"
               aria-label="Пошук у довідці"
@@ -104,7 +146,10 @@ export function FAQ() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setSearchParams({});
+                }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                 aria-label="Очистити пошук"
               >
@@ -118,7 +163,10 @@ export function FAQ() {
             <Button
               variant={activeCategory === 'all' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setActiveCategory('all')}
+              onClick={() => {
+                setActiveCategory('all');
+                setSearchParams({});
+              }}
               className="h-8 gap-1.5 rounded-full text-xs font-medium"
             >
               <span>Усі теми</span>
@@ -138,7 +186,10 @@ export function FAQ() {
                   key={cat.id}
                   variant={isSelected ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setActiveCategory(cat.id)}
+                  onClick={() => {
+                    setActiveCategory(cat.id);
+                    setSearchParams({ cat: cat.id });
+                  }}
                   className="h-8 gap-1.5 rounded-full text-xs font-medium"
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -188,6 +239,7 @@ export function FAQ() {
               onClick={() => {
                 setSearchQuery('');
                 setActiveCategory('all');
+                setSearchParams({});
               }}
               className="mt-2"
             >
@@ -198,19 +250,30 @@ export function FAQ() {
       ) : (
         <Card className="border-border bg-card overflow-hidden">
           <CardContent className="p-4 sm:p-6">
-            <Accordion type="multiple" className="w-full divide-y divide-border">
+            <Accordion
+              type="multiple"
+              value={openItems}
+              onValueChange={setOpenItems}
+              className="w-full divide-y divide-border"
+            >
               {filteredItems.map((item: FAQItem) => {
                 const category = FAQ_CATEGORIES.find((c) => c.id === item.categoryId);
                 const CatIcon = category ? CATEGORY_ICONS[category.id] : CircleHelp;
+                const isCopied = copiedId === item.id;
 
                 return (
-                  <AccordionItem key={item.id} value={item.id} className="border-b-0 py-1">
+                  <AccordionItem
+                    key={item.id}
+                    value={item.id}
+                    id={`faq-item-${item.id}`}
+                    className="border-b-0 py-1"
+                  >
                     <AccordionTrigger className="hover:no-underline py-3 px-2 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-start gap-3 text-left pr-4">
+                      <div className="flex items-start gap-3 text-left pr-4 flex-1">
                         <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0 mt-0.5">
                           <CatIcon className="h-4 w-4" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-foreground text-sm sm:text-base">
                               {item.question}
@@ -242,29 +305,32 @@ export function FAQ() {
                         {item.answer}
                       </div>
 
-                      {/* Optional Screenshot */}
+                      {/* Optional Screenshot (.webp with fallback) */}
                       {item.screenshotId && (
                         <div className="pl-9 pt-2">
                           <div
                             className="group relative inline-block rounded-lg overflow-hidden border border-border bg-muted/40 cursor-pointer max-w-lg shadow-sm hover:shadow-md transition-all"
                             onClick={() =>
                               setSelectedScreenshot({
-                                url: `/faq/${item.screenshotId}.png`,
+                                url: `/faq/${item.screenshotId}.webp`,
                                 caption: item.screenshotCaption,
                                 alt: item.screenshotAlt,
                               })
                             }
                           >
-                            <img
-                              src={`/faq/${item.screenshotId}.png`}
-                              alt={item.screenshotAlt || item.question}
-                              loading="lazy"
-                              className="w-full max-h-56 object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
-                              onError={(e) => {
-                                // Gracefully hide screenshot thumbnail if not yet generated on disk
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
+                            <picture>
+                              <source srcSet={`/faq/${item.screenshotId}.webp`} type="image/webp" />
+                              <img
+                                src={`/faq/${item.screenshotId}.png`}
+                                alt={item.screenshotAlt || item.question}
+                                loading="lazy"
+                                className="w-full max-h-56 object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
+                                onError={(e) => {
+                                  // Gracefully hide thumbnail if asset missing
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            </picture>
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1.5 text-xs font-medium">
                               <ZoomIn className="h-4 w-4" />
                               <span>Натисніть для збільшення</span>
@@ -279,17 +345,36 @@ export function FAQ() {
                         </div>
                       )}
 
-                      {/* Optional Route Link */}
-                      {item.routeLink && (
-                        <div className="pl-9 pt-1">
+                      {/* Bottom action row: Route link + Copy direct link */}
+                      <div className="pl-9 pt-1 flex items-center gap-2 flex-wrap">
+                        {item.routeLink && (
                           <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs">
                             <Link to={item.routeLink.path}>
                               <span>{item.routeLink.label}</span>
                               <ArrowRight className="h-3.5 w-3.5" />
                             </Link>
                           </Button>
-                        </div>
-                      )}
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleCopyLink(e, item.id)}
+                          className="gap-1.5 text-xs text-muted-foreground hover:text-foreground h-8"
+                          title="Скопіювати пряме посилання на це запитання"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 text-primary" />
+                              <span className="text-primary font-medium">Посилання скопійовано!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Link2 className="h-3.5 w-3.5" />
+                              <span>Пряме посилання</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 );
@@ -309,11 +394,14 @@ export function FAQ() {
           </DialogHeader>
           <div className="mt-2 rounded-lg overflow-hidden border border-border bg-muted/20">
             {selectedScreenshot && (
-              <img
-                src={selectedScreenshot.url}
-                alt={selectedScreenshot.alt || selectedScreenshot.caption || 'Знімок інтерфейсу'}
-                className="w-full h-auto max-h-[75vh] object-contain mx-auto"
-              />
+              <picture>
+                <source srcSet={selectedScreenshot.url} type="image/webp" />
+                <img
+                  src={selectedScreenshot.url.replace(/\.webp$/, '.png')}
+                  alt={selectedScreenshot.alt || selectedScreenshot.caption || 'Знімок інтерфейсу'}
+                  className="w-full h-auto max-h-[75vh] object-contain mx-auto"
+                />
+              </picture>
             )}
           </div>
         </DialogContent>

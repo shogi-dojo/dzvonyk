@@ -2,6 +2,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { SyntheticRozBuilder } from '../src/lib/rozFixture';
 
 const fixturesDir = path.resolve(process.cwd(), 'e2e/fixtures');
@@ -112,6 +113,18 @@ async function importDemoSchool(page: Page) {
   await expect(dialogTitle).not.toBeVisible({ timeout: 10_000 });
 }
 
+async function captureScreenshot(page: Page, name: string) {
+  const pngPath = path.join(screenshotsDir, `${name}.png`);
+  const webpPath = path.join(screenshotsDir, `${name}.webp`);
+  await page.screenshot({ path: pngPath });
+
+  try {
+    execSync(`cwebp -q 85 "${pngPath}" -o "${webpPath}"`, { stdio: 'ignore' });
+  } catch {
+    // Graceful fallback if cwebp CLI is not present
+  }
+}
+
 async function openMatrix(page: Page, label: RegExp) {
   await page.goto('/#/timetable');
   await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
@@ -145,13 +158,13 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await expect(dialogTitle).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(400);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '02-roz-preview.png') });
+    await captureScreenshot(page, '02-roz-preview');
   });
 
   test('01-dashboard: Capture main dashboard', async ({ page }) => {
     await importDemoSchool(page);
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '01-dashboard.png') });
+    await captureScreenshot(page, '01-dashboard');
   });
 
   test('03-settings-calendar-sanitary: Capture settings', async ({ page }) => {
@@ -159,7 +172,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/settings');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '03-settings-calendar-sanitary.png') });
+    await captureScreenshot(page, '03-settings-calendar-sanitary');
   });
 
   test('04-teachers-workload: Capture teachers workload', async ({ page }) => {
@@ -167,7 +180,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/teachers');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '04-teachers-workload.png') });
+    await captureScreenshot(page, '04-teachers-workload');
   });
 
   test('05-students-hierarchy: Capture students classes', async ({ page }) => {
@@ -175,7 +188,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/students');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '05-students-hierarchy.png') });
+    await captureScreenshot(page, '05-students-hierarchy');
   });
 
   test('06-lesson-editor-parity: Capture lessons list', async ({ page }) => {
@@ -183,7 +196,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/activities');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '06-lesson-editor-parity.png') });
+    await captureScreenshot(page, '06-lesson-editor-parity');
   });
 
   test('07-subject-codes-tags: Capture subjects list', async ({ page }) => {
@@ -191,7 +204,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/subjects');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '07-subject-codes-tags.png') });
+    await captureScreenshot(page, '07-subject-codes-tags');
   });
 
   test('08-rooms-buildings: Capture rooms', async ({ page }) => {
@@ -199,7 +212,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/rooms');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '08-rooms-buildings.png') });
+    await captureScreenshot(page, '08-rooms-buildings');
   });
 
   test('09-constraints: Capture constraints', async ({ page }) => {
@@ -207,7 +220,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/constraints');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '09-constraints.png') });
+    await captureScreenshot(page, '09-constraints');
   });
 
   test('10-generate-preflight: Capture generator & preflight', async ({ page }) => {
@@ -215,28 +228,28 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await page.goto('/#/generate');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '10-generate-preflight.png') });
+    await captureScreenshot(page, '10-generate-preflight');
   });
 
   test('11-full-class-matrix: Capture full class matrix', async ({ page }) => {
     await importDemoSchool(page);
     await openMatrix(page, /загальна матриця \(класи\)/i);
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '11-full-class-matrix.png') });
+    await captureScreenshot(page, '11-full-class-matrix');
   });
 
   test('12-full-teacher-matrix: Capture full teacher matrix', async ({ page }) => {
     await importDemoSchool(page);
     await openMatrix(page, /загальна матриця \(вчителі\)/i);
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '12-full-teacher-matrix.png') });
+    await captureScreenshot(page, '12-full-teacher-matrix');
   });
 
   test('13-drag-feedback-parity: Capture drag and slot feedback', async ({ page }) => {
     await importDemoSchool(page);
     await openMatrix(page, /загальна матриця \(класи\)/i);
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(screenshotsDir, '13-drag-feedback-parity.png') });
+    await captureScreenshot(page, '13-drag-feedback-parity');
   });
 
   test('14-unplaced-and-details: Capture unplaced tray and details', async ({ page }) => {
@@ -249,7 +262,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
       await page.waitForTimeout(300);
     }
 
-    await page.screenshot({ path: path.join(screenshotsDir, '14-unplaced-and-details.png') });
+    await captureScreenshot(page, '14-unplaced-and-details');
   });
 
   test('15-zoom-focus-labels: Capture zoom & focus controls', async ({ page }) => {
@@ -257,7 +270,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await openMatrix(page, /загальна матриця \(класи\)/i);
     await page.waitForTimeout(300);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '15-zoom-focus-labels.png') });
+    await captureScreenshot(page, '15-zoom-focus-labels');
   });
 
   test('16-print-reports: Capture print preview', async ({ page }) => {
@@ -266,7 +279,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '16-print-reports.png') });
+    await captureScreenshot(page, '16-print-reports');
   });
 
   test('17-workspaces-checkpoints: Capture workspaces & checkpoints', async ({ page }) => {
@@ -275,7 +288,7 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '17-workspaces-checkpoints.png') });
+    await captureScreenshot(page, '17-workspaces-checkpoints');
   });
 
   test('18-history-account-privacy: Capture history & privacy controls', async ({ page }) => {
@@ -284,6 +297,6 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(400);
 
-    await page.screenshot({ path: path.join(screenshotsDir, '18-history-account-privacy.png') });
+    await captureScreenshot(page, '18-history-account-privacy');
   });
 });

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { FAQ } from './FAQ';
 
-function renderFAQ() {
+function renderFAQ(initialEntries: string[] = ['/']) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <FAQ />
     </MemoryRouter>
   );
@@ -63,5 +63,30 @@ describe('FAQ Page Component', () => {
     fireEvent.click(resetBtn);
 
     expect(screen.getByText(/у якому порядку найкраще вносити дані/i)).toBeInTheDocument();
+  });
+
+  it('automatically opens and highlights a question when ?id= param is provided in URL', () => {
+    renderFAQ(['/?id=start-import-roz']);
+
+    const rozQuestion = screen.getByText(/як імпортувати існуючий розклад із програми asc розклад/i);
+    expect(rozQuestion).toBeInTheDocument();
+    expect(screen.getByText(/система розпакує контейнер/i)).toBeInTheDocument();
+  });
+
+  it('copies direct link to clipboard when clicking copy link button', async () => {
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    });
+
+    renderFAQ(['/?id=start-import-roz']);
+
+    const copyButtons = screen.getAllByTitle(/скопіювати пряме посилання/i);
+    expect(copyButtons.length).toBeGreaterThan(0);
+    fireEvent.click(copyButtons[0]);
+
+    expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining('#/faq?id=start-import-roz'));
   });
 });
