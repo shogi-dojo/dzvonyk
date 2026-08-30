@@ -6,6 +6,8 @@ import {
   validateSlotMove,
   buildTimetableGrid,
   buildAllClassesGrid,
+  buildClassDayHourMatrix,
+  buildTeacherDayHourMatrix,
 } from './timetableGrid';
 import { createTestTimetableData } from './__fixtures__/timetableFixture';
 
@@ -479,6 +481,98 @@ describe('timetableGrid', () => {
       expect(monHour1Row).toBeDefined();
       expect(monHour1Row?.cells[0]?.[0].activityId).toBe('act-1');
       expect(monHour1Row?.cells[1]).toBeNull();
+    });
+  });
+
+  describe('buildClassDayHourMatrix', () => {
+    const fixture = createTestTimetableData();
+
+    it('builds sorted class rows and indexes placements by rowId|day|hour', () => {
+      const matrix = buildClassDayHourMatrix({
+        solution: fixture.solution,
+        rules: fixture.rules,
+        activities: fixture.activities,
+        teachers: fixture.teachers,
+        subjects: fixture.subjects,
+        groups: fixture.groups,
+        subgroups: fixture.subgroups,
+        rooms: fixture.rooms,
+      });
+
+      expect(matrix).not.toBeNull();
+      expect(matrix?.rows.map((r) => r.label)).toEqual(['5-А', '5-Б']);
+      expect(matrix?.nDays).toBe(5);
+      expect(matrix?.nHours).toBe(9);
+
+      // act-1 is 5-A, Mon (day 0), period 2 (hour 1)
+      const cell5aMon1 = matrix?.cells.get('g-5a|0|1');
+      expect(cell5aMon1).toBeDefined();
+      expect(cell5aMon1?.[0].activityId).toBe('act-1');
+      expect(cell5aMon1?.[0].subjectCode).toBe('Ма');
+
+      // 5-B row has availableSlots for shift 2 (periods 2-9, index 1-8)
+      const row5b = matrix?.rows.find((r) => r.id === 'g-5b');
+      expect(row5b?.availableSlots?.(0, 0)).toBe(false); // hour 0 unavailable
+      expect(row5b?.availableSlots?.(0, 1)).toBe(true);  // hour 1 available
+      expect(row5b?.availableSlots?.(0, 8)).toBe(true);  // hour 8 available
+    });
+
+    it('correctly maps subgroup activities to parent class row', () => {
+      // Create a solution containing subgroup activities
+      const subgroupSolution = {
+        ...fixture.solution,
+        placements: [
+          { activityId: 'act-4-num', day: 0, hour: 1 }, // 5-A 1 група
+        ],
+      };
+
+      const matrix = buildClassDayHourMatrix({
+        solution: subgroupSolution,
+        rules: fixture.rules,
+        activities: fixture.activities,
+        teachers: fixture.teachers,
+        subjects: fixture.subjects,
+        groups: fixture.groups,
+        subgroups: fixture.subgroups,
+        rooms: fixture.rooms,
+      });
+
+      expect(matrix).not.toBeNull();
+      // Should appear in g-5a row at day 0, hour 1
+      const cell5a = matrix?.cells.get('g-5a|0|1');
+      expect(cell5a).toBeDefined();
+      expect(cell5a?.[0].activityId).toBe('act-4-num');
+      expect(cell5a?.[0].weekParity).toBe('numerator');
+    });
+  });
+
+  describe('buildTeacherDayHourMatrix', () => {
+    const fixture = createTestTimetableData();
+
+    it('builds sorted teacher rows and indexes placements by teacherId|day|hour', () => {
+      const matrix = buildTeacherDayHourMatrix({
+        solution: fixture.solution,
+        rules: fixture.rules,
+        activities: fixture.activities,
+        teachers: fixture.teachers,
+        subjects: fixture.subjects,
+        rooms: fixture.rooms,
+        timeConstraints: fixture.timeConstraints,
+      });
+
+      expect(matrix).not.toBeNull();
+      expect(matrix?.rows.map((r) => r.label)).toEqual(['Вчитель А', 'Вчитель Б', 'Вчитель В']);
+
+      // act-1 is taught by Teacher A (t-1), placed at day 0, hour 1
+      const cellTeacherAMon1 = matrix?.cells.get('t-1|0|1');
+      expect(cellTeacherAMon1).toBeDefined();
+      expect(cellTeacherAMon1?.[0].activityId).toBe('act-1');
+      expect(cellTeacherAMon1?.[0].subjectCode).toBe('Ма');
+
+      // Teacher A has unavailability on Friday (day 4) period 1 (hour 0)
+      const rowTeacherA = matrix?.rows.find((r) => r.id === 't-1');
+      expect(rowTeacherA?.availableSlots?.(4, 0)).toBe(false);
+      expect(rowTeacherA?.availableSlots?.(4, 1)).toBe(true);
     });
   });
 });
