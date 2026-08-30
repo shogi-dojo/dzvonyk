@@ -16,8 +16,8 @@ describe('FAQ Knowledge Base Catalog', () => {
     ]);
   });
 
-  it('contains at least 38 questions across all categories', () => {
-    expect(FAQ_ITEMS.length).toBeGreaterThanOrEqual(38);
+  it('contains at least 39 questions across all categories', () => {
+    expect(FAQ_ITEMS.length).toBeGreaterThanOrEqual(39);
   });
 
   it('ensures every question belongs to a valid category and has non-empty fields', () => {
@@ -82,6 +82,9 @@ describe('FAQ Search Engine', () => {
     const sanitaryResults = searchFAQ({ query: 'санітарні' });
     expect(sanitaryResults.length).toBeGreaterThan(0);
     expect(sanitaryResults.some((item) => item.id === 'constraints-sanitary-rules')).toBe(true);
+
+    const dailyReportResults = searchFAQ({ query: 'по днях' });
+    expect(dailyReportResults.some((item) => item.id === 'print-daily-matrix-reports')).toBe(true);
   });
 
   it('combines category filtering and search query', () => {

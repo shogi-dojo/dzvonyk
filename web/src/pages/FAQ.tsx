@@ -75,6 +75,13 @@ export function FAQ() {
     alt?: string;
   } | null>(null);
 
+  const syncFilterParams = (query: string, category: FAQCategoryId | 'all') => {
+    const next = new URLSearchParams();
+    if (query.trim()) next.set('q', query);
+    if (category !== 'all') next.set('cat', category);
+    setSearchParams(next, { replace: true });
+  };
+
   // Scroll target into view if opened via deep-link
   useEffect(() => {
     if (!targetId) return;
@@ -132,11 +139,7 @@ export function FAQ() {
               onChange={(e) => {
                 const nextVal = e.target.value;
                 setSearchQuery(nextVal);
-                if (nextVal) {
-                  setSearchParams({ q: nextVal });
-                } else {
-                  setSearchParams({});
-                }
+                syncFilterParams(nextVal, activeCategory);
               }}
               placeholder="Пошук у довідці (наприклад: чисельник, імпорт roz, вікна, друк, санітарні норми)..."
               className="pl-10 pr-10 h-11 text-base bg-background"
@@ -148,7 +151,7 @@ export function FAQ() {
                 size="icon"
                 onClick={() => {
                   setSearchQuery('');
-                  setSearchParams({});
+                  syncFilterParams('', activeCategory);
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                 aria-label="Очистити пошук"
@@ -165,8 +168,10 @@ export function FAQ() {
               size="sm"
               onClick={() => {
                 setActiveCategory('all');
-                setSearchParams({});
+                syncFilterParams(searchQuery, 'all');
               }}
+              role="tab"
+              aria-selected={activeCategory === 'all'}
               className="h-8 gap-1.5 rounded-full text-xs font-medium"
             >
               <span>Усі теми</span>
@@ -188,8 +193,10 @@ export function FAQ() {
                   size="sm"
                   onClick={() => {
                     setActiveCategory(cat.id);
-                    setSearchParams({ cat: cat.id });
+                    syncFilterParams(searchQuery, cat.id);
                   }}
+                  role="tab"
+                  aria-selected={isSelected}
                   className="h-8 gap-1.5 rounded-full text-xs font-medium"
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -239,7 +246,7 @@ export function FAQ() {
               onClick={() => {
                 setSearchQuery('');
                 setActiveCategory('all');
-                setSearchParams({});
+                syncFilterParams('', 'all');
               }}
               className="mt-2"
             >
@@ -308,8 +315,9 @@ export function FAQ() {
                       {/* Optional Screenshot (.webp with fallback) */}
                       {item.screenshotId && (
                         <div className="pl-9 pt-2">
-                          <div
-                            className="group relative inline-block rounded-lg overflow-hidden border border-border bg-muted/40 cursor-pointer max-w-lg shadow-sm hover:shadow-md transition-all"
+                          <button
+                            type="button"
+                            className="group relative block rounded-lg overflow-hidden border border-border bg-muted/40 cursor-pointer max-w-lg shadow-sm hover:shadow-md transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             onClick={() =>
                               setSelectedScreenshot({
                                 url: `/faq/${item.screenshotId}.webp`,
@@ -317,6 +325,7 @@ export function FAQ() {
                                 alt: item.screenshotAlt,
                               })
                             }
+                            aria-label={`Збільшити знімок: ${item.screenshotCaption || item.question}`}
                           >
                             <picture>
                               <source srcSet={`/faq/${item.screenshotId}.webp`} type="image/webp" />
@@ -341,7 +350,7 @@ export function FAQ() {
                                 <ZoomIn className="h-3 w-3 opacity-60 ml-2 shrink-0" />
                               </div>
                             )}
-                          </div>
+                          </button>
                         </div>
                       )}
 

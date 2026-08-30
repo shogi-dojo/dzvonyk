@@ -14,16 +14,17 @@ function renderAbout() {
 }
 
 describe('About Page Component', () => {
-  it('renders application version badge with v1.4.0', () => {
+  it('renders application version badge with the package version', () => {
     renderAbout();
 
     expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
-    expect(screen.getByText('v1.4.0')).toBeInTheDocument();
+    expect(screen.getByText('v1.5.0')).toBeInTheDocument();
   });
 
-  it('renders all 5 historical milestones in the changelog', () => {
+  it('renders all historical milestones in the changelog', () => {
     renderAbout();
 
+    expect(screen.getByText(/версія 1.5.0/i)).toBeInTheDocument();
     expect(screen.getByText(/версія 1.4.0/i)).toBeInTheDocument();
     expect(screen.getByText(/версія 1.3.0/i)).toBeInTheDocument();
     expect(screen.getByText(/версія 1.2.0/i)).toBeInTheDocument();
@@ -31,10 +32,10 @@ describe('About Page Component', () => {
     expect(screen.getByText(/версія 1.0.0/i)).toBeInTheDocument();
   });
 
-  it('has version 1.4.0 expanded with FAQ and walkthrough release highlights', () => {
+  it('has version 1.5.0 expanded with daily report highlights', () => {
     renderAbout();
 
-    expect(screen.getByText(/пошукова база знань \(faq\):/i)).toBeInTheDocument();
-    expect(screen.getByText(/18 високоякісних знімків інтерфейсу/i)).toBeInTheDocument();
+    expect(screen.getByText(/щоденні матриці для вчителів і класів:/i)).toBeInTheDocument();
+    expect(screen.getByText(/підтримка кількох змін:/i)).toBeInTheDocument();
   });
 });

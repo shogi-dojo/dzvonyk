@@ -14,7 +14,9 @@ test.beforeAll(() => {
   if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir, { recursive: true });
 
   const builder = new SyntheticRozBuilder()
-    .setSchool('Ліцей «Демо-Сузір’я»', '2026/2027')
+    // SyntheticRozBuilder writes CP1251, so keep punctuation representable in
+    // that encoding and verify the screenshots show a readable fictional name.
+    .setSchool("Ліцей Демо-Сузір'я", '2026/2027')
     .setSubjects([
       'Українська мова',
       'Алгебра',
@@ -95,7 +97,7 @@ test.beforeAll(() => {
 
 async function preparePage(page: Page) {
   await page.addInitScript(() => {
-    localStorage.setItem('dzvonyk_analytics_consent', 'declined');
+    localStorage.setItem('dzvonyk_analytics_consent', 'denied');
     localStorage.setItem('dzvonyk_theme', 'light');
     document.documentElement.classList.remove('dark');
   });
@@ -116,6 +118,7 @@ async function importDemoSchool(page: Page) {
 async function captureScreenshot(page: Page, name: string) {
   const pngPath = path.join(screenshotsDir, `${name}.png`);
   const webpPath = path.join(screenshotsDir, `${name}.webp`);
+  await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: pngPath });
 
   try {
@@ -171,7 +174,9 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await importDemoSchool(page);
     await page.goto('/#/settings');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(400);
+    const sanitaryCard = page.getByText('Санітарні норми', { exact: true });
+    await sanitaryCard.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(250);
     await captureScreenshot(page, '03-settings-calendar-sanitary');
   });
 
@@ -195,7 +200,10 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await importDemoSchool(page);
     await page.goto('/#/activities');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Додати урок' }).first().click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByText('Тиждень', { exact: true })).toBeVisible();
+    await page.waitForTimeout(250);
     await captureScreenshot(page, '06-lesson-editor-parity');
   });
 
@@ -211,7 +219,27 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await importDemoSchool(page);
     await page.goto('/#/rooms');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Додати корпус' }).click();
+    let dialog = page.getByRole('dialog');
+    await dialog.getByRole('textbox', { name: 'Назва *', exact: true }).fill('Головний корпус');
+    await dialog.getByRole('button', { name: 'Додати' }).click();
+    await expect(page.getByText('Головний корпус', { exact: true })).toBeVisible();
+
+    for (const room of [
+      { name: 'Кабінет фізики 214', code: 'Ф-214', capacity: '32' },
+      { name: 'Лабораторія інформатики 305', code: 'ІНФ-305', capacity: '24' },
+      { name: 'Спортивна зала', code: 'СПЗ', capacity: '60' },
+    ]) {
+      await page.getByRole('button', { name: 'Додати кабінет' }).first().click();
+      dialog = page.getByRole('dialog');
+      await dialog.getByRole('textbox', { name: 'Назва *', exact: true }).fill(room.name);
+      await dialog.getByLabel('Код', { exact: true }).fill(room.code);
+      await dialog.getByLabel('Місткість', { exact: true }).fill(room.capacity);
+      await dialog.getByLabel('Корпус', { exact: true }).selectOption({ label: 'Головний корпус' });
+      await dialog.getByRole('button', { name: 'Додати' }).click();
+      await expect(page.getByRole('heading', { name: new RegExp(room.name, 'i') })).toBeVisible();
+    }
+    await page.waitForTimeout(250);
     await captureScreenshot(page, '08-rooms-buildings');
   });
 
@@ -248,7 +276,10 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
   test('13-drag-feedback-parity: Capture drag and slot feedback', async ({ page }) => {
     await importDemoSchool(page);
     await openMatrix(page, /загальна матриця \(класи\)/i);
-    await page.waitForTimeout(400);
+    await page.getByTestId('matrix-lesson-card').first().click();
+    await expect(page.locator('[data-verdict="valid"]').first()).toBeVisible();
+    await expect(page.locator('[data-verdict="invalid"]').first()).toBeVisible();
+    await page.waitForTimeout(250);
     await captureScreenshot(page, '13-drag-feedback-parity');
   });
 
@@ -256,11 +287,12 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await importDemoSchool(page);
     await openMatrix(page, /загальна матриця \(класи\)/i);
 
-    const firstLesson = page.getByTestId('matrix-lesson-card').first();
-    if (await firstLesson.isVisible()) {
-      await firstLesson.click();
-      await page.waitForTimeout(300);
-    }
+    await page.getByTestId('matrix-lesson-card').first().click();
+    const details = page.getByTestId('lesson-details');
+    await expect(details).not.toHaveAttribute('data-empty', 'true');
+    await page.getByTestId('focus-mode-toggle').click();
+    await details.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(250);
 
     await captureScreenshot(page, '14-unplaced-and-details');
   });
@@ -268,16 +300,29 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
   test('15-zoom-focus-labels: Capture zoom & focus controls', async ({ page }) => {
     await importDemoSchool(page);
     await openMatrix(page, /загальна матриця \(класи\)/i);
-    await page.waitForTimeout(300);
+    const zoom = page.getByTestId('zoom-slider');
+    await zoom.focus();
+    await zoom.press('End');
+    await expect(zoom).toHaveValue('4');
+    await page.waitForTimeout(250);
 
     await captureScreenshot(page, '15-zoom-focus-labels');
   });
 
   test('16-print-reports: Capture print preview', async ({ page }) => {
     await importDemoSchool(page);
+    await page.goto('/#/settings');
+    const shiftsToggle = page.getByRole('checkbox', { name: /увімкнути двозмінне навчання/i });
+    await shiftsToggle.check();
+    await page.getByRole('button', { name: /зберегти зміни/i }).click();
+
     await page.goto('/#/print');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'По днях (Класи)' }).click();
+    const printArea = page.locator('[data-print-area="true"]');
+    await expect(page.getByText(/подобовий розклад уроків \(класи\)/i)).toBeVisible();
+    await printArea.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(250);
 
     await captureScreenshot(page, '16-print-reports');
   });
@@ -286,7 +331,10 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await importDemoSchool(page);
     await page.goto('/#/settings');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(400);
+    await expect(page.getByText('Збережені версії та контрольні точки')).toBeVisible();
+    await page.getByRole('button', { name: 'Вибір навчального року' }).click();
+    await expect(page.getByRole('button', { name: 'Новий розклад' })).toBeVisible();
+    await page.waitForTimeout(250);
 
     await captureScreenshot(page, '17-workspaces-checkpoints');
   });
@@ -295,7 +343,9 @@ test.describe.serial('Capture 18 FAQ Walkthrough Screenshots', () => {
     await importDemoSchool(page);
     await page.goto('/#/settings');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Історія змін' }).click();
+    await expect(page.getByRole('dialog', { name: /історія змін/i })).toBeVisible();
+    await page.waitForTimeout(250);
 
     await captureScreenshot(page, '18-history-account-privacy');
   });

@@ -24,11 +24,11 @@ describe('FAQ Page Component', () => {
     renderFAQ();
 
     const tablist = screen.getByRole('tablist', { name: /категорії довідки/i });
-    expect(within(tablist).getByRole('button', { name: /усі теми/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('button', { name: /початок роботи та імпорт/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('button', { name: /вчителі, предмети та учні/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('button', { name: /обмеження та санітарні норми/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('button', { name: /складання та редагування/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /усі теми/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /початок роботи та імпорт/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /вчителі, предмети та учні/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /обмеження та санітарні норми/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /складання та редагування/i })).toBeInTheDocument();
   });
 
   it('filters questions when typing in the search input', () => {
@@ -45,7 +45,7 @@ describe('FAQ Page Component', () => {
     renderFAQ();
 
     const tablist = screen.getByRole('tablist', { name: /категорії довідки/i });
-    const printBtn = within(tablist).getByRole('button', { name: /друк, pdf та експорт/i });
+    const printBtn = within(tablist).getByRole('tab', { name: /друк, pdf та експорт/i });
     fireEvent.click(printBtn);
 
     expect(screen.getByText(/у чому різниця між прямим друком через браузер та експортом у pdf/i)).toBeInTheDocument();

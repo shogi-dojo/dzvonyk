@@ -95,7 +95,7 @@ export function About() {
               <div>
                 <h3 className="font-semibold text-sm text-foreground">Сумісність</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Підтримка імпорту й експорту популярних файлів aSc Розклад (<code className="text-xs font-mono">.roz</code>) та FET (<code className="text-xs font-mono">.fet</code>).
+                  Імпорт файлів aSc Розклад (<code className="text-xs font-mono">.roz</code>), а також імпорт і експорт відкритого формату FET (<code className="text-xs font-mono">.fet</code>).
                 </p>
               </div>
             </div>
@@ -117,7 +117,7 @@ export function About() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Accordion type="multiple" defaultValue={['1.4.0']} className="space-y-3">
+          <Accordion type="multiple" defaultValue={[APP_VERSION]} className="space-y-3">
             {CHANGELOG_RELEASES.map((release) => {
               const isCurrent = release.version === APP_VERSION;
 

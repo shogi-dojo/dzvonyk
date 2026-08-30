@@ -1082,6 +1082,7 @@
       "title": "Hours of the Day",
       "description": "Configure time slots ({{count}} hours)",
       "add": "Add Hour",
+      "defaultName": "Lesson {{index}}",
       "label": "Label",
       "start": "Start",
       "end": "End",
@@ -1181,16 +1182,16 @@
     "guestSchool": "Local School",
     "defaultYear": "Main",
     "academicYears": "Academic Years",
-    "newYear": "New Academic Year",
+    "newYear": "New Timetable",
     "newSchool": "Add Educational Institution",
     "createSchoolTitle": "New Educational Institution",
     "createSchoolDesc": "Enter school or gymnasium name",
     "schoolName": "Institution Name",
     "schoolShortName": "Short Name (optional)",
-    "createYearTitle": "New Academic Year",
+    "createYearTitle": "New Timetable",
     "createYearDesc": "Create a new year or semester workspace",
     "yearLabel": "Year / Semester Name",
-    "cloneFromCurrent": "Copy data from current year",
+    "cloneFromCurrent": "Copy from current timetable",
     "cloneStructureOnly": "Structure only (teachers, subjects, classes, constraints without timetable)"
   },
   "versions": {
@@ -1229,5 +1230,13 @@
     "resetFilters": "Reset filters",
     "destructiveBadge": "Destructive Action",
     "screenshotZoom": "Click to enlarge"
+  },
+  "print": {
+    "dailyTeachers": "Daily (Teachers)",
+    "dailyClasses": "Daily (Classes)",
+    "dailyTeachersTitle": "DAILY TIMETABLE (TEACHERS)",
+    "dailyClassesTitle": "DAILY TIMETABLE (CLASSES)",
+    "shift1": "Shift 1",
+    "shift2": "Shift 2"
   }
 }

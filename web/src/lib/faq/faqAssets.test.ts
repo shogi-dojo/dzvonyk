@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { createHash } from 'crypto';
 import { FAQ_ITEMS } from './faqData';
 
 const EXPECTED_SCREENSHOT_IDS = [
@@ -55,5 +56,15 @@ describe('FAQ Screenshot Walkthrough Assets Integrity', () => {
       const webpPath = path.join(faqPublicDir, `${item.screenshotId}.webp`);
       expect(fs.existsSync(webpPath)).toBe(true);
     }
+  });
+
+  it('contains a distinct walkthrough state for every screenshot', () => {
+    const hashes = EXPECTED_SCREENSHOT_IDS.map((id) =>
+      createHash('sha256')
+        .update(fs.readFileSync(path.join(faqPublicDir, `${id}.webp`)))
+        .digest('hex')
+    );
+
+    expect(new Set(hashes).size).toBe(EXPECTED_SCREENSHOT_IDS.length);
   });
 });
