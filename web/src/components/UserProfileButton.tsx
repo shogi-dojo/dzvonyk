@@ -124,7 +124,7 @@ export function UserProfileButton({ compact = false }: { compact?: boolean }) {
             onClick={() => setDropdownOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute right-0 mt-2 w-64 rounded-xl bg-card border border-border shadow-xl p-3 z-50 animate-scale-in text-sm">
+          <div className="absolute left-0 mt-2 w-64 rounded-xl bg-card border border-border shadow-xl p-3 z-50 animate-scale-in text-sm">
             <div className="flex items-center gap-3 pb-3 mb-2 border-b border-border">
               {user.photoURL ? (
                 <img
