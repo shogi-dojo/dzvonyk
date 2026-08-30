@@ -115,4 +115,41 @@ describe('TimetableMatrix component', () => {
 
     expect(onMove).toHaveBeenCalledWith('act-1', 0, 0);
   });
+
+  it('renders split cell when slot contains numerator and denominator pair', () => {
+    const splitCells = new Map<string, CellData[]>([
+      [
+        'g-5a|0|0',
+        [
+          {
+            activityId: 'act-num',
+            subject: 'Хімія',
+            subjectCode: 'Хм',
+            teachers: ['Вчитель А'],
+            students: ['5-А'],
+            duration: 1,
+            activityTags: [],
+            weekParity: 'numerator',
+          },
+          {
+            activityId: 'act-den',
+            subject: 'Біологія',
+            subjectCode: 'Бл',
+            teachers: ['Вчитель Б'],
+            students: ['5-А'],
+            duration: 1,
+            activityTags: [],
+            weekParity: 'denominator',
+          },
+        ],
+      ],
+    ]);
+
+    render(<TimetableMatrix rows={rows} days={days} hours={hours} cells={splitCells} />);
+
+    expect(screen.getByText('Хм')).toBeInTheDocument();
+    expect(screen.getByText('Бл')).toBeInTheDocument();
+    expect(screen.getByText('Ч')).toBeInTheDocument();
+    expect(screen.getByText('З')).toBeInTheDocument();
+  });
 });

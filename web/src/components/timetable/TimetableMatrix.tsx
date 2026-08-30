@@ -155,73 +155,152 @@ export function TimetableMatrix({
                     >
                       {!isAvailable ? (
                         <span className="text-muted-foreground/30 text-xs font-bold select-none">×</span>
-                      ) : cellEntries.length === 0 ? null : (
-                        <div className="flex flex-col gap-0.5 justify-center items-center h-full w-full">
-                          {cellEntries.map((entry) => {
-                            const code = entry.subjectCode || deriveSubjectCode(entry.subject);
-                            const hasConflict = Boolean(entry.conflicts && entry.conflicts.length > 0);
-                            const isBeingDragged = dropFeedback?.activeActivityId === entry.activityId;
+                      ) : cellEntries.length === 0 ? null : (() => {
+                        const numEntry = cellEntries.find((e) => e.weekParity === 'numerator');
+                        const denEntry = cellEntries.find((e) => e.weekParity === 'denominator');
+                        const isSplitParity = Boolean(numEntry && denEntry && cellEntries.length === 2);
 
-                            const tooltipText = [
-                              entry.subject,
-                              entry.teachers.length > 0 ? `Вчитель: ${entry.teachers.join(', ')}` : '',
-                              entry.students.length > 0 ? `Клас: ${entry.students.join(', ')}` : '',
-                              entry.room ? `Каб: ${entry.room}` : '',
-                              entry.weekParity === 'numerator' ? 'Чисельник' : '',
-                              entry.weekParity === 'denominator' ? 'Знаменник' : '',
-                              hasConflict ? `Конфлікт: ${entry.conflicts?.join('; ')}` : '',
-                            ]
-                              .filter(Boolean)
-                              .join('\n');
+                        if (isSplitParity && numEntry && denEntry) {
+                          const numCode = numEntry.subjectCode || deriveSubjectCode(numEntry.subject);
+                          const denCode = denEntry.subjectCode || deriveSubjectCode(denEntry.subject);
+                          const numConflict = Boolean(numEntry.conflicts && numEntry.conflicts.length > 0);
+                          const denConflict = Boolean(denEntry.conflicts && denEntry.conflicts.length > 0);
+                          const numDragged = dropFeedback?.activeActivityId === numEntry.activityId;
+                          const denDragged = dropFeedback?.activeActivityId === denEntry.activityId;
 
-                            return (
+                          return (
+                            <div className="h-full w-full flex flex-col justify-between rounded border border-border/80 divide-y divide-border overflow-hidden text-[11px]">
+                              {/* Top Half: Numerator */}
                               <div
-                                key={entry.activityId}
                                 draggable={Boolean(onDragStateChange || onMove)}
                                 onDragStart={(e) => {
-                                  e.dataTransfer.setData('text/plain', entry.activityId);
+                                  e.dataTransfer.setData('text/plain', numEntry.activityId);
                                   e.dataTransfer.effectAllowed = 'move';
-                                  onDragStateChange?.(entry.activityId);
+                                  onDragStateChange?.(numEntry.activityId);
                                 }}
-                                onDragEnd={() => {
-                                  onDragStateChange?.(null);
-                                }}
+                                onDragEnd={() => onDragStateChange?.(null)}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (onDragStateChange) {
-                                    if (dropFeedback?.activeActivityId === entry.activityId) {
-                                      onDragStateChange(null);
-                                    } else {
-                                      onDragStateChange(entry.activityId);
-                                    }
-                                  }
+                                  onDragStateChange?.(numDragged ? null : numEntry.activityId);
                                 }}
-                                title={tooltipText}
+                                title={`${numEntry.subject} (Чисельник)\n${numEntry.teachers.join(', ')}`}
                                 style={{
-                                  backgroundColor: entry.subjectColor ? `${entry.subjectColor}20` : undefined,
-                                  borderColor: hasConflict
-                                    ? '#ef4444'
-                                    : entry.subjectColor
-                                    ? `${entry.subjectColor}80`
-                                    : undefined,
+                                  backgroundColor: numEntry.subjectColor ? `${numEntry.subjectColor}25` : undefined,
                                 }}
                                 className={cn(
-                                  'w-full inline-flex items-center justify-center font-bold rounded px-1 py-0.5 text-xs select-none border transition-all cursor-grab active:cursor-grabbing truncate',
-                                  hasConflict
-                                    ? 'border-destructive text-destructive bg-destructive/15 ring-1 ring-destructive'
-                                    : 'text-foreground hover:shadow-xs',
-                                  isBeingDragged && 'opacity-40 ring-2 ring-primary scale-95',
-                                  entry.locked && 'border-amber-500/80'
+                                  'flex-1 flex items-center justify-between px-1 py-0.5 font-bold cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity',
+                                  numConflict && 'bg-destructive/20 text-destructive',
+                                  numDragged && 'opacity-40 ring-1 ring-primary'
                                 )}
                               >
-                                <span className="truncate">{code}</span>
-                                {entry.locked && <Lock className="h-2.5 w-2.5 ml-0.5 shrink-0 opacity-70" />}
-                                {hasConflict && <AlertCircle className="h-2.5 w-2.5 ml-0.5 shrink-0 text-destructive" />}
+                                <span className="truncate">{numCode}</span>
+                                <span className="text-[9px] font-mono text-muted-foreground ml-0.5 opacity-80 shrink-0">Ч</span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+
+                              {/* Bottom Half: Denominator */}
+                              <div
+                                draggable={Boolean(onDragStateChange || onMove)}
+                                onDragStart={(e) => {
+                                  e.dataTransfer.setData('text/plain', denEntry.activityId);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                  onDragStateChange?.(denEntry.activityId);
+                                }}
+                                onDragEnd={() => onDragStateChange?.(null)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDragStateChange?.(denDragged ? null : denEntry.activityId);
+                                }}
+                                title={`${denEntry.subject} (Знаменник)\n${denEntry.teachers.join(', ')}`}
+                                style={{
+                                  backgroundColor: denEntry.subjectColor ? `${denEntry.subjectColor}25` : undefined,
+                                }}
+                                className={cn(
+                                  'flex-1 flex items-center justify-between px-1 py-0.5 font-bold cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity',
+                                  denConflict && 'bg-destructive/20 text-destructive',
+                                  denDragged && 'opacity-40 ring-1 ring-primary'
+                                )}
+                              >
+                                <span className="truncate">{denCode}</span>
+                                <span className="text-[9px] font-mono text-muted-foreground ml-0.5 opacity-80 shrink-0">З</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="flex flex-col gap-0.5 justify-center items-center h-full w-full">
+                            {cellEntries.map((entry) => {
+                              const code = entry.subjectCode || deriveSubjectCode(entry.subject);
+                              const hasConflict = Boolean(entry.conflicts && entry.conflicts.length > 0);
+                              const isBeingDragged = dropFeedback?.activeActivityId === entry.activityId;
+
+                              const tooltipText = [
+                                entry.subject,
+                                entry.teachers.length > 0 ? `Вчитель: ${entry.teachers.join(', ')}` : '',
+                                entry.students.length > 0 ? `Клас: ${entry.students.join(', ')}` : '',
+                                entry.room ? `Каб: ${entry.room}` : '',
+                                entry.weekParity === 'numerator' ? 'Чисельник' : '',
+                                entry.weekParity === 'denominator' ? 'Знаменник' : '',
+                                hasConflict ? `Конфлікт: ${entry.conflicts?.join('; ')}` : '',
+                              ]
+                                .filter(Boolean)
+                                .join('\n');
+
+                              return (
+                                <div
+                                  key={entry.activityId}
+                                  draggable={Boolean(onDragStateChange || onMove)}
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData('text/plain', entry.activityId);
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    onDragStateChange?.(entry.activityId);
+                                  }}
+                                  onDragEnd={() => {
+                                    onDragStateChange?.(null);
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onDragStateChange) {
+                                      if (dropFeedback?.activeActivityId === entry.activityId) {
+                                        onDragStateChange(null);
+                                      } else {
+                                        onDragStateChange(entry.activityId);
+                                      }
+                                    }
+                                  }}
+                                  title={tooltipText}
+                                  style={{
+                                    backgroundColor: entry.subjectColor ? `${entry.subjectColor}20` : undefined,
+                                    borderColor: hasConflict
+                                      ? '#ef4444'
+                                      : entry.subjectColor
+                                      ? `${entry.subjectColor}80`
+                                      : undefined,
+                                  }}
+                                  className={cn(
+                                    'w-full inline-flex items-center justify-center font-bold rounded px-1 py-0.5 text-xs select-none border transition-all cursor-grab active:cursor-grabbing truncate',
+                                    hasConflict
+                                      ? 'border-destructive text-destructive bg-destructive/15 ring-1 ring-destructive'
+                                      : 'text-foreground hover:shadow-xs',
+                                    isBeingDragged && 'opacity-40 ring-2 ring-primary scale-95',
+                                    entry.locked && 'border-amber-500/80'
+                                  )}
+                                >
+                                  <span className="truncate">{code}</span>
+                                  {entry.weekParity === 'numerator' && (
+                                    <span className="text-[9px] font-mono text-muted-foreground ml-0.5 opacity-80">Ч</span>
+                                  )}
+                                  {entry.weekParity === 'denominator' && (
+                                    <span className="text-[9px] font-mono text-muted-foreground ml-0.5 opacity-80">З</span>
+                                  )}
+                                  {entry.locked && <Lock className="h-2.5 w-2.5 ml-0.5 shrink-0 opacity-70" />}
+                                  {hasConflict && <AlertCircle className="h-2.5 w-2.5 ml-0.5 shrink-0 text-destructive" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </td>
                   );
                 })
