@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { historyManager, HISTORY_CHANGED_EVENT } from '@/lib/history';
 import { useReloadTimetableState } from '@/hooks/useReloadTimetableState';
+import { cn } from '@/lib/utils';
 
 interface HistoryItem {
   id: string;
@@ -139,33 +140,61 @@ export function HistoryControls() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {[...entries].reverse().map((entry, idx) => (
-                    <div
-                      key={entry.id}
-                      className="p-3 rounded-lg border border-border/70 hover:border-primary/50 bg-background/60 hover:bg-muted/40 transition-colors flex items-start justify-between gap-3 group"
-                    >
-                      <div className="space-y-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {entry.description}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>{new Date(entry.timestamp).toLocaleTimeString('uk-UA')}</span>
+                  {[...entries].reverse().map((entry, idx) => {
+                    const isLatest = idx === 0;
+                    return (
+                      <div
+                        key={entry.id}
+                        role={isLatest ? undefined : 'button'}
+                        tabIndex={isLatest ? undefined : 0}
+                        onClick={() => {
+                          if (!isLatest) handleRevert(entry.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!isLatest && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            handleRevert(entry.id);
+                          }
+                        }}
+                        className={cn(
+                          'p-3 rounded-lg border transition-all flex items-start justify-between gap-3 text-left w-full group',
+                          isLatest
+                            ? 'border-primary/40 bg-primary/5 shadow-sm'
+                            : 'border-border/70 bg-background/60 hover:border-primary/70 hover:bg-muted/70 cursor-pointer active:scale-[0.99]'
+                        )}
+                        title={
+                          isLatest
+                            ? t('history.currentState', 'Поточний стан')
+                            : t('history.clickToRevert', 'Натисніть на цей блок, щоб повернутися до цього стану')
+                        }
+                      >
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {entry.description}
+                            </p>
+                            {isLatest && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium shrink-0">
+                                {t('history.current', 'Поточний')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 shrink-0" />
+                            <span>{new Date(entry.timestamp).toLocaleTimeString('uk-UA')}</span>
+                          </div>
                         </div>
+                        {!isLatest && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-0.5">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline text-[11px] font-medium opacity-80 group-hover:opacity-100">
+                              {t('history.revert', 'Відновити')}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      {idx > 0 && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRevert(entry.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-xs h-7 gap-1 px-2"
-                        >
-                          <RotateCcw className="h-3 w-3" />
-                          {t('history.revert', 'Відновити')}
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
