@@ -232,6 +232,7 @@
     "title": "Subjects",
     "description": "Manage subjects/courses for your timetable ({{count}} total)",
     "addSubject": "Add Subject",
+    "fillCodesAuto": "Fill codes automatically",
     "editSubject": "Edit Subject",
     "searchPlaceholder": "Search subjects...",
     "emptyTitle": "No Subjects Yet",

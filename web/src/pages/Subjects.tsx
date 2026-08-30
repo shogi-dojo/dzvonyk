@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, Search, BookOpen } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, BookOpen, Sparkles } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { Pagination, usePagination } from '@/components/ui/pagination';
 import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { loadSubjects, addSubject, updateSubject, deleteSubject } from '@/store/slices/subjectsSlice';
+import { deriveSubjectCode, assignSubjectCodes } from '@/lib/subjectCodes';
 import type { Subject } from '@/types';
 
 export function Subjects() {
@@ -27,6 +29,8 @@ export function Subjects() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [codeDirty, setCodeDirty] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     longName: '',
@@ -38,6 +42,11 @@ export function Subjects() {
   useEffect(() => {
     dispatch(loadSubjects());
   }, [dispatch]);
+
+  const hasEmptyCodes = useMemo(
+    () => subjects.some((s) => !s.code || !s.code.trim()),
+    [subjects]
+  );
 
   const filteredSubjects = useMemo(() => {
     if (!searchQuery) return subjects;
@@ -62,12 +71,14 @@ export function Subjects() {
 
   const openNewDialog = () => {
     setEditingSubject(null);
+    setCodeDirty(false);
     setFormData({ name: '', longName: '', code: '', color: '#3b82f6', comments: '' });
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (subject: Subject) => {
     setEditingSubject(subject);
+    setCodeDirty(Boolean(subject.code?.trim()));
     setFormData({
       name: subject.name,
       longName: subject.longName || '',
@@ -76,6 +87,37 @@ export function Subjects() {
       comments: subject.comments || '',
     });
     setIsDialogOpen(true);
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      name,
+      code: !codeDirty ? deriveSubjectCode(name) : prev.code,
+    }));
+  };
+
+  const handleCodeChange = (code: string) => {
+    setCodeDirty(true);
+    setFormData((prev) => ({ ...prev, code }));
+  };
+
+  const handleAutoFillCodes = async () => {
+    if (isAutoFilling || subjects.length === 0) return;
+    setIsAutoFilling(true);
+    try {
+      const codeMap = assignSubjectCodes(subjects);
+      for (const subject of subjects) {
+        if (!subject.code || !subject.code.trim()) {
+          const derived = codeMap.get(subject.id);
+          if (derived) {
+            await dispatch(updateSubject({ ...subject, code: derived })).unwrap();
+          }
+        }
+      }
+    } finally {
+      setIsAutoFilling(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -121,10 +163,23 @@ export function Subjects() {
         description={t('subjects.description', { count: subjects.length })}
         icon={<BookOpen className="h-6 w-6" />}
         actions={
-          <Button onClick={openNewDialog} className="gap-2 gradient-primary hover-lift">
-            <Plus className="h-4 w-4" />
-            {t('subjects.addSubject')}
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasEmptyCodes && (
+              <Button
+                variant="outline"
+                onClick={handleAutoFillCodes}
+                disabled={isAutoFilling}
+                className="gap-2 hover-lift"
+              >
+                <Sparkles className="h-4 w-4 text-primary" />
+                {t('subjects.fillCodesAuto')}
+              </Button>
+            )}
+            <Button onClick={openNewDialog} className="gap-2 gradient-primary hover-lift">
+              <Plus className="h-4 w-4" />
+              {t('subjects.addSubject')}
+            </Button>
+          </div>
         }
       />
 
@@ -184,12 +239,14 @@ export function Subjects() {
                         <BookOpen className="h-4 w-4" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">
-                          {subject.name}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle className="text-base">{subject.name}</CardTitle>
                           {subject.code && (
-                            <span className="ml-2 text-sm text-muted-foreground">({subject.code})</span>
+                            <Badge variant="secondary" className="font-mono text-xs px-1.5 py-0">
+                              {subject.code}
+                            </Badge>
                           )}
-                        </CardTitle>
+                        </div>
                         {subject.longName && subject.longName !== subject.name && (
                           <CardDescription>{subject.longName}</CardDescription>
                         )}
@@ -234,7 +291,7 @@ export function Subjects() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   placeholder={t('subjects.dialog.namePlaceholder')}
                   required
                 />
@@ -254,7 +311,7 @@ export function Subjects() {
                   <Input
                     id="code"
                     value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    onChange={(e) => handleCodeChange(e.target.value)}
                     placeholder={t('subjects.dialog.codePlaceholder')}
                   />
                 </div>
