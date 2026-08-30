@@ -344,7 +344,7 @@ export function WorkspaceSelector() {
                   className="w-full justify-start text-xs h-7 gap-2 px-2"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  {t('workspace.newYear', 'Новий навчальний рік')}
+                  {t('workspace.newYear', 'Новий розклад')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -520,7 +520,7 @@ export function WorkspaceSelector() {
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleCreateWorkspace}>
             <DialogHeader>
-              <DialogTitle>{t('workspace.createYearTitle', 'Новий навчальний рік')}</DialogTitle>
+              <DialogTitle>{t('workspace.createYearTitle', 'Новий розклад')}</DialogTitle>
               <DialogDescription>
                 {t('workspace.createYearDesc', 'Створіть новий рік або семестр розкладу')}
               </DialogDescription>
@@ -548,7 +548,7 @@ export function WorkspaceSelector() {
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
                     />
                     <Label htmlFor="cloneFromCurrent" className="text-xs font-medium cursor-pointer">
-                      {t('workspace.cloneFromCurrent', 'Скопіювати дані з поточного року')} ({activeWorkspace.label})
+                      {t('workspace.cloneFromCurrent', 'Копіювати з поточного розкладу')} ({activeWorkspace.label})
                     </Label>
                   </div>
 
