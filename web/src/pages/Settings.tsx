@@ -369,12 +369,6 @@ export function Settings() {
     setHours(hours.filter((_, i) => i !== index));
   };
 
-  const updateHourName = (index: number, name: string) => {
-    const updated = [...hours];
-    updated[index] = { ...updated[index], name };
-    setHours(updated);
-  };
-
   const updateHourRange = (index: number, part: 'start' | 'end', value: string) => {
     const updated = [...hours];
     const [currentStart, currentEnd] = getHourRange(updated[index]);
@@ -703,35 +697,28 @@ export function Settings() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="hidden grid-cols-[3rem_1fr_1fr_1fr_2.5rem] gap-2 px-2 text-xs font-medium text-muted-foreground sm:grid">
+                <div className="hidden grid-cols-[3rem_1fr_1fr_2.5rem] gap-2 px-2 text-xs font-medium text-muted-foreground sm:grid">
                   <span>№</span>
-                  <span>{t('settings.hours.label')}</span>
                   <span>{t('settings.hours.start')}</span>
                   <span>{t('settings.hours.end')}</span>
                   <span />
                 </div>
                 {hours.map((hour, index) => (
-                  <div key={index} className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[3rem_1fr_1fr_1fr_2.5rem]">
+                  <div key={index} className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[3rem_1fr_1fr_2.5rem]">
                     <span className="text-center text-sm font-semibold text-muted-foreground">{index + 1}</span>
-                    <Label htmlFor={`hour-${index}`} className="sr-only absolute">{t('settings.hours.labelSr', { index: index + 1 })}</Label>
-                    <Input 
-                      id={`hour-${index}`}
-                      value={hour.name} 
-                      onChange={(e) => updateHourName(index, e.target.value)} 
-                    />
                     <Input
                       type="time"
                       aria-label={t('settings.hours.startAria', { index: index + 1 })}
                       value={getHourRange(hour)[0]}
                       onChange={(e) => updateHourRange(index, 'start', e.target.value)}
-                      className="max-sm:col-start-2 max-sm:row-start-2"
+                      className="max-sm:col-start-2 max-sm:row-start-1"
                     />
                     <Input
                       type="time"
                       aria-label={t('settings.hours.endAria', { index: index + 1 })}
                       value={getHourRange(hour)[1]}
                       onChange={(e) => updateHourRange(index, 'end', e.target.value)}
-                      className="max-sm:col-start-2 max-sm:row-start-3"
+                      className="max-sm:col-start-2 max-sm:row-start-2"
                     />
                     <Button 
                       variant="ghost" 
