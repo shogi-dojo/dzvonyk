@@ -27,6 +27,8 @@ import {
 } from '@/lib/timetableGrid';
 import { TimetableMatrix } from '@/components/timetable/TimetableMatrix';
 import { useDropFeedback } from '@/components/timetable/useDropFeedback';
+import { UnplacedPanel } from '@/components/timetable/UnplacedPanel';
+import { getUnplacedActivities } from '@/lib/unplacedActivities';
 import {
   printHtmlDocument,
   generateClassPrintHtml,
@@ -200,6 +202,18 @@ export function Timetable() {
     });
   }, [showGrid, viewType, latestSolution, rules, activities, teachers, subjects, groups, subgroups, rooms, lockedActivityIds, conflictsMap]);
 
+  // Unplaced activities
+  const unplacedActivities = useMemo(() => {
+    return getUnplacedActivities({
+      activities,
+      solution: latestSolution || null,
+      subjects,
+      teachers,
+      groups,
+      subgroups,
+    });
+  }, [activities, latestSolution, subjects, teachers, groups, subgroups]);
+
   const statistics = useMemo(() => {
     if (!timetableData || !rules) return null;
 
@@ -267,16 +281,22 @@ export function Timetable() {
       return;
     }
 
-    const updatedPlacements = latestSolution.placements.map((p) => {
-      if (p.activityId === activityId) {
-        return { ...p, day: targetDay, hour: targetHour };
-      }
-      return p;
-    });
+    const hasPlacement = latestSolution.placements.some((p) => p.activityId === activityId);
+    const updatedPlacements = hasPlacement
+      ? latestSolution.placements.map((p) => {
+          if (p.activityId === activityId) {
+            return { ...p, day: targetDay, hour: targetHour };
+          }
+          return p;
+        })
+      : [...latestSolution.placements, { activityId, day: targetDay, hour: targetHour }];
+
+    const isComplete = updatedPlacements.length >= activities.length;
 
     const updatedSolution = {
       ...latestSolution,
       placements: updatedPlacements,
+      isComplete,
     };
 
     await db.solutions.put(updatedSolution);
@@ -865,7 +885,7 @@ export function Timetable() {
             </CardHeader>
             <CardContent className="p-0">
               {viewType === 'full-matrix' && classMatrixData ? (
-                <div className="p-4">
+                <div className="p-4 space-y-4">
                   <TimetableMatrix
                     rows={classMatrixData.rows}
                     days={rules.daysOfTheWeek}
@@ -875,6 +895,13 @@ export function Timetable() {
                     onMove={handleMoveActivity}
                     onDragStateChange={(id) => (id ? beginDrag(id) : endDrag())}
                     cornerLabel={t('students.stats.groups', { defaultValue: 'Класи' })}
+                  />
+                  <UnplacedPanel
+                    unplacedActivities={unplacedActivities}
+                    activeActivityId={selectedActivityForMove}
+                    onDragStart={beginDrag}
+                    onDragEnd={endDrag}
+                    onSelect={(id) => (selectedActivityForMove === id ? endDrag() : beginDrag(id))}
                   />
                 </div>
               ) : (
