@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
+    "e2e:faq-screenshots": "playwright test --config=playwright.screenshots.config.ts",
     "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
