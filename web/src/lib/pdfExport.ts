@@ -14,15 +14,15 @@ export async function exportHtmlToPdf(
   html: string,
   options: PdfExportOptions = {}
 ): Promise<void> {
-  const { fileName = 'rozklad.pdf', scale = 2 } = options;
+  const { fileName = 'Розклад.pdf', scale = 2 } = options;
 
   return new Promise((resolve, reject) => {
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.left = '-9999px';
     iframe.style.top = '0';
-    iframe.style.width = '1600px';
-    iframe.style.height = '1200px';
+    iframe.style.width = '3200px';
+    iframe.style.height = '2000px';
     iframe.style.border = '0';
     iframe.style.visibility = 'hidden';
 
@@ -39,9 +39,12 @@ export async function exportHtmlToPdf(
     doc.write(html);
     doc.close();
 
-    // Give the iframe a frame to render fonts and layouts
-    setTimeout(async () => {
+    const doCapture = async () => {
       try {
+        if (doc.fonts && doc.fonts.ready) {
+          await doc.fonts.ready;
+        }
+
         const body = doc.body;
         const width = Math.max(body.scrollWidth, body.offsetWidth, 1200);
         const height = Math.max(body.scrollHeight, body.offsetHeight, 600);
@@ -81,6 +84,8 @@ export async function exportHtmlToPdf(
           iframe.parentNode.removeChild(iframe);
         }
       }
-    }, 150);
+    };
+
+    setTimeout(doCapture, 200);
   });
 }

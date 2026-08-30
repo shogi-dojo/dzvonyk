@@ -112,9 +112,9 @@ function getPrintStyles(
       padding: 0;
       background: #ffffff;
       color: #000000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
       font-size: 11px;
-      line-height: 1.2;
+      line-height: 1.35;
     }
     .sheet {
       width: 100%;
@@ -629,23 +629,27 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
       width: 100%;
       border-collapse: collapse;
       ${pageSize === 'auto' ? 'table-layout: auto; min-width: max-content;' : 'table-layout: fixed;'}
-      font-size: 9px;
+      font-size: 10px;
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
-      padding: 2px 3px;
+      padding: 4px 5px;
       vertical-align: top;
-      ${pageSize === 'auto' ? 'min-width: 80px;' : ''}
+      ${pageSize === 'auto' ? 'min-width: 95px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;
       font-weight: bold;
       text-align: center;
+      padding: 6px 4px;
+      font-size: 11px;
     }
     .day-header-cell {
       background: #e8e8e8;
       font-weight: bold;
-      width: 50px;
+      width: 55px;
+      text-align: center;
+      vertical-align: middle !important;
     }
   </style>
 </head>
@@ -668,7 +672,8 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
           .map((row) => `
           <tr ${row.hour === 0 ? 'style="border-top: 2px solid #000;"' : ''}>
             <td class="day-header-cell">
-              <strong>${escapeHtml(row.dayName.slice(0, 2))}</strong> ${row.hour + 1} ур.
+              <div><strong>${escapeHtml(row.dayName.slice(0, 2))}</strong></div>
+              <div style="font-size: 9px; font-weight: normal; color: #555;">${row.hour + 1} ур.</div>
             </td>
             ${row.cells
               .map((cellItems) => `
@@ -678,17 +683,24 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
                     (c) => `
                   <div style="${
                     colorMode && c.subjectColor
-                      ? `border-left: 2px solid ${c.subjectColor}; background-color: ${c.subjectColor}12;`
-                      : ''
-                  } padding: 1px 2px; margin-bottom: 1px;">
-                    <div style="font-weight: bold; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                      ? `border-left: 3px solid ${c.subjectColor}; background-color: ${c.subjectColor}15;`
+                      : 'background-color: #f9f9f9;'
+                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3;">
+                    <div style="font-weight: bold; font-size: 10px; line-height: 1.3; color: #000; word-break: break-word;">${escapeHtml(
                       c.subject
                     )}</div>
                     ${renderWeekParity(c.weekParity)}
                     ${
                       c.teachers.length > 0
-                        ? `<div style="font-size: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                        ? `<div style="font-size: 9px; color: #444; line-height: 1.25; margin-top: 1px; word-break: break-word;">${escapeHtml(
                             c.teachers[0]
+                          )}</div>`
+                        : ''
+                    }
+                    ${
+                      c.room
+                        ? `<div style="font-size: 8.5px; color: #666; line-height: 1.2;">каб. ${escapeHtml(
+                            c.room
                           )}</div>`
                         : ''
                     }
@@ -801,23 +813,27 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
       width: 100%;
       border-collapse: collapse;
       ${pageSize === 'auto' ? 'table-layout: auto; min-width: max-content;' : 'table-layout: fixed;'}
-      font-size: 9px;
+      font-size: 10px;
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
-      padding: 2px 3px;
+      padding: 4px 5px;
       vertical-align: top;
-      ${pageSize === 'auto' ? 'min-width: 80px;' : ''}
+      ${pageSize === 'auto' ? 'min-width: 95px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;
       font-weight: bold;
       text-align: center;
+      padding: 6px 4px;
+      font-size: 11px;
     }
     .day-header-cell {
       background: #e8e8e8;
       font-weight: bold;
-      width: 50px;
+      width: 55px;
+      text-align: center;
+      vertical-align: middle !important;
     }
   </style>
 </head>
@@ -840,7 +856,8 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
           .map((row) => `
           <tr>
             <td class="day-header-cell">
-              <strong>${escapeHtml(row.dayName.slice(0, 2))}</strong> ${escapeHtml(row.hourName)}
+              <div><strong>${escapeHtml(row.dayName.slice(0, 2))}</strong></div>
+              <div style="font-size: 9px; font-weight: normal; color: #555;">${escapeHtml(row.hourName)}</div>
             </td>
             ${row.cells
               .map((cellItems) => `
@@ -850,17 +867,24 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
                     (c) => `
                   <div style="${
                     colorMode && c.subjectColor
-                      ? `border-left: 2px solid ${c.subjectColor}; background-color: ${c.subjectColor}12;`
-                      : ''
-                  } padding: 1px 2px; margin-bottom: 1px;">
-                    <div style="font-weight: bold; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                      ? `border-left: 3px solid ${c.subjectColor}; background-color: ${c.subjectColor}15;`
+                      : 'background-color: #f9f9f9;'
+                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3;">
+                    <div style="font-weight: bold; font-size: 10px; line-height: 1.3; color: #000; word-break: break-word;">${escapeHtml(
                       c.subject
                     )}</div>
                     ${renderWeekParity(c.weekParity)}
                     ${
                       c.students.length > 0
-                        ? `<div style="font-size: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                        ? `<div style="font-size: 9px; color: #444; line-height: 1.25; margin-top: 1px; word-break: break-word;">${escapeHtml(
                             c.students.join(', ')
+                          )}</div>`
+                        : ''
+                    }
+                    ${
+                      c.room
+                        ? `<div style="font-size: 8.5px; color: #666; line-height: 1.2;">каб. ${escapeHtml(
+                            c.room
                           )}</div>`
                         : ''
                     }
