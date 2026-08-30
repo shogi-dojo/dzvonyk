@@ -32,6 +32,7 @@ export interface PrintOptions {
   includeApproval?: boolean;
   colorMode?: boolean;
   orientation?: 'landscape' | 'portrait';
+  pageSize?: 'a4' | 'a3' | 'auto';
   academicYear?: string;
 }
 
@@ -86,14 +87,21 @@ export function printHtmlDocument(html: string): void {
 }
 
 /**
- * Common base CSS for A4 print layouts
+ * Common base CSS for print layouts
  */
-function getPrintStyles(orientation: 'landscape' | 'portrait' = 'landscape'): string {
+function getPrintStyles(
+  orientation: 'landscape' | 'portrait' = 'landscape',
+  pageSize: 'a4' | 'a3' | 'auto' = 'a4'
+): string {
+  const pageRule =
+    pageSize === 'auto'
+      ? '@page { size: auto; margin: 8mm 10mm; }'
+      : pageSize === 'a3'
+      ? `@page { size: A3 ${orientation}; margin: 8mm 10mm; }`
+      : `@page { size: A4 ${orientation}; margin: 8mm 10mm; }`;
+
   return `
-    @page {
-      size: A4 ${orientation};
-      margin: 8mm 10mm;
-    }
+    ${pageRule}
     *, *:before, *:after {
       box-sizing: border-box;
       -webkit-print-color-adjust: exact !important;
@@ -596,7 +604,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { solution, rules, activities, teachers, subjects, groups, subgroups, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4' } = options;
 
   const matrix = buildAllClassesGrid({
     solution,
@@ -616,17 +624,18 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
   <meta charset="utf-8">
   <title>Зведений розклад усіх класів - ${escapeHtml(rules.institutionName)}</title>
   <style>
-    ${getPrintStyles(orientation)}
+    ${getPrintStyles(orientation, pageSize)}
     table.summary-matrix {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      ${pageSize === 'auto' ? 'table-layout: auto; min-width: max-content;' : 'table-layout: fixed;'}
       font-size: 9px;
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
       padding: 2px 3px;
       vertical-align: top;
+      ${pageSize === 'auto' ? 'min-width: 80px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;
@@ -714,7 +723,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { solution, rules, activities, teachers, subjects, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4' } = options;
 
   const sortedTeachers = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'uk'));
   const actMap = new Map(activities.map((a) => [a.id, a]));
@@ -787,17 +796,18 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
   <meta charset="utf-8">
   <title>Зведений розклад учителів - ${escapeHtml(rules.institutionName)}</title>
   <style>
-    ${getPrintStyles(orientation)}
+    ${getPrintStyles(orientation, pageSize)}
     table.summary-matrix {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      ${pageSize === 'auto' ? 'table-layout: auto; min-width: max-content;' : 'table-layout: fixed;'}
       font-size: 9px;
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
       padding: 2px 3px;
       vertical-align: top;
+      ${pageSize === 'auto' ? 'min-width: 80px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;

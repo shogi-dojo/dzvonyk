@@ -41,6 +41,10 @@ test('Teacher workload accurately displays alternating-week fractional hours in 
   await page.locator('aside').first().getByRole('link', { name: /друк/i }).click();
   await expect(page.getByRole('main')).toBeVisible({ timeout: 10_000 });
 
+  // Verify Save PDF and Print buttons
+  const savePdfBtn = page.getByRole('main').getByRole('button', { name: /зберегти pdf/i });
+  await expect(savePdfBtn).toBeVisible({ timeout: 10_000 });
+
   // Switch to "Тарифікація / Навантаження" report
   const workloadReportBtn = page.getByRole('main').getByRole('button', { name: 'Тарифікація / Навантаження' });
   await expect(workloadReportBtn).toBeVisible({ timeout: 10_000 });

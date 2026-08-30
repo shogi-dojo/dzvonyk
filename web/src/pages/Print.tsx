@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Printer, FileText, Users, UserCheck, LayoutGrid,
-  ArrowLeft, Clock, BarChart3
+  ArrowLeft, Clock, BarChart3, Download, Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ import {
   computeTeacherWorkloadReportData,
   computeAllClassesWeeklyLoad,
 } from '@/lib/weeklyLoad';
+import { exportElementToPdf } from '@/lib/pdfExport';
 import { trackEvent } from '@/lib/analytics';
 
 type ReportType =
@@ -61,6 +62,8 @@ export function Print() {
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.name || '');
   const [includeApproval, setIncludeApproval] = useState<boolean>(true);
   const [colorMode, setColorMode] = useState<boolean>(true);
+  const [pageSize, setPageSize] = useState<'a4' | 'a3' | 'auto'>('auto');
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -226,7 +229,7 @@ export function Print() {
         groups: sortedGroups,
         subgroups,
         rooms,
-        options: { includeApproval, colorMode },
+        options: { includeApproval, colorMode, pageSize },
       });
       printHtmlDocument(html);
     } else if (reportType === 'summary-teachers') {
@@ -239,7 +242,7 @@ export function Print() {
         teachers: sortedTeachers,
         subjects,
         rooms,
-        options: { includeApproval, colorMode },
+        options: { includeApproval, colorMode, pageSize },
       });
       printHtmlDocument(html);
     } else if (reportType === 'teacher-workload') {
@@ -261,6 +264,39 @@ export function Print() {
         options: { includeApproval, orientation: 'portrait' },
       });
       printHtmlDocument(html);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!printAreaRef.current || !rules) return;
+    try {
+      setExportingPdf(true);
+      const titleMap: Record<ReportType, string> = {
+        'class': `Rozklad_${selectedClassId || 'klas'}`,
+        'teacher': `Rozklad_${(selectedTeacherId || 'vchytel').replace(/\s+/g, '_')}`,
+        'summary-classes': `Rozklad_Zvedenyi_Klasy`,
+        'summary-teachers': `Rozklad_Zvedenyi_Vchyteli`,
+        'teacher-workload': `Taryfikatsiia_Navantazhennia`,
+        'classes-workload': `Navantazhennia_Klasiv_Tyzhni`,
+      };
+      const safeSchool = (rules.institutionName || 'Dzvonyk').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ_-]/g, '_');
+      const fileName = `${titleMap[reportType] || 'Rozklad'}_${safeSchool}.pdf`;
+      await exportElementToPdf(printAreaRef.current, { fileName, scale: 2 });
+      trackEvent('print_exported', {
+        format: 'pdf',
+        view_type:
+          reportType === 'teacher-workload'
+            ? 'tariff'
+            : reportType === 'classes-workload'
+            ? 'classes_workload'
+            : reportType === 'teacher' || reportType === 'summary-teachers'
+            ? 'teachers'
+            : 'students',
+      });
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -332,9 +368,26 @@ export function Print() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button onClick={handlePrint} className="gap-2 gradient-primary">
+            <Button
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+            >
+              {exportingPdf ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t('print.generatingPdf', { defaultValue: 'Формування PDF...' })}</span>
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  <span>{t('print.savePdfButton', { defaultValue: 'Зберегти PDF' })}</span>
+                </>
+              )}
+            </Button>
+            <Button onClick={handlePrint} variant="outline" className="gap-2">
               <Printer className="h-4 w-4" />
-              {t('print.printButton', { defaultValue: 'Роздрукувати звіт' })}
+              {t('print.printButton', { defaultValue: 'Друк (Папір)' })}
             </Button>
             <Button onClick={handlePrintAllClasses} variant="outline" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -426,6 +479,21 @@ export function Print() {
                 />
                 <span>Кольорове виділення предметів</span>
               </label>
+
+              {(reportType === 'summary-classes' || reportType === 'summary-teachers') && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-xs font-medium text-muted-foreground">Формат аркуша для друку:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(e.target.value as 'a4' | 'a3' | 'auto')}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium"
+                  >
+                    <option value="auto">Авто (без стиснення для PDF/екрана)</option>
+                    <option value="a3">A3 (великий аркуш)</option>
+                    <option value="a4">A4 (стандартний)</option>
+                  </select>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -434,6 +502,7 @@ export function Print() {
       {/* Printable Sheet View */}
       <div
         ref={printAreaRef}
+        data-print-area="true"
         className="bg-white text-black p-6 sm:p-8 rounded-lg shadow border border-border print:p-0 print:border-none print:shadow-none print-sheet"
         style={{ minHeight: '800px' }}
       >
