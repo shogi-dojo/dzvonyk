@@ -12,14 +12,19 @@ import type {
   Room,
   StudentsGroup,
   StudentsSubgroup,
+  TimeConstraint,
 } from '@/types';
 import {
   buildTimetableGrid,
   buildAllClassesGrid,
+  buildTeacherDayHourMatrix,
+  buildClassDayHourMatrix,
   type GridCell,
   type CellData,
 } from './timetableGrid';
 import { hourTimeLabel } from './bellSchedule';
+import { splitPersonName } from './personName';
+import { buildDayReportHeader } from './dayReportHeader';
 import {
   formatConfiguredLessonLabel,
   formatTimetableDayLabel,
@@ -1171,3 +1176,330 @@ export function generateClassesWorkloadMatrixPrintHtml(params: {
 </body>
 </html>`;
 }
+
+/**
+ * Generates printable HTML for a daily matrix timetable (one sheet per day).
+ * Columns represent periods 1..N with shift time rows; rows represent teachers or classes.
+ */
+export function generateDailyMatrixPrintHtml(params: {
+  rowAxis: 'teachers' | 'classes';
+  solution: TimetableSolution;
+  rules: TimetableRules;
+  activities: Activity[];
+  teachers: Teacher[];
+  subjects: Subject[];
+  groups: StudentsGroup[];
+  subgroups: StudentsSubgroup[];
+  rooms: Room[];
+  timeConstraints?: TimeConstraint[];
+  options?: PrintOptions;
+}): string {
+  const {
+    rowAxis,
+    solution,
+    rules,
+    activities,
+    teachers,
+    subjects,
+    groups,
+    subgroups,
+    rooms,
+    timeConstraints = [],
+    options = {},
+  } = params;
+
+  const {
+    includeApproval = true,
+    colorMode = false,
+    orientation = 'landscape',
+    pageSize = 'a4',
+  } = options;
+
+  const matrix =
+    rowAxis === 'teachers'
+      ? buildTeacherDayHourMatrix({
+          solution,
+          rules,
+          activities,
+          teachers,
+          subjects,
+          groups,
+          subgroups,
+          rooms,
+          timeConstraints,
+        })
+      : buildClassDayHourMatrix({
+          solution,
+          rules,
+          activities,
+          teachers,
+          subjects,
+          groups,
+          subgroups,
+          rooms,
+        });
+
+  if (!matrix) {
+    return '';
+  }
+
+  const header = buildDayReportHeader(rules);
+  const nDays = matrix.nDays;
+  const nHours = matrix.nHours;
+
+  const sheets: string[] = [];
+
+  for (let d = 0; d < nDays; d++) {
+    const dayObj = rules.daysOfTheWeek?.[d];
+    const dayName = dayObj?.name || `День ${d + 1}`;
+    const isLastDay = d === nDays - 1;
+
+    let rowsHtml = '';
+    for (const row of matrix.rows) {
+      let cellsHtml = '';
+      for (let h = 0; h < nHours; h++) {
+        const isUnavailable = row.availableSlots ? row.availableSlots(d, h) === false : false;
+        if (isUnavailable) {
+          cellsHtml += `<td class="cell-unavailable"></td>`;
+          continue;
+        }
+
+        const cellKey = `${row.id}|${d}|${h}`;
+        const items = matrix.cells.get(cellKey) || [];
+
+        if (items.length === 0) {
+          cellsHtml += `<td class="cell-empty"></td>`;
+          continue;
+        }
+
+        const itemContents = items
+          .map((c) => {
+            const style =
+              colorMode && c.subjectColor
+                ? `border-left: 3px solid ${c.subjectColor}; background-color: ${c.subjectColor}15;`
+                : '';
+            const coloredClass = colorMode && c.subjectColor ? 'colored' : '';
+
+            const mainTitle = rowAxis === 'teachers' ? c.students.join(', ') : c.subject;
+            const roomHtml = c.room ? `<div class="cell-room">каб. ${escapeHtml(c.room)}</div>` : '';
+            const parityHtml = renderWeekParity(c.weekParity);
+
+            return `
+              <div class="daily-cell-item ${coloredClass}" style="${style}">
+                <div class="cell-main">${escapeHtml(mainTitle)}</div>
+                ${parityHtml}
+                ${roomHtml}
+              </div>
+            `;
+          })
+          .join('');
+
+        cellsHtml += `<td class="cell-content">${itemContents}</td>`;
+      }
+
+      let rowLabelHtml = '';
+      if (rowAxis === 'teachers') {
+        const { primary, initials } = splitPersonName(row.label);
+        rowLabelHtml = initials
+          ? `<span class="person-primary">${escapeHtml(primary)}</span> <span class="person-initials">${escapeHtml(initials)}</span>`
+          : `<span class="person-primary">${escapeHtml(primary)}</span>`;
+      } else {
+        rowLabelHtml = `<span class="class-label">${escapeHtml(row.label)}</span>`;
+      }
+
+      if (row.sublabel) {
+        rowLabelHtml += `<div class="row-sublabel">${escapeHtml(row.sublabel)}</div>`;
+      }
+
+      rowsHtml += `
+        <tr>
+          <td class="row-label-cell">${rowLabelHtml}</td>
+          ${cellsHtml}
+        </tr>
+      `;
+    }
+
+    const reportTitle =
+      rowAxis === 'teachers'
+        ? `РОЗКЛАД УРОКІВ — ${escapeHtml(dayName.toUpperCase())}`
+        : `РОЗКЛАД УРОКІВ — ${escapeHtml(dayName.toUpperCase())}`;
+
+    const firstColLabel = rowAxis === 'teachers' ? 'Викладач' : 'Клас';
+    const totalShiftRows = header.shiftRows.length;
+    const firstColRowSpan = 1 + totalShiftRows;
+
+    let theadHtml = `
+      <tr>
+        <th rowspan="${firstColRowSpan}" class="th-row-axis">${firstColLabel}</th>
+        ${header.lessonNumbers.map((num) => `<th class="th-lesson-num">${num}</th>`).join('')}
+      </tr>
+    `;
+
+    for (const shiftRow of header.shiftRows) {
+      theadHtml += `
+        <tr class="tr-shift-time">
+          ${shiftRow.cells
+            .map(
+              (cell) =>
+                `<th class="th-shift-time">${
+                  cell.timeLabel ? escapeHtml(cell.timeLabel) : ''
+                }</th>`
+            )
+            .join('')}
+        </tr>
+      `;
+    }
+
+    sheets.push(`
+      <div class="sheet day-sheet${!isLastDay ? ' page-break' : ''}">
+        <div>
+          ${renderHeader(rules, includeApproval)}
+          <div class="doc-title">
+            <h1>${reportTitle}</h1>
+            <p>${escapeHtml(rules.institutionName)}</p>
+          </div>
+          <table class="daily-matrix">
+            <thead>
+              ${theadHtml}
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+        ${renderFooter()}
+      </div>
+    `);
+  }
+
+  const pageDocTitle =
+    rowAxis === 'teachers'
+      ? `Розклад уроків по днях (вчителі) - ${escapeHtml(rules.institutionName)}`
+      : `Розклад уроків по днях (класи) - ${escapeHtml(rules.institutionName)}`;
+
+  return `<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>${pageDocTitle}</title>
+  <style>
+    ${getPrintStyles(orientation, pageSize)}
+    .sheet.day-sheet {
+      min-height: 0 !important;
+      page-break-inside: auto;
+      break-inside: auto;
+      margin-bottom: 20px;
+    }
+    .sheet.day-sheet.page-break {
+      page-break-after: always;
+      break-after: page;
+      min-height: 0 !important;
+    }
+    table.daily-matrix {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 10px;
+      margin-top: 6px;
+      margin-bottom: 12px;
+    }
+    table.daily-matrix thead {
+      display: table-header-group;
+    }
+    table.daily-matrix tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    table.daily-matrix th, table.daily-matrix td {
+      border: 1px solid #333;
+      padding: 3px 4px;
+      vertical-align: middle;
+      text-align: center;
+      word-break: break-word;
+    }
+    table.daily-matrix th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+    .th-row-axis {
+      width: 140px;
+      text-align: left !important;
+      padding-left: 6px !important;
+      font-size: 11px;
+    }
+    .th-lesson-num {
+      font-size: 11px;
+      padding: 4px 2px;
+    }
+    .th-shift-time {
+      font-size: 8.5px;
+      font-weight: normal;
+      color: #333;
+      padding: 2px 1px;
+      white-space: nowrap;
+    }
+    .row-label-cell {
+      text-align: left !important;
+      padding: 3px 6px !important;
+      font-size: 10px;
+      background: #fafafa;
+    }
+    .person-primary {
+      font-weight: bold;
+    }
+    .person-initials {
+      font-size: 9px;
+      color: #333;
+    }
+    .class-label {
+      font-weight: bold;
+    }
+    .row-sublabel {
+      font-size: 8.5px;
+      color: #666;
+    }
+    .cell-unavailable {
+      background-color: #eee !important;
+    }
+    .cell-empty {
+      background-color: #ffffff;
+    }
+    .cell-content {
+      text-align: center;
+      padding: 2px !important;
+      vertical-align: middle;
+    }
+    .daily-cell-item {
+      padding: 2px 3px;
+      border-radius: 2px;
+      font-size: 9.5px;
+      line-height: 1.15;
+      margin-bottom: 2px;
+      background: #fafafa;
+      border: 1px solid #e5e5e5;
+    }
+    .daily-cell-item:last-child {
+      margin-bottom: 0;
+    }
+    .cell-main {
+      font-weight: bold;
+      color: #000;
+    }
+    .cell-room {
+      font-size: 8.5px;
+      color: #555;
+      margin-top: 1px;
+    }
+    @media print {
+      .sheet.day-sheet {
+        margin-bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  ${sheets.join('\n')}
+</body>
+</html>`;
+}
+
