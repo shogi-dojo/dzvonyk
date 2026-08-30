@@ -27,6 +27,7 @@ import {
   generateSummaryTeachersMatrixPrintHtml,
   generateTeacherWorkloadPrintHtml,
 } from '@/lib/printDocument';
+import { sumWeeklyLoad, formatWeeklyLoad, formatHours } from '@/lib/weeklyLoad';
 import { trackEvent } from '@/lib/analytics';
 
 type ReportType =
@@ -202,7 +203,7 @@ export function Print() {
         new Set(teacherActs.flatMap((a) => a.studentSetIds))
       );
 
-      const totalHours = teacherActs.reduce((sum, a) => sum + (a.duration || 1), 0);
+      const load = sumWeeklyLoad(teacherActs);
 
       return {
         index: index + 1,
@@ -211,7 +212,8 @@ export function Print() {
         code: teacher.code,
         subjects: subjectNames,
         classes: classNames,
-        totalHours,
+        load,
+        averageHours: load.average,
         targetHours: teacher.targetNumberOfHours,
       };
     });
@@ -300,18 +302,18 @@ export function Print() {
     printHtmlDocument(html);
   };
 
-  if (!rules || !latestSolution) {
+  if (!rules) {
     return (
       <div className="space-y-6">
         <PageHeader
           title={t('print.title', { defaultValue: 'Друк звітів та розкладу' })}
-          description={t('print.noSolutionDesc', { defaultValue: 'Спершу згенеруйте розклад, щоб роздрукувати звіти' })}
+          description={t('print.noRulesDesc', { defaultValue: 'Спершу налаштуйте дані закладу в налаштуваннях' })}
           icon={<Printer className="h-6 w-6" />}
         />
         <Card>
           <CardContent className="py-12 text-center space-y-4">
-            <p className="text-muted-foreground">{t('print.needSolutionPrompt', { defaultValue: 'Розклад ще не сформовано' })}</p>
-            <Button asChild><Link to="/generate">{t('timetable.generateTimetable')}</Link></Button>
+            <p className="text-muted-foreground">{t('print.needRulesPrompt', { defaultValue: 'Дані закладу ще не налаштовано' })}</p>
+            <Button asChild><Link to="/settings">{t('settings.title', { defaultValue: 'Налаштування' })}</Link></Button>
           </CardContent>
         </Card>
       </div>
@@ -332,7 +334,7 @@ export function Print() {
                 {t('print.title', { defaultValue: 'Друк та експорт звітів' })}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {rules.institutionName} • {latestSolution.placements.length} уроків
+                {rules.institutionName} {latestSolution ? `• ${latestSolution.placements.length} уроків` : ''}
               </p>
             </div>
           </div>
@@ -471,6 +473,18 @@ export function Print() {
             {rules.daysOfTheWeek.length} робочих днів • {rules.hoursOfTheDay.length} уроків на день
           </p>
         </div>
+
+        {/* Notice for timetable reports if not generated yet */}
+        {reportType !== 'teacher-workload' && !latestSolution && (
+          <div className="py-12 text-center space-y-4 border border-dashed border-neutral-300 rounded-lg p-6 bg-neutral-50">
+            <p className="text-sm text-neutral-600">
+              {t('print.needSolutionPrompt', { defaultValue: 'Розклад ще не сформовано для цієї таблиці. Згенеруйте розклад у розділі «Генерація».' })}
+            </p>
+            <Button asChild size="sm">
+              <Link to="/generate">{t('timetable.generateTimetable', { defaultValue: 'Генерація розкладу' })}</Link>
+            </Button>
+          </div>
+        )}
 
         {/* 1. Single Class Table */}
         {reportType === 'class' && classGrid && (
@@ -712,10 +726,10 @@ export function Print() {
                     {row.classes.join(', ') || '—'}
                   </td>
                   <td className="border border-black p-2 text-center font-bold text-sm">
-                    {row.totalHours}
+                    {formatWeeklyLoad(row.load)}
                     {row.targetHours > 0 && (
                       <span className="block text-[10px] font-normal text-neutral-500">
-                        (план: {row.targetHours})
+                        (план: {formatHours(row.targetHours)})
                       </span>
                     )}
                   </td>
@@ -726,7 +740,7 @@ export function Print() {
                   РАЗОМ ГОДИН ПО ЗАКЛАДУ:
                 </td>
                 <td className="border border-black p-2 text-center text-sm">
-                  {teacherWorkload.reduce((sum, r) => sum + r.totalHours, 0)}
+                  {formatHours(teacherWorkload.reduce((sum, r) => sum + r.averageHours, 0))}
                 </td>
               </tr>
             </tbody>
