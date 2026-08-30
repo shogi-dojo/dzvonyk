@@ -27,6 +27,8 @@ export function UnplacedPanel({
 
   return (
     <div
+      data-testid="unplaced-panel"
+      data-count={unplacedActivities.length}
       className={cn(
         'rounded-lg border border-border bg-card shadow-xs transition-all',
         className
@@ -86,6 +88,8 @@ export function UnplacedPanel({
                 return (
                   <div
                     key={item.activity.id}
+                    data-testid="unplaced-chip"
+                    data-activity-id={item.activity.id}
                     draggable={true}
                     onDragStart={(e) => {
                       e.dataTransfer.setData('text/plain', item.activity.id);
