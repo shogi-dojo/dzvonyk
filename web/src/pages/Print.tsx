@@ -292,15 +292,20 @@ export function Print() {
     try {
       setExportingPdf(true);
       const titleMap: Record<ReportType, string> = {
-        'class': `Rozklad_${selectedClassId || 'klas'}`,
-        'teacher': `Rozklad_${(selectedTeacherId || 'vchytel').replace(/\s+/g, '_')}`,
-        'summary-classes': `Rozklad_Zvedenyi_Klasy`,
-        'summary-teachers': `Rozklad_Zvedenyi_Vchyteli`,
-        'teacher-workload': `Taryfikatsiia_Navantazhennia`,
-        'classes-workload': `Navantazhennia_Klasiv_Tyzhni`,
+        'class': `Розклад_${selectedClassId || 'клас'}`,
+        'teacher': `Розклад_${(selectedTeacherId || 'вчитель').replace(/\s+/g, '_')}`,
+        'summary-classes': `Зведений_розклад_класів`,
+        'summary-teachers': `Зведений_розклад_учителів`,
+        'teacher-workload': `Тарифікація_навантаження`,
+        'classes-workload': `Навантаження_класів_по_тижнях`,
       };
-      const safeSchool = (rules.institutionName || 'Dzvonyk').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ_-]/g, '_');
-      const fileName = `${titleMap[reportType] || 'Rozklad'}_${safeSchool}.pdf`;
+      const cleanSchool = (rules.institutionName || '')
+        .trim()
+        .replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ’'_-]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+      const safeSchool = cleanSchool ? `_${cleanSchool}` : '';
+      const fileName = `${titleMap[reportType] || 'Розклад'}${safeSchool}.pdf`;
       await exportHtmlToPdf(html, { fileName, scale: 2 });
       trackEvent('print_exported', {
         format: 'pdf',

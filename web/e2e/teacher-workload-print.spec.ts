@@ -60,7 +60,8 @@ test('Teacher workload accurately displays alternating-week fractional hours in 
   const downloadPromise = page.waitForEvent('download', { timeout: 8000 }).catch((e) => null);
   await savePdfBtn.click();
   const download = await downloadPromise;
-  console.log('DOWNLOAD EVENT RESULT:', download ? download.suggestedFilename() : 'NO DOWNLOAD EVENT');
+  expect(download).not.toBeNull();
+  expect(download?.suggestedFilename()).toContain('Тарифікація_навантаження');
 
   // Verify that hours are rendered and not NaN
   const row = page.locator('tr:has-text("Сисова Оксана")');
