@@ -20,11 +20,23 @@ import {
   type CellData,
 } from './timetableGrid';
 import { hourTimeLabel } from './bellSchedule';
+import {
+  formatConfiguredLessonLabel,
+  formatTimetableDayLabel,
+  formatTimetableLessonLabel,
+} from './timetableLabels';
+import {
+  formatWeeklyLoad,
+  formatHours,
+  computeTeacherWorkloadReportData,
+  computeAllClassesWeeklyLoad,
+} from './weeklyLoad';
 
 export interface PrintOptions {
   includeApproval?: boolean;
   colorMode?: boolean;
   orientation?: 'landscape' | 'portrait';
+  pageSize?: 'a4' | 'a3' | 'auto';
   academicYear?: string;
 }
 
@@ -79,14 +91,21 @@ export function printHtmlDocument(html: string): void {
 }
 
 /**
- * Common base CSS for A4 print layouts
+ * Common base CSS for print layouts
  */
-function getPrintStyles(orientation: 'landscape' | 'portrait' = 'landscape'): string {
+function getPrintStyles(
+  orientation: 'landscape' | 'portrait' = 'landscape',
+  pageSize: 'a4' | 'a3' | 'auto' = 'a4'
+): string {
+  const pageRule =
+    pageSize === 'auto'
+      ? '@page { size: auto; margin: 8mm 10mm; }'
+      : pageSize === 'a3'
+      ? `@page { size: A3 ${orientation}; margin: 8mm 10mm; }`
+      : `@page { size: A4 ${orientation}; margin: 8mm 10mm; }`;
+
   return `
-    @page {
-      size: A4 ${orientation};
-      margin: 8mm 10mm;
-    }
+    ${pageRule}
     *, *:before, *:after {
       box-sizing: border-box;
       -webkit-print-color-adjust: exact !important;
@@ -97,9 +116,9 @@ function getPrintStyles(orientation: 'landscape' | 'portrait' = 'landscape'): st
       padding: 0;
       background: #ffffff;
       color: #000000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
       font-size: 11px;
-      line-height: 1.2;
+      line-height: 1.35;
     }
     .sheet {
       width: 100%;
@@ -298,7 +317,8 @@ function renderSingleGridTable(
   rules: TimetableRules,
   colorMode: boolean,
   showTeacher: boolean,
-  showStudents: boolean
+  showStudents: boolean,
+  currentClassName?: string
 ): string {
   const days = rules.daysOfTheWeek;
   const hours = rules.hoursOfTheDay;
@@ -336,10 +356,28 @@ function renderSingleGridTable(
               : '';
           const coloredClass = colorMode && c.subjectColor ? 'colored' : '';
 
+          // Extract subgroup if printing a specific class
+          const subgroups = !showStudents && currentClassName && c.students.length > 0
+            ? c.students
+                .map((s) => {
+                  if (s === currentClassName) return '';
+                  if (s.startsWith(`${currentClassName},`) || s.startsWith(`${currentClassName} `) || s.startsWith(`${currentClassName}/`)) {
+                    return s.replace(currentClassName, '').trim().replace(/^[,/:-]\s*/, '');
+                  }
+                  return s;
+                })
+                .filter(Boolean)
+            : [];
+
           tableHtml += `
             <div class="lesson-box ${coloredClass}" style="${style}">
               <div class="lesson-subj">${escapeHtml(c.subject)}</div>
               ${renderWeekParity(c.weekParity)}
+              ${
+                subgroups.length > 0
+                  ? `<div class="lesson-details" style="font-weight: bold; color: #444;">${escapeHtml(subgroups.join(', '))}</div>`
+                  : ''
+              }
               ${
                 showTeacher && c.teachers.length > 0
                   ? `<div class="lesson-details">${escapeHtml(c.teachers.join(', '))}</div>`
@@ -348,6 +386,11 @@ function renderSingleGridTable(
               ${
                 showStudents && c.students.length > 0
                   ? `<div class="lesson-details">${escapeHtml(c.students.join(', '))}</div>`
+                  : ''
+              }
+              ${
+                c.activityTags && c.activityTags.length > 0
+                  ? `<div class="lesson-details" style="font-size: 8.5px; color: #777;">${escapeHtml(c.activityTags.join(', '))}</div>`
                   : ''
               }
               ${
@@ -394,7 +437,7 @@ export function generateClassPrintHtml(
       <h1>РОЗКЛАД УРОКІВ ${escapeHtml(className)} КЛАСУ</h1>
       <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
     </div>
-    ${renderSingleGridTable(grid, rules, colorMode, true, false)}
+    ${renderSingleGridTable(grid, rules, colorMode, true, false, className)}
     ${renderFooter()}
   </div>
 </body>
@@ -473,7 +516,7 @@ export function generateAllClassesPrintHtml(params: {
           <h1>РОЗКЛАД УРОКІВ ${escapeHtml(group.name)} КЛАСУ</h1>
           <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
         </div>
-        ${renderSingleGridTable(grid, rules, colorMode, true, false)}
+        ${renderSingleGridTable(grid, rules, colorMode, true, false, group.name)}
         ${renderFooter()}
       </div>
     `;
@@ -565,7 +608,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { solution, rules, activities, teachers, subjects, groups, subgroups, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4' } = options;
 
   const matrix = buildAllClassesGrid({
     solution,
@@ -578,6 +621,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
     rooms,
   });
   if (!matrix) return '';
+  const compactMatrixLabels = pageSize !== 'auto';
 
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -585,27 +629,32 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
   <meta charset="utf-8">
   <title>Зведений розклад усіх класів - ${escapeHtml(rules.institutionName)}</title>
   <style>
-    ${getPrintStyles(orientation)}
+    ${getPrintStyles(orientation, pageSize)}
     table.summary-matrix {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
-      font-size: 9px;
+      ${pageSize === 'auto' ? 'table-layout: auto; min-width: max-content;' : 'table-layout: fixed;'}
+      font-size: 10px;
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
-      padding: 2px 3px;
+      padding: 3px 4px;
       vertical-align: top;
+      ${pageSize === 'auto' ? 'min-width: 120px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;
       font-weight: bold;
       text-align: center;
+      padding: 6px 4px;
+      font-size: 11px;
     }
     .day-header-cell {
       background: #e8e8e8;
       font-weight: bold;
-      width: 50px;
+      width: 55px;
+      text-align: center;
+      vertical-align: middle !important;
     }
   </style>
 </head>
@@ -628,7 +677,13 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
           .map((row) => `
           <tr ${row.hour === 0 ? 'style="border-top: 2px solid #000;"' : ''}>
             <td class="day-header-cell">
-              <strong>${escapeHtml(row.dayName.slice(0, 2))}</strong> ${row.hour + 1} ур.
+              <div style="white-space: nowrap;"><strong>${escapeHtml(
+                formatTimetableDayLabel(row.dayName, compactMatrixLabels)
+              )}</strong></div>
+              <div style="font-size: 9px; font-weight: normal; color: #555; white-space: nowrap;">${formatTimetableLessonLabel(
+                row.hour + 1,
+                compactMatrixLabels
+              )}</div>
             </td>
             ${row.cells
               .map((cellItems) => `
@@ -638,17 +693,24 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
                     (c) => `
                   <div style="${
                     colorMode && c.subjectColor
-                      ? `border-left: 2px solid ${c.subjectColor}; background-color: ${c.subjectColor}12;`
-                      : ''
-                  } padding: 1px 2px; margin-bottom: 1px;">
-                    <div style="font-weight: bold; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                      ? `border-left: 3px solid ${c.subjectColor}; background-color: ${c.subjectColor}15;`
+                      : 'background-color: #f9f9f9;'
+                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3; overflow-wrap: break-word; word-break: break-word;">
+                    <div style="font-weight: bold; font-size: 9.5px; line-height: 1.25; color: #000; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                       c.subject
                     )}</div>
                     ${renderWeekParity(c.weekParity)}
                     ${
                       c.teachers.length > 0
-                        ? `<div style="font-size: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                        ? `<div style="font-size: 8.5px; color: #444; line-height: 1.2; margin-top: 1px; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                             c.teachers[0]
+                          )}</div>`
+                        : ''
+                    }
+                    ${
+                      c.room
+                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">каб. ${escapeHtml(
+                            c.room
                           )}</div>`
                         : ''
                     }
@@ -683,7 +745,8 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { solution, rules, activities, teachers, subjects, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4' } = options;
+  const compactMatrixLabels = pageSize !== 'auto';
 
   const sortedTeachers = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'uk'));
   const actMap = new Map(activities.map((a) => [a.id, a]));
@@ -756,27 +819,32 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
   <meta charset="utf-8">
   <title>Зведений розклад учителів - ${escapeHtml(rules.institutionName)}</title>
   <style>
-    ${getPrintStyles(orientation)}
+    ${getPrintStyles(orientation, pageSize)}
     table.summary-matrix {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
-      font-size: 9px;
+      ${pageSize === 'auto' ? 'table-layout: auto; min-width: max-content;' : 'table-layout: fixed;'}
+      font-size: 10px;
     }
     table.summary-matrix th, table.summary-matrix td {
       border: 1px solid #333;
-      padding: 2px 3px;
+      padding: 3px 4px;
       vertical-align: top;
+      ${pageSize === 'auto' ? 'min-width: 120px;' : ''}
     }
     table.summary-matrix th {
       background: #f0f0f0;
       font-weight: bold;
       text-align: center;
+      padding: 6px 4px;
+      font-size: 11px;
     }
     .day-header-cell {
       background: #e8e8e8;
       font-weight: bold;
-      width: 50px;
+      width: 55px;
+      text-align: center;
+      vertical-align: middle !important;
     }
   </style>
 </head>
@@ -799,7 +867,12 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
           .map((row) => `
           <tr>
             <td class="day-header-cell">
-              <strong>${escapeHtml(row.dayName.slice(0, 2))}</strong> ${escapeHtml(row.hourName)}
+              <div style="white-space: nowrap;"><strong>${escapeHtml(
+                formatTimetableDayLabel(row.dayName, compactMatrixLabels)
+              )}</strong></div>
+              <div style="font-size: 9px; font-weight: normal; color: #555; white-space: nowrap;">${escapeHtml(
+                formatConfiguredLessonLabel(row.hourName, compactMatrixLabels)
+              )}</div>
             </td>
             ${row.cells
               .map((cellItems) => `
@@ -809,17 +882,24 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
                     (c) => `
                   <div style="${
                     colorMode && c.subjectColor
-                      ? `border-left: 2px solid ${c.subjectColor}; background-color: ${c.subjectColor}12;`
-                      : ''
-                  } padding: 1px 2px; margin-bottom: 1px;">
-                    <div style="font-weight: bold; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                      ? `border-left: 3px solid ${c.subjectColor}; background-color: ${c.subjectColor}15;`
+                      : 'background-color: #f9f9f9;'
+                  } padding: 3px 4px; margin-bottom: 2px; border-radius: 2px; line-height: 1.3; overflow-wrap: break-word; word-break: break-word;">
+                    <div style="font-weight: bold; font-size: 9.5px; line-height: 1.25; color: #000; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                       c.subject
                     )}</div>
                     ${renderWeekParity(c.weekParity)}
                     ${
                       c.students.length > 0
-                        ? `<div style="font-size: 8px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(
+                        ? `<div style="font-size: 8.5px; color: #444; line-height: 1.2; margin-top: 1px; overflow-wrap: break-word; word-break: break-word;">${escapeHtml(
                             c.students.join(', ')
+                          )}</div>`
+                        : ''
+                    }
+                    ${
+                      c.room
+                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">каб. ${escapeHtml(
+                            c.room
                           )}</div>`
                         : ''
                     }
@@ -842,7 +922,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
 }
 
 /**
- * Generates printable HTML for Teacher Workload / Tariffication Report
+ * Generates printable HTML for Teacher Workload / Tariffication Report with detailed subject & class itemization
  */
 export function generateTeacherWorkloadPrintHtml(params: {
   rules: TimetableRules;
@@ -854,41 +934,11 @@ export function generateTeacherWorkloadPrintHtml(params: {
   const { rules, teachers, activities, subjects, options = {} } = params;
   const { includeApproval = true, orientation = 'portrait' } = options;
 
-  const sortedTeachers = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'uk'));
-  const subMap = new Map(subjects.map((s) => [s.id, s]));
-
-  const rows = sortedTeachers.map((teacher, index) => {
-    const teacherActs = activities.filter(
-      (a) => a.active && (a.teacherIds.includes(teacher.id) || a.teacherIds.includes(teacher.name))
-    );
-
-    const subjectNames = Array.from(
-      new Set(
-        teacherActs.map((a) => {
-          const s = subMap.get(a.subjectId) || subjects.find((sub) => sub.name === a.subjectId);
-          return s?.name || a.subjectId;
-        })
-      )
-    );
-
-    const classNames = Array.from(
-      new Set(teacherActs.flatMap((a) => a.studentSetIds))
-    );
-
-    const totalHours = teacherActs.reduce((sum, a) => sum + (a.duration || 1), 0);
-
-    return {
-      index: index + 1,
-      name: teacher.name,
-      longName: teacher.longName,
-      subjects: subjectNames,
-      classes: classNames,
-      totalHours,
-      targetHours: teacher.targetNumberOfHours,
-    };
+  const { rows, totalSchoolHours } = computeTeacherWorkloadReportData({
+    teachers,
+    activities,
+    subjects,
   });
-
-  const totalSchoolHours = rows.reduce((sum, r) => sum + r.totalHours, 0);
 
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -904,8 +954,8 @@ export function generateTeacherWorkloadPrintHtml(params: {
     }
     table.workload-table th, table.workload-table td {
       border: 1px solid #333;
-      padding: 6px 8px;
-      font-size: 11px;
+      padding: 5px 7px;
+      font-size: 10.5px;
     }
     table.workload-table th {
       background: #f0f0f0;
@@ -923,36 +973,196 @@ export function generateTeacherWorkloadPrintHtml(params: {
     <table class="workload-table">
       <thead>
         <tr>
-          <th style="width: 35px; text-align: center;">№</th>
-          <th style="text-align: left;">ПІБ Викладача</th>
-          <th style="text-align: left;">Предмети</th>
-          <th style="text-align: left;">Класи</th>
-          <th style="width: 80px; text-align: center;">Годин/тижд.</th>
+          <th style="width: 30px; text-align: center;">№</th>
+          <th style="width: 170px; text-align: left;">ПІБ Викладача</th>
+          <th style="width: 160px; text-align: left;">Предмет</th>
+          <th style="text-align: left;">Класи / підгрупи та години</th>
+          <th style="width: 65px; text-align: center;">Годин</th>
+          <th style="width: 85px; text-align: center;">Разом / тижд.</th>
         </tr>
       </thead>
       <tbody>
         ${rows
+          .map((teacher) => {
+            const nSubj = teacher.subjects.length || 1;
+            return teacher.subjects
+              .map(
+                (subj, sIdx) => `
+              <tr>
+                ${
+                  sIdx === 0
+                    ? `
+                  <td rowspan="${nSubj}" style="text-align: center; vertical-align: top;">${teacher.index}</td>
+                  <td rowspan="${nSubj}" style="vertical-align: top; font-weight: bold;">
+                    ${escapeHtml(teacher.name)}
+                    ${
+                      teacher.longName && teacher.longName !== teacher.name
+                        ? `<div style="font-weight: normal; font-size: 9.5px; color: #555;">${escapeHtml(teacher.longName)}</div>`
+                        : ''
+                    }
+                    ${
+                      teacher.targetHours && teacher.targetHours > 0
+                        ? `<div style="font-weight: normal; font-size: 9px; color: #666; margin-top: 2px;">(план: ${formatHours(
+                            teacher.targetHours
+                          )})</div>`
+                        : ''
+                    }
+                  </td>
+                `
+                    : ''
+                }
+                <td style="font-weight: 500;">${escapeHtml(subj.subjectName)}</td>
+                <td>${escapeHtml(subj.classesSummary || '—')}</td>
+                <td style="text-align: center; font-weight: 600;">${subj.formattedHours}</td>
+                ${
+                  sIdx === 0
+                    ? `
+                  <td rowspan="${nSubj}" style="text-align: center; vertical-align: middle; font-weight: bold; font-size: 12px; background: #fafafa;">
+                    ${formatWeeklyLoad(teacher.totalLoad)}
+                  </td>
+                `
+                    : ''
+                }
+              </tr>
+            `
+              )
+              .join('');
+          })
+          .join('')}
+        <tr style="background: #f0f0f0; font-weight: bold;">
+          <td colspan="5" style="text-align: right;">РАЗОМ ГОДИН ПО ЗАКЛАДУ:</td>
+          <td style="text-align: center; font-size: 13px;">${formatHours(totalSchoolHours)}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${renderFooter()}
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Generates printable HTML for consolidated Class Weekly Workload Matrix (Parity comparison)
+ */
+export function generateClassesWorkloadMatrixPrintHtml(params: {
+  rules: TimetableRules;
+  groups: StudentsGroup[];
+  activities: Activity[];
+  options?: PrintOptions;
+}): string {
+  const { rules, groups, activities, options = {} } = params;
+  const { includeApproval = true, orientation = 'portrait' } = options;
+
+  const data = computeAllClassesWeeklyLoad(groups, activities);
+
+  return `<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>Навантаження класів по тижнях - ${escapeHtml(rules.institutionName)}</title>
+  <style>
+    ${getPrintStyles(orientation)}
+    table.workload-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table.workload-table th, table.workload-table td {
+      border: 1px solid #333;
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+    table.workload-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+    .badge-ok {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      background: #e6f4ea;
+      color: #137333;
+    }
+    .badge-warn {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      background: #fef7e0;
+      color: #b06000;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    ${renderHeader(rules, includeApproval)}
+    <div class="doc-title">
+      <h1>ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ (ЧИСЕЛЬНИК / ЗНАМЕННИК)</h1>
+      <p>${rules.institutionName}</p>
+    </div>
+    <table class="workload-table">
+      <thead>
+        <tr>
+          <th style="width: 35px; text-align: center;">№</th>
+          <th style="text-align: left;">Клас</th>
+          <th style="width: 80px; text-align: center;">Чисельник</th>
+          <th style="width: 80px; text-align: center;">Знаменник</th>
+          <th style="width: 90px; text-align: center;">Середнє</th>
+          <th style="width: 130px; text-align: center;">Баланс тижнів</th>
+          <th style="width: 70px; text-align: center;">Предметів</th>
+          <th style="width: 60px; text-align: center;">Уроків</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.classes
           .map(
-            (r) => `
+            (c, idx) => `
           <tr>
-            <td style="text-align: center;">${r.index}</td>
+            <td style="text-align: center;">${idx + 1}</td>
             <td style="font-weight: bold;">
-              ${escapeHtml(r.name)}
-              ${r.longName && r.longName !== r.name ? `<div style="font-weight: normal; font-size: 9.5px; color: #555;">${escapeHtml(r.longName)}</div>` : ''}
+              ${escapeHtml(c.name)}
+              ${
+                c.longName && c.longName !== c.name
+                  ? `<span style="font-weight: normal; font-size: 9.5px; color: #555; margin-left: 4px;">(${escapeHtml(
+                      c.longName
+                    )})</span>`
+                  : ''
+              }
             </td>
-            <td>${escapeHtml(r.subjects.join(', ') || '—')}</td>
-            <td>${escapeHtml(r.classes.join(', ') || '—')}</td>
-            <td style="text-align: center; font-weight: bold; font-size: 12px;">
-              ${r.totalHours}
-              ${r.targetHours > 0 ? `<div style="font-size: 9px; font-weight: normal; color: #666;">(план: ${r.targetHours})</div>` : ''}
+            <td style="text-align: center; font-weight: 500;">${formatHours(c.numerator)}</td>
+            <td style="text-align: center; font-weight: 500;">${formatHours(c.denominator)}</td>
+            <td style="text-align: center; font-weight: bold; font-size: 12px;">${formatHours(c.average)}</td>
+            <td style="text-align: center;">
+              ${
+                c.isBalanced
+                  ? '<span class="badge-ok">✓ Збалансовано</span>'
+                  : `<span class="badge-warn">⚠ Різниця ${formatHours(c.difference)} год</span>`
+              }
             </td>
+            <td style="text-align: center;">${c.subjectsCount}</td>
+            <td style="text-align: center;">${c.activitiesCount}</td>
           </tr>
         `
           )
           .join('')}
         <tr style="background: #f0f0f0; font-weight: bold;">
-          <td colspan="4" style="text-align: right;">РАЗОМ ГОДИН ПО ЗАКЛАДУ:</td>
-          <td style="text-align: center; font-size: 13px;">${totalSchoolHours}</td>
+          <td colspan="2" style="text-align: right;">РАЗОМ ПО ЗАКЛАДУ:</td>
+          <td style="text-align: center;">${formatHours(data.totalNumerator)}</td>
+          <td style="text-align: center;">${formatHours(data.totalDenominator)}</td>
+          <td style="text-align: center; font-size: 13px;">${formatHours(data.totalAverage)}</td>
+          <td style="text-align: center;">
+            ${
+              data.totalNumerator === data.totalDenominator
+                ? '<span class="badge-ok">✓ Збалансовано</span>'
+                : `<span class="badge-warn">⚠ Різниця ${formatHours(
+                    Math.abs(data.totalNumerator - data.totalDenominator)
+                  )} год</span>`
+            }
+          </td>
+          <td colspan="2"></td>
         </tr>
       </tbody>
     </table>

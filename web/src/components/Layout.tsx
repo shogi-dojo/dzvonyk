@@ -67,7 +67,7 @@ export function Layout({ children }: LayoutProps) {
   }, [isDarkMode]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col" data-app-layout>
       {/* Skip to main content link for accessibility */}
       <a
         href="#main-content"
@@ -258,14 +258,17 @@ export function Layout({ children }: LayoutProps) {
       )}
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col transition-all duration-300 ease-out lg:pl-72">
+      <div
+        className="flex-1 flex flex-col transition-all duration-300 ease-out lg:pl-72"
+        data-app-content-shell
+      >
         <main 
           id="main-content" 
           className="flex-1"
           role="main"
           tabIndex={-1}
         >
-          <div className="container mx-auto p-6 lg:p-8 max-w-7xl">
+          <div className="container mx-auto p-6 lg:p-8 max-w-7xl" data-app-page-container>
             <PageTransition>
               {children}
             </PageTransition>

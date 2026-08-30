@@ -18,7 +18,7 @@ export interface AnalyticsEventMap {
   };
   print_exported: {
     format: 'pdf' | 'csv' | 'print';
-    view_type: 'teachers' | 'students' | 'rooms' | 'activities' | 'tariff';
+    view_type: 'teachers' | 'students' | 'rooms' | 'activities' | 'tariff' | 'classes_workload';
   };
   pwa_installed: {
     platform?: string;

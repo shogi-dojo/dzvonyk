@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Printer, FileText, Users, UserCheck, LayoutGrid,
-  ArrowLeft, Clock
+  ArrowLeft, Clock, BarChart3, Download, Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,15 +26,29 @@ import {
   generateSummaryClassesMatrixPrintHtml,
   generateSummaryTeachersMatrixPrintHtml,
   generateTeacherWorkloadPrintHtml,
+  generateClassesWorkloadMatrixPrintHtml,
 } from '@/lib/printDocument';
+import {
+  formatWeeklyLoad,
+  formatHours,
+  computeTeacherWorkloadReportData,
+  computeAllClassesWeeklyLoad,
+} from '@/lib/weeklyLoad';
+import { printReportElementToPdf } from '@/lib/pdfExport';
 import { trackEvent } from '@/lib/analytics';
+import {
+  formatConfiguredLessonLabel,
+  formatTimetableDayLabel,
+  formatTimetableLessonLabel,
+} from '@/lib/timetableLabels';
 
 type ReportType =
   | 'class'
   | 'teacher'
   | 'summary-classes'
   | 'summary-teachers'
-  | 'teacher-workload';
+  | 'teacher-workload'
+  | 'classes-workload';
 
 export function Print() {
   const { t } = useTranslation();
@@ -52,6 +66,8 @@ export function Print() {
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.name || '');
   const [includeApproval, setIncludeApproval] = useState<boolean>(true);
   const [colorMode, setColorMode] = useState<boolean>(true);
+  const [pageSize, setPageSize] = useState<'a4' | 'a3' | 'auto'>('auto');
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -178,61 +194,53 @@ export function Print() {
     return { teachers: sortedTeachers, rows };
   }, [reportType, latestSolution, rules, activities, subjects, rooms, sortedTeachers]);
 
-  // Teacher workload report data
-  const teacherWorkload = useMemo(() => {
-    if (reportType !== 'teacher-workload') return [];
-
-    const subMap = new Map(subjects.map((s) => [s.id, s]));
-
-    return sortedTeachers.map((teacher, index) => {
-      const teacherActs = activities.filter(
-        (a) => a.active && (a.teacherIds.includes(teacher.id) || a.teacherIds.includes(teacher.name))
-      );
-
-      const subjectNames = Array.from(
-        new Set(
-          teacherActs.map((a) => {
-            const s = subMap.get(a.subjectId) || subjects.find((sub) => sub.name === a.subjectId);
-            return s?.name || a.subjectId;
-          })
-        )
-      );
-
-      const classNames = Array.from(
-        new Set(teacherActs.flatMap((a) => a.studentSetIds))
-      );
-
-      const totalHours = teacherActs.reduce((sum, a) => sum + (a.duration || 1), 0);
-
-      return {
-        index: index + 1,
-        name: teacher.name,
-        longName: teacher.longName,
-        code: teacher.code,
-        subjects: subjectNames,
-        classes: classNames,
-        totalHours,
-        targetHours: teacher.targetNumberOfHours,
-      };
+  // Teacher workload report data (itemized by subject & class)
+  const teacherWorkloadData = useMemo(() => {
+    return computeTeacherWorkloadReportData({
+      teachers: sortedTeachers,
+      activities,
+      subjects,
     });
-  }, [reportType, sortedTeachers, activities, subjects]);
+  }, [sortedTeachers, activities, subjects]);
 
-  const handlePrint = () => {
-    if (!rules || !latestSolution) return;
+  // Classes workload summary data (by week parity)
+  const classesWorkloadData = useMemo(() => {
+    return computeAllClassesWeeklyLoad(sortedGroups, activities);
+  }, [sortedGroups, activities]);
+
+  const canExportCurrentReport =
+    reportType === 'teacher-workload' ||
+    reportType === 'classes-workload' ||
+    (reportType === 'class' && Boolean(classGrid)) ||
+    (reportType === 'teacher' && Boolean(teacherGrid)) ||
+    (reportType === 'summary-classes' && Boolean(summaryClassesGrid)) ||
+    (reportType === 'summary-teachers' && Boolean(summaryTeachersGrid));
+
+  const getCurrentReportHtml = (forPdf = false): string => {
+    if (!rules) return '';
+    const orientation =
+      reportType === 'teacher-workload' || reportType === 'classes-workload'
+        ? 'portrait'
+        : 'landscape';
+    const effectivePageSize = forPdf ? 'auto' : pageSize;
 
     if (reportType === 'class') {
-      if (!classGrid) return;
-      trackEvent('print_exported', { format: 'print', view_type: 'students' });
-      const html = generateClassPrintHtml(selectedClassId, classGrid, rules, { includeApproval, colorMode });
-      printHtmlDocument(html);
+      if (!classGrid) return '';
+      return generateClassPrintHtml(selectedClassId, classGrid, rules, {
+        includeApproval,
+        colorMode,
+        orientation,
+      });
     } else if (reportType === 'teacher') {
-      if (!teacherGrid) return;
-      trackEvent('print_exported', { format: 'print', view_type: 'teachers' });
-      const html = generateTeacherPrintHtml(selectedTeacherId, teacherGrid, rules, { includeApproval, colorMode });
-      printHtmlDocument(html);
+      if (!teacherGrid) return '';
+      return generateTeacherPrintHtml(selectedTeacherId, teacherGrid, rules, {
+        includeApproval,
+        colorMode,
+        orientation,
+      });
     } else if (reportType === 'summary-classes') {
-      trackEvent('print_exported', { format: 'print', view_type: 'students' });
-      const html = generateSummaryClassesMatrixPrintHtml({
+      if (!latestSolution) return '';
+      return generateSummaryClassesMatrixPrintHtml({
         solution: latestSolution,
         rules,
         activities,
@@ -241,31 +249,90 @@ export function Print() {
         groups: sortedGroups,
         subgroups,
         rooms,
-        options: { includeApproval, colorMode },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
       });
-      printHtmlDocument(html);
     } else if (reportType === 'summary-teachers') {
-      trackEvent('print_exported', { format: 'print', view_type: 'teachers' });
-      const html = generateSummaryTeachersMatrixPrintHtml({
+      if (!latestSolution) return '';
+      return generateSummaryTeachersMatrixPrintHtml({
         solution: latestSolution,
         rules,
         activities,
         teachers: sortedTeachers,
         subjects,
         rooms,
-        options: { includeApproval, colorMode },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
       });
-      printHtmlDocument(html);
     } else if (reportType === 'teacher-workload') {
-      trackEvent('print_exported', { format: 'print', view_type: 'tariff' });
-      const html = generateTeacherWorkloadPrintHtml({
+      return generateTeacherWorkloadPrintHtml({
         rules,
         teachers: sortedTeachers,
         activities,
         subjects,
         options: { includeApproval, orientation: 'portrait' },
       });
-      printHtmlDocument(html);
+    } else if (reportType === 'classes-workload') {
+      return generateClassesWorkloadMatrixPrintHtml({
+        rules,
+        groups: sortedGroups,
+        activities,
+        options: { includeApproval, orientation: 'portrait' },
+      });
+    }
+    return '';
+  };
+
+  const handlePrint = () => {
+    const html = getCurrentReportHtml(false);
+    if (!html) return;
+    trackEvent('print_exported', {
+      format: 'print',
+      view_type:
+        reportType === 'teacher-workload'
+          ? 'tariff'
+          : reportType === 'classes-workload'
+          ? 'classes_workload'
+          : reportType === 'teacher' || reportType === 'summary-teachers'
+          ? 'teachers'
+          : 'students',
+    });
+    printHtmlDocument(html);
+  };
+
+  const handleExportPdf = async () => {
+    if (!printAreaRef.current || !rules || !canExportCurrentReport) return;
+    try {
+      setExportingPdf(true);
+      const titleMap: Record<ReportType, string> = {
+        'class': `Розклад_${selectedClassId || 'клас'}`,
+        'teacher': `Розклад_${(selectedTeacherId || 'вчитель').replace(/\s+/g, '_')}`,
+        'summary-classes': `Зведений_розклад_класів`,
+        'summary-teachers': `Зведений_розклад_учителів`,
+        'teacher-workload': `Тарифікація_навантаження`,
+        'classes-workload': `Навантаження_класів_по_тижнях`,
+      };
+      const cleanSchool = (rules.institutionName || '')
+        .trim()
+        .replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ’'_-]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+      const safeSchool = cleanSchool ? `_${cleanSchool}` : '';
+      const fileName = `${titleMap[reportType] || 'Розклад'}${safeSchool}.pdf`;
+      await printReportElementToPdf(printAreaRef.current, { fileName });
+      trackEvent('print_exported', {
+        format: 'pdf',
+        view_type:
+          reportType === 'teacher-workload'
+            ? 'tariff'
+            : reportType === 'classes-workload'
+            ? 'classes_workload'
+            : reportType === 'teacher' || reportType === 'summary-teachers'
+            ? 'teachers'
+            : 'students',
+      });
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -300,18 +367,18 @@ export function Print() {
     printHtmlDocument(html);
   };
 
-  if (!rules || !latestSolution) {
+  if (!rules) {
     return (
       <div className="space-y-6">
         <PageHeader
           title={t('print.title', { defaultValue: 'Друк звітів та розкладу' })}
-          description={t('print.noSolutionDesc', { defaultValue: 'Спершу згенеруйте розклад, щоб роздрукувати звіти' })}
+          description={t('print.noRulesDesc', { defaultValue: 'Спершу налаштуйте дані закладу в налаштуваннях' })}
           icon={<Printer className="h-6 w-6" />}
         />
         <Card>
           <CardContent className="py-12 text-center space-y-4">
-            <p className="text-muted-foreground">{t('print.needSolutionPrompt', { defaultValue: 'Розклад ще не сформовано' })}</p>
-            <Button asChild><Link to="/generate">{t('timetable.generateTimetable')}</Link></Button>
+            <p className="text-muted-foreground">{t('print.needRulesPrompt', { defaultValue: 'Дані закладу ще не налаштовано' })}</p>
+            <Button asChild><Link to="/settings">{t('settings.title', { defaultValue: 'Налаштування' })}</Link></Button>
           </CardContent>
         </Card>
       </div>
@@ -332,14 +399,31 @@ export function Print() {
                 {t('print.title', { defaultValue: 'Друк та експорт звітів' })}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {rules.institutionName} • {latestSolution.placements.length} уроків
+                {rules.institutionName} {latestSolution ? `• ${latestSolution.placements.length} уроків` : ''}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button onClick={handlePrint} className="gap-2 gradient-primary">
+            <Button
+              onClick={handleExportPdf}
+              disabled={exportingPdf || !canExportCurrentReport}
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+            >
+              {exportingPdf ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t('print.generatingPdf', { defaultValue: 'Формування PDF...' })}</span>
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  <span>{t('print.savePdfButton', { defaultValue: 'Зберегти PDF' })}</span>
+                </>
+              )}
+            </Button>
+            <Button onClick={handlePrint} variant="outline" className="gap-2">
               <Printer className="h-4 w-4" />
-              {t('print.printButton', { defaultValue: 'Роздрукувати звіт' })}
+              {t('print.printButton', { defaultValue: 'Друк (Папір)' })}
             </Button>
             <Button onClick={handlePrintAllClasses} variant="outline" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -358,13 +442,14 @@ export function Print() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Report Type Switcher */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {[
                 { type: 'summary-classes' as ReportType, icon: LayoutGrid, label: 'Зведений (Класи)' },
                 { type: 'summary-teachers' as ReportType, icon: Users, label: 'Зведений (Вчителі)' },
                 { type: 'class' as ReportType, icon: FileText, label: 'Окремий клас' },
                 { type: 'teacher' as ReportType, icon: UserCheck, label: 'Окремий вчитель' },
                 { type: 'teacher-workload' as ReportType, icon: Clock, label: 'Тарифікація / Навантаження' },
+                { type: 'classes-workload' as ReportType, icon: BarChart3, label: 'Навантаження класів (Тижні)' },
               ].map((item) => (
                 <Button
                   key={item.type}
@@ -430,6 +515,21 @@ export function Print() {
                 />
                 <span>Кольорове виділення предметів</span>
               </label>
+
+              {(reportType === 'summary-classes' || reportType === 'summary-teachers') && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-xs font-medium text-muted-foreground">Формат аркуша для друку:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(e.target.value as 'a4' | 'a3' | 'auto')}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium"
+                  >
+                    <option value="auto">Авто (без стиснення для PDF/екрана)</option>
+                    <option value="a3">A3 (великий аркуш)</option>
+                    <option value="a4">A4 (стандартний)</option>
+                  </select>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -438,6 +538,7 @@ export function Print() {
       {/* Printable Sheet View */}
       <div
         ref={printAreaRef}
+        data-print-area="true"
         className="bg-white text-black p-6 sm:p-8 rounded-lg shadow border border-border print:p-0 print:border-none print:shadow-none print-sheet"
         style={{ minHeight: '800px' }}
       >
@@ -466,11 +567,24 @@ export function Print() {
             {reportType === 'summary-classes' && 'ЗВЕДЕНИЙ РОЗКЛАД УРОКІВ УСІХ КЛАСІВ'}
             {reportType === 'summary-teachers' && 'ЗВЕДЕНИЙ РОЗКЛАД УСІХ ВИКЛАДАЧІВ'}
             {reportType === 'teacher-workload' && 'ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ'}
+            {reportType === 'classes-workload' && 'ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ'}
           </h2>
           <p className="text-xs text-neutral-600 mt-0.5">
             {rules.daysOfTheWeek.length} робочих днів • {rules.hoursOfTheDay.length} уроків на день
           </p>
         </div>
+
+        {/* Notice for timetable reports if not generated yet */}
+        {reportType !== 'teacher-workload' && reportType !== 'classes-workload' && !latestSolution && (
+          <div className="py-12 text-center space-y-4 border border-dashed border-neutral-300 rounded-lg p-6 bg-neutral-50">
+            <p className="text-sm text-neutral-600">
+              {t('print.needSolutionPrompt', { defaultValue: 'Розклад ще не сформовано для цієї таблиці. Згенеруйте розклад у розділі «Генерація».' })}
+            </p>
+            <Button asChild size="sm">
+              <Link to="/generate">{t('timetable.generateTimetable', { defaultValue: 'Генерація розкладу' })}</Link>
+            </Button>
+          </div>
+        )}
 
         {/* 1. Single Class Table */}
         {reportType === 'class' && classGrid && (
@@ -586,9 +700,9 @@ export function Print() {
             <table className="w-full border-collapse border border-black text-[11px] timetable-grid">
               <thead>
                 <tr className="bg-neutral-100">
-                  <th className="border border-black p-1.5 font-bold text-center min-w-[70px]">Час</th>
+                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">Час</th>
                   {summaryClassesGrid.groups.map((g) => (
-                    <th key={g.id} className="border border-black p-1.5 font-bold text-center min-w-[90px]">
+                    <th key={g.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {g.name}
                     </th>
                   ))}
@@ -600,8 +714,12 @@ export function Print() {
                   return (
                     <tr key={rIdx} className={cn(isFirstHour && 'border-t-2 border-black')}>
                       <td className="border border-black p-1 text-left bg-neutral-50 font-medium">
-                        <div className="font-bold">{row.dayName.slice(0, 2)}</div>
-                        <div className="text-[9px] text-neutral-600">{row.hour + 1} ур.</div>
+                        <div className="font-bold whitespace-nowrap">
+                          {formatTimetableDayLabel(row.dayName)}
+                        </div>
+                        <div className="text-[9px] text-neutral-600 whitespace-nowrap">
+                          {formatTimetableLessonLabel(row.hour + 1)}
+                        </div>
                       </td>
                       {row.cells.map((cellItems, gIdx) => (
                         <td key={gIdx} className="border border-black p-1 align-top">
@@ -609,17 +727,17 @@ export function Print() {
                             <div
                               key={i}
                               className={cn(
-                                'p-1 rounded text-[10px] mb-0.5 last:mb-0 border border-neutral-200',
-                                colorMode && c.subjectColor ? 'border-l-2' : 'bg-neutral-50'
+                                'p-1.5 rounded text-[10px] mb-1 last:mb-0 border border-neutral-200 leading-tight',
+                                colorMode && c.subjectColor ? 'border-l-4' : 'bg-neutral-50'
                               )}
-                              style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}12` } : undefined}
+                              style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}15` } : undefined}
                             >
-                              <div className="font-bold text-black truncate">{c.subject}</div>
+                              <div className="font-bold text-black break-words">{c.subject}</div>
                               {c.teachers.length > 0 && (
-                                <div className="text-[9px] text-neutral-600 truncate">{c.teachers[0]}</div>
+                                <div className="text-[9px] text-neutral-600 break-words mt-0.5">{c.teachers[0]}</div>
                               )}
                               {c.room && (
-                                <div className="text-[8px] text-neutral-500 truncate">{c.room}</div>
+                                <div className="text-[8.5px] text-neutral-500">{c.room}</div>
                               )}
                             </div>
                           ))}
@@ -639,9 +757,9 @@ export function Print() {
             <table className="w-full border-collapse border border-black text-[11px] timetable-grid">
               <thead>
                 <tr className="bg-neutral-100">
-                  <th className="border border-black p-1.5 font-bold text-center min-w-[70px]">Час</th>
+                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">Час</th>
                   {summaryTeachersGrid.teachers.map((t) => (
-                    <th key={t.id} className="border border-black p-1.5 font-bold text-center min-w-[90px]">
+                    <th key={t.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {t.name}
                     </th>
                   ))}
@@ -651,8 +769,12 @@ export function Print() {
                 {summaryTeachersGrid.rows.map((row, rIdx) => (
                   <tr key={rIdx}>
                     <td className="border border-black p-1 text-left bg-neutral-50 font-medium">
-                      <div className="font-bold">{row.dayName.slice(0, 2)}</div>
-                      <div className="text-[9px] text-neutral-600">{row.hourName}</div>
+                      <div className="font-bold whitespace-nowrap">
+                        {formatTimetableDayLabel(row.dayName)}
+                      </div>
+                      <div className="text-[9px] text-neutral-600 whitespace-nowrap">
+                        {formatConfiguredLessonLabel(row.hourName)}
+                      </div>
                     </td>
                     {row.cells.map((cellItems, tIdx) => (
                       <td key={tIdx} className="border border-black p-1 align-top">
@@ -660,17 +782,17 @@ export function Print() {
                           <div
                             key={i}
                             className={cn(
-                              'p-1 rounded text-[10px] mb-0.5 last:mb-0 border border-neutral-200',
-                              colorMode && c.subjectColor ? 'border-l-2' : 'bg-neutral-50'
+                              'p-1.5 rounded text-[10px] mb-1 last:mb-0 border border-neutral-200 leading-tight',
+                              colorMode && c.subjectColor ? 'border-l-4' : 'bg-neutral-50'
                             )}
-                            style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}12` } : undefined}
+                            style={colorMode && c.subjectColor ? { borderLeftColor: c.subjectColor, backgroundColor: `${c.subjectColor}15` } : undefined}
                           >
-                            <div className="font-bold text-black truncate">{c.subject}</div>
+                            <div className="font-bold text-black break-words">{c.subject}</div>
                             {c.students.length > 0 && (
-                              <div className="text-[9px] text-neutral-700 font-medium truncate">{c.students.join(', ')}</div>
+                              <div className="text-[9px] text-neutral-700 font-medium break-words mt-0.5">{c.students.join(', ')}</div>
                             )}
                             {c.room && (
-                              <div className="text-[8px] text-neutral-500 truncate">{c.room}</div>
+                              <div className="text-[8.5px] text-neutral-500">{c.room}</div>
                             )}
                           </div>
                         ))}
@@ -683,51 +805,133 @@ export function Print() {
           </div>
         )}
 
-        {/* 5. Teacher Workload Table */}
+        {/* 5. Teacher Workload Table (Itemized by Subject & Classes) */}
         {reportType === 'teacher-workload' && (
           <table className="w-full border-collapse border border-black text-xs timetable-grid">
             <thead>
               <tr className="bg-neutral-100">
                 <th className="border border-black p-2 font-bold text-center w-10">№</th>
-                <th className="border border-black p-2 font-bold text-left">ПІБ Викладача</th>
-                <th className="border border-black p-2 font-bold text-left">Предмети</th>
-                <th className="border border-black p-2 font-bold text-left">Класи</th>
-                <th className="border border-black p-2 font-bold text-center w-24">Годин/тижд.</th>
+                <th className="border border-black p-2 font-bold text-left w-48">ПІБ Викладача</th>
+                <th className="border border-black p-2 font-bold text-left w-44">Предмет</th>
+                <th className="border border-black p-2 font-bold text-left">Класи / підгрупи та години</th>
+                <th className="border border-black p-2 font-bold text-center w-20">Годин</th>
+                <th className="border border-black p-2 font-bold text-center w-24">Разом / тижд.</th>
               </tr>
             </thead>
             <tbody>
-              {teacherWorkload.map((row) => (
-                <tr key={row.index} className="hover:bg-neutral-50">
-                  <td className="border border-black p-2 text-center font-medium">{row.index}</td>
-                  <td className="border border-black p-2 font-bold">
-                    {row.name}
-                    {row.longName && row.longName !== row.name && (
-                      <span className="block text-[11px] font-normal text-neutral-600">{row.longName}</span>
+              {teacherWorkloadData.rows.map((teacher) => {
+                const nSubj = teacher.subjects.length || 1;
+                return teacher.subjects.map((subj, sIdx) => (
+                  <tr key={`${teacher.id}-${subj.subjectId}-${sIdx}`} className="hover:bg-neutral-50">
+                    {sIdx === 0 && (
+                      <>
+                        <td rowSpan={nSubj} className="border border-black p-2 text-center font-medium align-top">
+                          {teacher.index}
+                        </td>
+                        <td rowSpan={nSubj} className="border border-black p-2 font-bold align-top">
+                          {teacher.name}
+                          {teacher.longName && teacher.longName !== teacher.name && (
+                            <span className="block text-[11px] font-normal text-neutral-600">{teacher.longName}</span>
+                          )}
+                          {teacher.targetHours && teacher.targetHours > 0 ? (
+                            <span className="block text-[10px] font-normal text-neutral-500 mt-0.5">
+                              (план: {formatHours(teacher.targetHours)})
+                            </span>
+                          ) : null}
+                        </td>
+                      </>
                     )}
-                  </td>
-                  <td className="border border-black p-2 text-neutral-800">
-                    {row.subjects.join(', ') || '—'}
-                  </td>
-                  <td className="border border-black p-2 text-neutral-800">
-                    {row.classes.join(', ') || '—'}
-                  </td>
-                  <td className="border border-black p-2 text-center font-bold text-sm">
-                    {row.totalHours}
-                    {row.targetHours > 0 && (
-                      <span className="block text-[10px] font-normal text-neutral-500">
-                        (план: {row.targetHours})
-                      </span>
+                    <td className="border border-black p-2 font-medium text-neutral-900 align-top">
+                      {subj.subjectName}
+                    </td>
+                    <td className="border border-black p-2 text-neutral-800 align-top">
+                      {subj.classesSummary || '—'}
+                    </td>
+                    <td className="border border-black p-2 text-center font-semibold align-top">
+                      {subj.formattedHours}
+                    </td>
+                    {sIdx === 0 && (
+                      <td rowSpan={nSubj} className="border border-black p-2 text-center font-bold text-sm align-middle bg-neutral-50/50">
+                        {formatWeeklyLoad(teacher.totalLoad)}
+                      </td>
                     )}
-                  </td>
-                </tr>
-              ))}
+                  </tr>
+                ));
+              })}
               <tr className="bg-neutral-100 font-bold">
-                <td colSpan={4} className="border border-black p-2 text-right">
+                <td colSpan={5} className="border border-black p-2 text-right">
                   РАЗОМ ГОДИН ПО ЗАКЛАДУ:
                 </td>
                 <td className="border border-black p-2 text-center text-sm">
-                  {teacherWorkload.reduce((sum, r) => sum + r.totalHours, 0)}
+                  {formatHours(teacherWorkloadData.totalSchoolHours)}
                 </td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+
+        {/* 6. Classes Workload Matrix (Parity Comparison) */}
+        {reportType === 'classes-workload' && (
+          <table className="w-full border-collapse border border-black text-xs timetable-grid">
+            <thead>
+              <tr className="bg-neutral-100">
+                <th className="border border-black p-2 font-bold text-center w-10">№</th>
+                <th className="border border-black p-2 font-bold text-left">Клас</th>
+                <th className="border border-black p-2 font-bold text-center w-24">Чисельник</th>
+                <th className="border border-black p-2 font-bold text-center w-24">Знаменник</th>
+                <th className="border border-black p-2 font-bold text-center w-24">Середнє</th>
+                <th className="border border-black p-2 font-bold text-center w-36">Баланс тижнів</th>
+                <th className="border border-black p-2 font-bold text-center w-20">Предметів</th>
+                <th className="border border-black p-2 font-bold text-center w-20">Уроків</th>
+              </tr>
+            </thead>
+            <tbody>
+              {classesWorkloadData.classes.map((c, idx) => (
+                <tr key={c.id} className="hover:bg-neutral-50">
+                  <td className="border border-black p-2 text-center font-medium">{idx + 1}</td>
+                  <td className="border border-black p-2 font-bold">
+                    {c.name}
+                    {c.longName && c.longName !== c.name && (
+                      <span className="ml-1.5 text-[11px] font-normal text-neutral-600">({c.longName})</span>
+                    )}
+                  </td>
+                  <td className="border border-black p-2 text-center font-medium">{formatHours(c.numerator)}</td>
+                  <td className="border border-black p-2 text-center font-medium">{formatHours(c.denominator)}</td>
+                  <td className="border border-black p-2 text-center font-bold text-sm">{formatHours(c.average)}</td>
+                  <td className="border border-black p-2 text-center">
+                    {c.isBalanced ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                        ✓ Збалансовано
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-900">
+                        ⚠ Різниця {formatHours(c.difference)} год
+                      </span>
+                    )}
+                  </td>
+                  <td className="border border-black p-2 text-center">{c.subjectsCount}</td>
+                  <td className="border border-black p-2 text-center">{c.activitiesCount}</td>
+                </tr>
+              ))}
+              <tr className="bg-neutral-100 font-bold">
+                <td colSpan={2} className="border border-black p-2 text-right">
+                  РАЗОМ ПО ЗАКЛАДУ:
+                </td>
+                <td className="border border-black p-2 text-center">{formatHours(classesWorkloadData.totalNumerator)}</td>
+                <td className="border border-black p-2 text-center">{formatHours(classesWorkloadData.totalDenominator)}</td>
+                <td className="border border-black p-2 text-center text-sm">{formatHours(classesWorkloadData.totalAverage)}</td>
+                <td className="border border-black p-2 text-center">
+                  {classesWorkloadData.totalNumerator === classesWorkloadData.totalDenominator ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                      ✓ Збалансовано
+                    </span>
+                  ) : (
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-900">
+                      ⚠ Різниця {formatHours(Math.abs(classesWorkloadData.totalNumerator - classesWorkloadData.totalDenominator))} год
+                    </span>
+                  )}
+                </td>
+                <td colSpan={2} className="border border-black p-2"></td>
               </tr>
             </tbody>
           </table>
