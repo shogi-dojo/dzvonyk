@@ -18,7 +18,7 @@ export interface CellData {
 
 export type GridCell = CellData[] | 'spanned' | null;
 
-export type ViewType = 'teachers' | 'students' | 'rooms' | 'all-classes';
+export type ViewType = 'teachers' | 'students' | 'rooms' | 'all-classes' | 'full-matrix' | 'teacher-matrix';
 
 /**
  * Helper to resolve all subgroup names/ids for a given student set identifier.

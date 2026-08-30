@@ -20,10 +20,12 @@ import JSZip from 'jszip';
 import {
   buildTimetableGrid,
   buildAllClassesGrid,
+  buildClassDayHourMatrix,
   validateSlotMove,
   findSolutionConflicts,
   type ViewType,
 } from '@/lib/timetableGrid';
+import { TimetableMatrix } from '@/components/timetable/TimetableMatrix';
 import {
   printHtmlDocument,
   generateClassPrintHtml,
@@ -148,6 +150,25 @@ export function Timetable() {
       return null;
     }
     return buildAllClassesGrid({
+      solution: latestSolution,
+      rules,
+      activities,
+      teachers,
+      subjects,
+      groups,
+      subgroups,
+      rooms,
+      lockedActivityIds,
+      conflictsMap,
+    });
+  }, [showGrid, viewType, latestSolution, rules, activities, teachers, subjects, groups, subgroups, rooms, lockedActivityIds, conflictsMap]);
+
+  // Full-matrix day-hour grid (aSc style for classes)
+  const classMatrixData = useMemo(() => {
+    if (!showGrid || viewType !== 'full-matrix' || !latestSolution || !rules) {
+      return null;
+    }
+    return buildClassDayHourMatrix({
       solution: latestSolution,
       rules,
       activities,
@@ -296,7 +317,7 @@ export function Timetable() {
   };
 
   const handleViewTimetable = () => {
-    if (viewType === 'all-classes' || selectedEntity) {
+    if (viewType === 'all-classes' || viewType === 'full-matrix' || selectedEntity) {
       setLoading(true);
       setTimeout(() => {
         setShowGrid(true);
@@ -318,6 +339,7 @@ export function Timetable() {
   };
 
   const getSelectedDisplayName = () => {
+    if (viewType === 'full-matrix') return t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу' });
     if (viewType === 'all-classes') return t('timetable.allClassesTitle', { defaultValue: 'Зведений розклад усіх класів' });
     if (viewType === 'teachers') return teachers.find((tt) => tt.name === selectedEntity || tt.id === selectedEntity)?.name || selectedEntity;
     if (viewType === 'students') return studentHierarchy.find((i) => i.id === selectedEntity)?.displayName || selectedEntity;
@@ -637,6 +659,7 @@ export function Timetable() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
+                { type: 'full-matrix' as ViewType, icon: Grid3X3, label: t('timetable.byFullMatrix', { defaultValue: 'Загальна матриця (класи)' }), count: groups.length },
                 { type: 'teachers' as ViewType, icon: UserCircle, label: t('timetable.byTeacher'), count: teachers.length },
                 { type: 'students' as ViewType, icon: GraduationCap, label: t('timetable.byStudents'), count: studentHierarchy.length },
                 { type: 'rooms' as ViewType, icon: Building2, label: t('timetable.byRoom'), count: rooms.length },
@@ -648,7 +671,7 @@ export function Timetable() {
                   className="w-full justify-start gap-3"
                   onClick={() => {
                     setViewType(opt.type);
-                    setSelectedEntity(opt.type === 'all-classes' ? 'all' : null);
+                    setSelectedEntity(opt.type === 'all-classes' || opt.type === 'full-matrix' ? 'all' : null);
                   }}
                   aria-pressed={viewType === opt.type}
                 >
@@ -674,6 +697,8 @@ export function Timetable() {
                       ? t('timetable.step2Room')
                       : viewType === 'all-classes'
                       ? t('timetable.byAllClasses')
+                      : viewType === 'full-matrix'
+                      ? t('timetable.byFullMatrix', { defaultValue: 'Матриця' })
                       : t('timetable.step2Placeholder'),
                 })}
               </CardTitle>
@@ -684,6 +709,12 @@ export function Timetable() {
             <CardContent>
               {!viewType ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">{t('timetable.step2EmptyPrompt')}</p>
+              ) : viewType === 'full-matrix' ? (
+                <div className="py-8 text-center space-y-2">
+                  <Grid3X3 className="h-8 w-8 mx-auto text-primary opacity-80" />
+                  <p className="font-medium text-foreground">{t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу' })}</p>
+                  <p className="text-xs text-muted-foreground">{t('timetable.fullMatrixDescription', { defaultValue: 'Усі класи по вертикалі, дні та уроки по горизонталі' })}</p>
+                </div>
               ) : viewType === 'all-classes' ? (
                 <div className="py-8 text-center space-y-2">
                   <LayoutGrid className="h-8 w-8 mx-auto text-primary opacity-80" />
@@ -815,9 +846,22 @@ export function Timetable() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea type="always" className="h-[650px] pb-2">
-                <div className="min-w-max p-4">
-                  {viewType === 'all-classes' && allClassesData ? (
+              {viewType === 'full-matrix' && classMatrixData ? (
+                <div className="p-4">
+                  <TimetableMatrix
+                    rows={classMatrixData.rows}
+                    days={rules.daysOfTheWeek}
+                    hours={rules.hoursOfTheDay}
+                    cells={classMatrixData.cells}
+                    onMove={handleMoveActivity}
+                    onDragStateChange={setSelectedActivityForMove}
+                    cornerLabel={t('students.stats.groups', { defaultValue: 'Класи' })}
+                  />
+                </div>
+              ) : (
+                <ScrollArea type="always" className="h-[650px] pb-2">
+                  <div className="min-w-max p-4">
+                    {viewType === 'all-classes' && allClassesData ? (
                     /* All Classes Combined Table */
                     <table className="w-full border-collapse timetable-grid text-xs" role="grid" aria-label="All Classes Timetable">
                       <thead>
@@ -1111,6 +1155,7 @@ export function Timetable() {
                 </div>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
+              )}
             </CardContent>
           </Card>
 
