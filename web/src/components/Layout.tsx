@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { toggleSidebar, toggleDarkMode } from '@/store/slices/appSlice';
@@ -152,16 +153,27 @@ export function Layout({ children }: LayoutProps) {
             <UserProfileButton />
             <div className="flex items-center gap-0.5">
               <HistoryControls />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => dispatch(toggleDarkMode())}
-                aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
-                title={isDarkMode ? 'Світла тема' : 'Темна тема'}
-              >
-                {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
-              </Button>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => dispatch(toggleDarkMode())}
+                      aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
+                    >
+                      {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="flex items-center gap-2">
+                    <span>{isDarkMode ? 'Світла тема' : 'Темна тема'}</span>
+                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted text-foreground border border-border rounded">
+                      ⌥T
+                    </kbd>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>

@@ -33,6 +33,7 @@ import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
 import { AccountSettingsCard } from '@/components/AccountSettingsCard';
 import { VersionManager } from '@/components/VersionManager';
+import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -740,6 +741,9 @@ export function Settings() {
             <StatCard title={t('settings.stats.status')} value={modified ? t('settings.stats.modified') : t('settings.stats.saved')} icon={<SettingsIcon className="h-5 w-5" aria-hidden="true" />} />
           </div>
 
+          {/* Keyboard Shortcuts Guide */}
+          <KeyboardShortcutsCard />
+
           {/* Analytics & Privacy */}
           <Card className="animate-slide-up" style={{ animationDelay: '175ms' }}>
             <CardHeader>
@@ -850,27 +854,30 @@ export function Settings() {
       )}
 
       {!rules && (
-        <Card className="animate-slide-up">
-          <CardContent className="py-12">
-            <EmptyState
-              icon={<SettingsIcon className="h-12 w-12" aria-hidden="true" />}
-              title={t('settings.empty.title')}
-              description={t('settings.empty.description')}
-              action={
-                <div className="flex gap-4">
-                  <Button onClick={handleCreateNew} className="gap-2">
-                    <Plus className="h-4 w-4" aria-hidden="true" />
-                    {t('common.createNew')}
-                  </Button>
-                  <Button variant="outline" onClick={handleImportClick} className="gap-2">
-                    <FileUp className="h-4 w-4" aria-hidden="true" />
-                    {t('settings.empty.importFile')}
-                  </Button>
-                </div>
-              }
-            />
-          </CardContent>
-        </Card>
+        <>
+          <Card className="animate-slide-up">
+            <CardContent className="py-12">
+              <EmptyState
+                icon={<SettingsIcon className="h-12 w-12" aria-hidden="true" />}
+                title={t('settings.empty.title')}
+                description={t('settings.empty.description')}
+                action={
+                  <div className="flex gap-4">
+                    <Button onClick={handleCreateNew} className="gap-2">
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                      {t('common.createNew')}
+                    </Button>
+                    <Button variant="outline" onClick={handleImportClick} className="gap-2">
+                      <FileUp className="h-4 w-4" aria-hidden="true" />
+                      {t('settings.empty.importFile')}
+                    </Button>
+                  </div>
+                }
+              />
+            </CardContent>
+          </Card>
+          <KeyboardShortcutsCard />
+        </>
       )}
     </div>
   );

@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Undo2, Redo2, History as HistoryIcon, X, Clock, RotateCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { historyManager, HISTORY_CHANGED_EVENT } from '@/lib/history';
 import { useReloadTimetableState } from '@/hooks/useReloadTimetableState';
+import { isMacPlatform } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 
 interface HistoryItem {
@@ -16,6 +18,7 @@ interface HistoryItem {
 export function HistoryControls() {
   const { t } = useTranslation();
   const reloadAllReduxState = useReloadTimetableState();
+  const isMac = useMemo(() => isMacPlatform(), []);
   const [canUndo, setCanUndo] = useState(() => historyManager.canUndo());
   const [canRedo, setCanRedo] = useState(() => historyManager.canRedo());
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -37,9 +40,26 @@ export function HistoryControls() {
       }
     };
 
+    const handleToggleHistory = () => {
+      setDrawerOpen((prev) => !prev);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && drawerOpen) {
+        setDrawerOpen(false);
+      }
+    };
+
     window.addEventListener(HISTORY_CHANGED_EVENT, handleHistoryChange);
-    return () => window.removeEventListener(HISTORY_CHANGED_EVENT, handleHistoryChange);
-  }, []);
+    window.addEventListener('dzvonyk_toggle_history', handleToggleHistory);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener(HISTORY_CHANGED_EVENT, handleHistoryChange);
+      window.removeEventListener('dzvonyk_toggle_history', handleToggleHistory);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [drawerOpen]);
 
   const handleUndo = async () => {
     const success = await historyManager.undo();
@@ -62,43 +82,74 @@ export function HistoryControls() {
 
   return (
     <>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          disabled={!canUndo}
-          onClick={handleUndo}
-          title={t('history.undo', 'Скасувати (Ctrl+Z)')}
-          aria-label={t('history.undo', 'Скасувати (Ctrl+Z)')}
-          className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
-        >
-          <Undo2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          disabled={!canRedo}
-          onClick={handleRedo}
-          title={t('history.redo', 'Повторити (Ctrl+Shift+Z)')}
-          aria-label={t('history.redo', 'Повторити (Ctrl+Shift+Z)')}
-          className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
-        >
-          <Redo2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setDrawerOpen(true)}
-          title={t('history.title', 'Історія змін')}
-          aria-label={t('history.title', 'Історія змін')}
-          className="h-8 w-8 text-muted-foreground hover:text-foreground relative"
-        >
-          <HistoryIcon className="h-4 w-4" />
-          {entries.length > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
-          )}
-        </Button>
-      </div>
+      <TooltipProvider delayDuration={200}>
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!canUndo}
+                onClick={handleUndo}
+                aria-label={t('history.undo', 'Скасувати')}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="flex items-center gap-2">
+              <span>{t('history.undo', 'Скасувати дію')}</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted text-foreground border border-border rounded">
+                {isMac ? '⌘Z' : 'Ctrl+Z'}
+              </kbd>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!canRedo}
+                onClick={handleRedo}
+                aria-label={t('history.redo', 'Повторити')}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="flex items-center gap-2">
+              <span>{t('history.redo', 'Повторити дію')}</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted text-foreground border border-border rounded">
+                {isMac ? '⇧⌘Z' : 'Ctrl+Shift+Z'}
+              </kbd>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setDrawerOpen(true)}
+                aria-label={t('history.title', 'Історія змін')}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground relative"
+              >
+                <HistoryIcon className="h-4 w-4" />
+                {entries.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="flex items-center gap-2">
+              <span>{t('history.title', 'Історія змін')}</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted text-foreground border border-border rounded">
+                {isMac ? '⌘H' : 'Ctrl+H'}
+              </kbd>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
       {/* History Drawer Modal / Sidebar */}
       {drawerOpen && (
