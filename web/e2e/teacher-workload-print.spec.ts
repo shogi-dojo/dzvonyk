@@ -54,14 +54,35 @@ test('Teacher workload accurately displays alternating-week fractional hours in 
   await expect(page.getByText('ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ')).toBeVisible();
   await expect(page.getByText('Сисова Оксана')).toBeVisible();
 
-  page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
-  page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
+  // Intercept window.print to verify native vector PDF print trigger
+  await page.evaluate(() => {
+    interface PrintRecord {
+      title: string;
+      isPdfMode: boolean;
+      hasPageSizeStyle: boolean;
+    }
+    const win = window as Window & { __printCalls?: PrintRecord[] };
+    win.__printCalls = [];
+    win.print = () => {
+      win.__printCalls?.push({
+        title: document.title,
+        isPdfMode: document.body.classList.contains('pdf-print-mode'),
+        hasPageSizeStyle: !!document.getElementById('pdf-custom-page-size-style'),
+      });
+      win.dispatchEvent(new Event('afterprint'));
+    };
+  });
 
-  const downloadPromise = page.waitForEvent('download', { timeout: 8000 }).catch((e) => null);
+  // 3. Test Save PDF on Тарифікація
   await savePdfBtn.click();
-  const download = await downloadPromise;
-  expect(download).not.toBeNull();
-  expect(download?.suggestedFilename()).toContain('Тарифікація_навантаження');
+  await page.waitForTimeout(200);
+
+  const printCalls = await page.evaluate(() => {
+    return (window as Window & { __printCalls?: Array<{ title: string; isPdfMode: boolean }> }).__printCalls || [];
+  });
+  expect(printCalls.length).toBeGreaterThanOrEqual(1);
+  expect(printCalls[0].title).toContain('Тарифікація_навантаження');
+  expect(printCalls[0].isPdfMode).toBe(true);
 
   // Verify that hours are rendered and not NaN
   const row = page.locator('tr:has-text("Сисова Оксана")');
@@ -71,11 +92,20 @@ test('Teacher workload accurately displays alternating-week fractional hours in 
   const classesWorkloadBtn = page.getByRole('main').getByRole('button', { name: /навантаження класів/i });
   await expect(classesWorkloadBtn).toBeVisible({ timeout: 10_000 });
   await classesWorkloadBtn.click();
-  await expect(page.getByText('ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ')).toBeVisible();
+  await expect(page.getByText('ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИжнях', { exact: false })).toBeVisible();
   await expect(page.getByText('5-А')).toBeVisible();
   await expect(page.getByText(/збалансовано/i).first()).toBeVisible();
 
-  // 5. Reload the page to ensure persisted state in IndexedDB renders correctly
+  await savePdfBtn.click();
+  await page.waitForTimeout(200);
+
+  const updatedPrintCalls = await page.evaluate(() => {
+    return (window as Window & { __printCalls?: Array<{ title: string; isPdfMode: boolean }> }).__printCalls || [];
+  });
+  expect(updatedPrintCalls.length).toBeGreaterThanOrEqual(2);
+  expect(updatedPrintCalls[1].title).toContain('Навантаження_класів_по_тижнях');
+
+  // 6. Reload the page to ensure persisted state in IndexedDB renders correctly
   await page.reload();
   await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
   await workloadReportBtn.click();

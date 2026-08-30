@@ -29,13 +29,12 @@ import {
   generateClassesWorkloadMatrixPrintHtml,
 } from '@/lib/printDocument';
 import {
-  sumWeeklyLoad,
   formatWeeklyLoad,
   formatHours,
   computeTeacherWorkloadReportData,
   computeAllClassesWeeklyLoad,
 } from '@/lib/weeklyLoad';
-import { exportHtmlToPdf } from '@/lib/pdfExport';
+import { printReportElementToPdf } from '@/lib/pdfExport';
 import { trackEvent } from '@/lib/analytics';
 
 type ReportType =
@@ -287,8 +286,7 @@ export function Print() {
   };
 
   const handleExportPdf = async () => {
-    const html = getCurrentReportHtml(true);
-    if (!html || !rules) return;
+    if (!printAreaRef.current || !rules) return;
     try {
       setExportingPdf(true);
       const titleMap: Record<ReportType, string> = {
@@ -306,7 +304,7 @@ export function Print() {
         .replace(/^_|_$/g, '');
       const safeSchool = cleanSchool ? `_${cleanSchool}` : '';
       const fileName = `${titleMap[reportType] || 'Розклад'}${safeSchool}.pdf`;
-      await exportHtmlToPdf(html, { fileName, scale: 2 });
+      await printReportElementToPdf(printAreaRef.current, { fileName });
       trackEvent('print_exported', {
         format: 'pdf',
         view_type:

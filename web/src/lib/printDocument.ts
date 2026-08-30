@@ -21,7 +21,6 @@ import {
 } from './timetableGrid';
 import { hourTimeLabel } from './bellSchedule';
 import {
-  sumWeeklyLoad,
   formatWeeklyLoad,
   formatHours,
   computeTeacherWorkloadReportData,

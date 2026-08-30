@@ -1,91 +1,120 @@
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
-
-export interface PdfExportOptions {
+export interface PrintReportPdfOptions {
   fileName?: string;
-  scale?: number;
+  bufferPx?: number;
 }
 
 /**
- * Renders an isolated HTML string in a sandboxed iframe (free from Tailwind CSS variables / oklch)
- * and exports it directly as a crisp, full-width electronic PDF file.
+ * Directly prints/saves the on-screen report element as a 1:1 vector PDF using native window.print()
+ * with dynamically injected @page dimensions matching the element's full natural size.
+ *
+ * This ensures the exported PDF is identical to the on-screen preview with 100% vector typography,
+ * selectable text, exact colors, and no column squishing on wide multi-class tables.
  */
-export async function exportHtmlToPdf(
-  html: string,
-  options: PdfExportOptions = {}
+export async function printReportElementToPdf(
+  element: HTMLElement,
+  options: PrintReportPdfOptions = {}
 ): Promise<void> {
-  const { fileName = 'Розклад.pdf', scale = 2 } = options;
+  const { fileName = 'Зведений_розклад.pdf', bufferPx = 32 } = options;
 
-  return new Promise((resolve, reject) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '0';
-    iframe.style.width = '3200px';
-    iframe.style.height = '2000px';
-    iframe.style.border = '0';
-    iframe.style.visibility = 'hidden';
-
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-      document.body.removeChild(iframe);
-      reject(new Error('Cannot access iframe document'));
-      return;
+  // 1. Measure the widest table/container and full content height
+  let maxContentWidth = Math.max(element.scrollWidth, element.offsetWidth, 1200);
+  const wideElements = element.querySelectorAll<HTMLElement>('.overflow-x-auto, table, .timetable-grid');
+  wideElements.forEach((el) => {
+    if (el.scrollWidth > maxContentWidth) {
+      maxContentWidth = el.scrollWidth;
     }
+  });
 
-    doc.open();
-    doc.write(html);
-    doc.close();
+  const maxContentHeight = Math.max(element.scrollHeight, element.offsetHeight, 600);
 
-    const doCapture = async () => {
-      try {
-        if (doc.fonts && doc.fonts.ready) {
-          await doc.fonts.ready;
-        }
+  // Compute exact single-page dimensions in pixels with buffer against rounding
+  const pageWidthPx = Math.ceil(maxContentWidth + bufferPx);
+  const pageHeightPx = Math.ceil(maxContentHeight + bufferPx);
 
-        const body = doc.body;
-        const width = Math.max(body.scrollWidth, body.offsetWidth, 1200);
-        const height = Math.max(body.scrollHeight, body.offsetHeight, 600);
+  // Clean document.title so the browser's "Save as PDF" dialog pre-fills the suggested file name
+  const safeDocTitle = fileName.replace(/\.pdf$/i, '');
+  const originalTitle = document.title;
 
-        const canvas = await html2canvas(body, {
-          scale,
-          useCORS: true,
-          logging: false,
-          width,
-          height,
-          windowWidth: width + 50,
-          windowHeight: height + 50,
-          backgroundColor: '#ffffff',
-        });
+  // 2. Inject temporary custom @page size style
+  const styleId = 'pdf-custom-page-size-style';
+  let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
 
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-
-        const orientation = imgWidth >= imgHeight ? 'landscape' : 'portrait';
-        const pdf = new jsPDF({
-          orientation,
-          unit: 'pt',
-          format: [imgWidth, imgHeight],
-          compress: true,
-        });
-
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
-        const safeName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-        pdf.save(safeName);
-
-        resolve();
-      } catch (err) {
-        reject(err);
-      } finally {
-        if (iframe.parentNode) {
-          iframe.parentNode.removeChild(iframe);
-        }
+  styleEl.innerHTML = `
+    @page {
+      size: ${pageWidthPx}px ${pageHeightPx}px;
+      margin: 0;
+    }
+    @media print {
+      body.pdf-print-mode {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: ${pageWidthPx}px !important;
       }
+      body.pdf-print-mode .no-print,
+      body.pdf-print-mode aside,
+      body.pdf-print-mode header,
+      body.pdf-print-mode nav,
+      body.pdf-print-mode footer {
+        display: none !important;
+      }
+      body.pdf-print-mode [data-print-area="true"] {
+        width: ${pageWidthPx}px !important;
+        max-width: none !important;
+        min-width: ${pageWidthPx}px !important;
+        margin: 0 !important;
+        padding: 16px !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+      }
+      body.pdf-print-mode [data-print-area="true"] .overflow-x-auto {
+        overflow: visible !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+      body.pdf-print-mode [data-print-area="true"] table {
+        max-width: none !important;
+        width: 100% !important;
+      }
+    }
+  `;
+
+  document.title = safeDocTitle;
+  document.body.classList.add('pdf-print-mode');
+
+  return new Promise((resolve) => {
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      document.body.classList.remove('pdf-print-mode');
+      document.title = originalTitle;
+      if (styleEl && styleEl.parentNode) {
+        styleEl.parentNode.removeChild(styleEl);
+      }
+      window.removeEventListener('afterprint', cleanup);
+      resolve();
     };
 
-    setTimeout(doCapture, 200);
+    window.addEventListener('afterprint', cleanup, { once: true });
+
+    setTimeout(() => {
+      try {
+        window.print();
+      } catch (err) {
+        console.error('Error invoking window.print:', err);
+        cleanup();
+      }
+    }, 50);
+
+    // Timeout safety fallback
+    setTimeout(cleanup, 4000);
   });
 }

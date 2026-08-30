@@ -489,7 +489,8 @@
     color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   aside,
@@ -508,10 +509,50 @@
     display: none !important;
   }
 
-  main,
-  #main-content,
-  .print-sheet,
-  .printable-area {
+  /* PDF Vector Print Mode: Preserves exact preview layout and element styling */
+  body.pdf-print-mode {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.pdf-print-mode main,
+  body.pdf-print-mode #main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  body.pdf-print-mode [data-print-area="true"] {
+    margin: 0 !important;
+    padding: 16px !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  body.pdf-print-mode [data-print-area="true"] .overflow-x-auto {
+    overflow: visible !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  body.pdf-print-mode [data-print-area="true"] table {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Standard physical print mode */
+  body:not(.pdf-print-mode) {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  }
+
+  body:not(.pdf-print-mode) main,
+  body:not(.pdf-print-mode) #main-content,
+  body:not(.pdf-print-mode) .print-sheet,
+  body:not(.pdf-print-mode) .printable-area {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -522,24 +563,24 @@
     color: #000000 !important;
   }
 
-  .print-only {
+  body:not(.pdf-print-mode) .print-only {
     display: block !important;
   }
 
-  .timetable-grid {
+  body:not(.pdf-print-mode) .timetable-grid {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  .timetable-grid td,
-  .timetable-grid th {
+  body:not(.pdf-print-mode) .timetable-grid td,
+  body:not(.pdf-print-mode) .timetable-grid th {
     border: 1px solid #333 !important;
     padding: 4px 6px !important;
     background: #ffffff !important;
     color: #000000 !important;
   }
 
-  .timetable-grid th {
+  body:not(.pdf-print-mode) .timetable-grid th {
     background: #f0f0f0 !important;
     font-weight: bold !important;
   }
