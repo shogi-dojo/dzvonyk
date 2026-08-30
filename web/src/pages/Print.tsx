@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Printer, FileText, Users, UserCheck, LayoutGrid,
-  ArrowLeft, Clock, BarChart3, Download, Loader2
+  ArrowLeft, Clock, BarChart3, Download, Loader2, CalendarDays
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 import {
   buildTimetableGrid,
   buildAllClassesGrid,
+  buildTeacherDayHourMatrix,
+  buildClassDayHourMatrix,
   type CellData,
 } from '@/lib/timetableGrid';
 import {
@@ -25,6 +27,7 @@ import {
   generateAllTeachersPrintHtml,
   generateSummaryClassesMatrixPrintHtml,
   generateSummaryTeachersMatrixPrintHtml,
+  generateDailyMatrixPrintHtml,
   generateTeacherWorkloadPrintHtml,
   generateClassesWorkloadMatrixPrintHtml,
 } from '@/lib/printDocument';
@@ -36,6 +39,8 @@ import {
 } from '@/lib/weeklyLoad';
 import { printReportElementToPdf } from '@/lib/pdfExport';
 import { trackEvent } from '@/lib/analytics';
+import { splitPersonName } from '@/lib/personName';
+import { buildDayReportHeader } from '@/lib/dayReportHeader';
 import {
   formatConfiguredLessonLabel,
   formatTimetableDayLabel,
@@ -47,6 +52,8 @@ type ReportType =
   | 'teacher'
   | 'summary-classes'
   | 'summary-teachers'
+  | 'daily-teachers'
+  | 'daily-classes'
   | 'teacher-workload'
   | 'classes-workload';
 
@@ -58,6 +65,7 @@ export function Print() {
   const subjects = useAppSelector((state) => state.subjects.items);
   const { rooms } = useAppSelector((state) => state.rooms);
   const { groups, subgroups } = useAppSelector((state) => state.students);
+  const timeConstraints = useAppSelector((state) => state.constraints.timeConstraints);
 
   const latestSolution = useLiveQuery(() => db.solutions.orderBy('generatedAt').reverse().first());
 
@@ -194,6 +202,43 @@ export function Print() {
     return { teachers: sortedTeachers, rows };
   }, [reportType, latestSolution, rules, activities, subjects, rooms, sortedTeachers]);
 
+  // Daily teachers matrix
+  const dailyTeachersGrid = useMemo(() => {
+    if (reportType !== 'daily-teachers' || !latestSolution || !rules) return null;
+    return buildTeacherDayHourMatrix({
+      solution: latestSolution,
+      rules,
+      activities,
+      teachers: sortedTeachers,
+      subjects,
+      groups: sortedGroups,
+      subgroups,
+      rooms,
+      timeConstraints,
+    });
+  }, [reportType, latestSolution, rules, activities, sortedTeachers, subjects, sortedGroups, subgroups, rooms, timeConstraints]);
+
+  // Daily classes matrix
+  const dailyClassesGrid = useMemo(() => {
+    if (reportType !== 'daily-classes' || !latestSolution || !rules) return null;
+    return buildClassDayHourMatrix({
+      solution: latestSolution,
+      rules,
+      activities,
+      teachers: sortedTeachers,
+      subjects,
+      groups: sortedGroups,
+      subgroups,
+      rooms,
+    });
+  }, [reportType, latestSolution, rules, activities, sortedTeachers, subjects, sortedGroups, subgroups, rooms]);
+
+  // Daily header definition (for preview)
+  const dailyHeader = useMemo(() => {
+    if (!rules) return null;
+    return buildDayReportHeader(rules);
+  }, [rules]);
+
   // Teacher workload report data (itemized by subject & class)
   const teacherWorkloadData = useMemo(() => {
     return computeTeacherWorkloadReportData({
@@ -214,7 +259,9 @@ export function Print() {
     (reportType === 'class' && Boolean(classGrid)) ||
     (reportType === 'teacher' && Boolean(teacherGrid)) ||
     (reportType === 'summary-classes' && Boolean(summaryClassesGrid)) ||
-    (reportType === 'summary-teachers' && Boolean(summaryTeachersGrid));
+    (reportType === 'summary-teachers' && Boolean(summaryTeachersGrid)) ||
+    (reportType === 'daily-teachers' && Boolean(dailyTeachersGrid)) ||
+    (reportType === 'daily-classes' && Boolean(dailyClassesGrid));
 
   const getCurrentReportHtml = (forPdf = false): string => {
     if (!rules) return '';
@@ -262,6 +309,35 @@ export function Print() {
         rooms,
         options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
       });
+    } else if (reportType === 'daily-teachers') {
+      if (!latestSolution) return '';
+      return generateDailyMatrixPrintHtml({
+        rowAxis: 'teachers',
+        solution: latestSolution,
+        rules,
+        activities,
+        teachers: sortedTeachers,
+        subjects,
+        groups: sortedGroups,
+        subgroups,
+        rooms,
+        timeConstraints,
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
+      });
+    } else if (reportType === 'daily-classes') {
+      if (!latestSolution) return '';
+      return generateDailyMatrixPrintHtml({
+        rowAxis: 'classes',
+        solution: latestSolution,
+        rules,
+        activities,
+        teachers: sortedTeachers,
+        subjects,
+        groups: sortedGroups,
+        subgroups,
+        rooms,
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
+      });
     } else if (reportType === 'teacher-workload') {
       return generateTeacherWorkloadPrintHtml({
         rules,
@@ -291,7 +367,7 @@ export function Print() {
           ? 'tariff'
           : reportType === 'classes-workload'
           ? 'classes_workload'
-          : reportType === 'teacher' || reportType === 'summary-teachers'
+          : reportType === 'teacher' || reportType === 'summary-teachers' || reportType === 'daily-teachers'
           ? 'teachers'
           : 'students',
     });
@@ -307,6 +383,8 @@ export function Print() {
         'teacher': `Розклад_${(selectedTeacherId || 'вчитель').replace(/\s+/g, '_')}`,
         'summary-classes': `Зведений_розклад_класів`,
         'summary-teachers': `Зведений_розклад_учителів`,
+        'daily-teachers': `Розклад_по_днях_учителі`,
+        'daily-classes': `Розклад_по_днях_класи`,
         'teacher-workload': `Тарифікація_навантаження`,
         'classes-workload': `Навантаження_класів_по_тижнях`,
       };
@@ -325,7 +403,7 @@ export function Print() {
             ? 'tariff'
             : reportType === 'classes-workload'
             ? 'classes_workload'
-            : reportType === 'teacher' || reportType === 'summary-teachers'
+            : reportType === 'teacher' || reportType === 'summary-teachers' || reportType === 'daily-teachers'
             ? 'teachers'
             : 'students',
       });
@@ -442,10 +520,12 @@ export function Print() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Report Type Switcher */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {[
                 { type: 'summary-classes' as ReportType, icon: LayoutGrid, label: 'Зведений (Класи)' },
                 { type: 'summary-teachers' as ReportType, icon: Users, label: 'Зведений (Вчителі)' },
+                { type: 'daily-teachers' as ReportType, icon: CalendarDays, label: t('print.dailyTeachers', { defaultValue: 'По днях (Вчителі)' }) },
+                { type: 'daily-classes' as ReportType, icon: CalendarDays, label: t('print.dailyClasses', { defaultValue: 'По днях (Класи)' }) },
                 { type: 'class' as ReportType, icon: FileText, label: 'Окремий клас' },
                 { type: 'teacher' as ReportType, icon: UserCheck, label: 'Окремий вчитель' },
                 { type: 'teacher-workload' as ReportType, icon: Clock, label: 'Тарифікація / Навантаження' },
@@ -516,7 +596,10 @@ export function Print() {
                 <span>Кольорове виділення предметів</span>
               </label>
 
-              {(reportType === 'summary-classes' || reportType === 'summary-teachers') && (
+              {(reportType === 'summary-classes' ||
+                reportType === 'summary-teachers' ||
+                reportType === 'daily-teachers' ||
+                reportType === 'daily-classes') && (
                 <div className="flex items-center gap-2 ml-auto">
                   <span className="text-xs font-medium text-muted-foreground">Формат аркуша для друку:</span>
                   <select
@@ -566,6 +649,8 @@ export function Print() {
             {reportType === 'teacher' && `РОЗКЛАД УРОКІВ ВИКЛАДАЧА: ${selectedTeacherId}`}
             {reportType === 'summary-classes' && 'ЗВЕДЕНИЙ РОЗКЛАД УРОКІВ УСІХ КЛАСІВ'}
             {reportType === 'summary-teachers' && 'ЗВЕДЕНИЙ РОЗКЛАД УСІХ ВИКЛАДАЧІВ'}
+            {reportType === 'daily-teachers' && t('print.dailyTeachersTitle', { defaultValue: 'ПОДОБОВИЙ РОЗКЛАД УРОКІВ (ВЧИТЕЛІ)' })}
+            {reportType === 'daily-classes' && t('print.dailyClassesTitle', { defaultValue: 'ПОДОБОВИЙ РОЗКЛАД УРОКІВ (КЛАСИ)' })}
             {reportType === 'teacher-workload' && 'ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ'}
             {reportType === 'classes-workload' && 'ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ'}
           </h2>
@@ -935,6 +1020,149 @@ export function Print() {
               </tr>
             </tbody>
           </table>
+        )}
+
+        {/* 7. Daily Matrix Reports (Teachers or Classes) */}
+        {(reportType === 'daily-teachers' || reportType === 'daily-classes') && dailyHeader && (
+          <div className="space-y-8">
+            {Array.from({ length: rules.nDaysPerWeek || rules.daysOfTheWeek?.length || 5 }).map((_, dIdx) => {
+              const dayObj = rules.daysOfTheWeek?.[dIdx];
+              const dayName = dayObj?.name || `День ${dIdx + 1}`;
+              const currentGrid = reportType === 'daily-teachers' ? dailyTeachersGrid : dailyClassesGrid;
+              if (!currentGrid) return null;
+
+              const firstColLabel = reportType === 'daily-teachers' ? 'Викладач' : 'Клас';
+              const totalShiftRows = dailyHeader.shiftRows.length;
+              const firstColRowSpan = 1 + totalShiftRows;
+
+              return (
+                <div key={dIdx} className="break-after-page mb-8 last:mb-0">
+                  <div className="text-center mb-3">
+                    <h3 className="text-base font-bold uppercase text-black tracking-wide">
+                      РОЗКЛАД УРОКІВ — {dayName.toUpperCase()}
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-black text-[11px] timetable-grid">
+                      <thead>
+                        <tr className="bg-neutral-100">
+                          <th
+                            rowSpan={firstColRowSpan}
+                            className="border border-black p-1.5 font-bold text-left w-36 min-w-[120px]"
+                          >
+                            {firstColLabel}
+                          </th>
+                          {dailyHeader.lessonNumbers.map((num) => (
+                            <th
+                              key={num}
+                              className="border border-black p-1 font-bold text-center"
+                            >
+                              {num}
+                            </th>
+                          ))}
+                        </tr>
+                        {dailyHeader.shiftRows.map((shiftRow, sIdx) => (
+                          <tr key={sIdx} className="bg-neutral-50">
+                            {shiftRow.cells.map((cell, cIdx) => (
+                              <th
+                                key={cIdx}
+                                className="border border-black p-0.5 font-normal text-[9px] text-neutral-700 text-center whitespace-nowrap"
+                              >
+                                {cell.timeLabel || ''}
+                              </th>
+                            ))}
+                          </tr>
+                        ))}
+                      </thead>
+                      <tbody>
+                        {currentGrid.rows.map((row) => (
+                          <tr key={row.id}>
+                            <td className="border border-black p-1.5 text-left bg-neutral-50">
+                              {reportType === 'daily-teachers' ? (
+                                (() => {
+                                  const { primary, initials } = splitPersonName(row.label);
+                                  return (
+                                    <div>
+                                      <span className="font-bold">{primary}</span>{' '}
+                                      <span className="text-[10px] text-neutral-600">{initials}</span>
+                                    </div>
+                                  );
+                                })()
+                              ) : (
+                                <div className="font-bold">{row.label}</div>
+                              )}
+                              {row.sublabel && (
+                                <div className="text-[9px] text-neutral-500">{row.sublabel}</div>
+                              )}
+                            </td>
+                            {Array.from({ length: currentGrid.nHours }).map((_, hIdx) => {
+                              const isUnavailable = row.availableSlots
+                                ? row.availableSlots(dIdx, hIdx) === false
+                                : false;
+
+                              if (isUnavailable) {
+                                return (
+                                  <td
+                                    key={hIdx}
+                                    className="border border-black p-1 bg-neutral-200"
+                                  />
+                                );
+                              }
+
+                              const cellKey = `${row.id}|${dIdx}|${hIdx}`;
+                              const items = currentGrid.cells.get(cellKey) || [];
+
+                              return (
+                                <td
+                                  key={hIdx}
+                                  className="border border-black p-1 align-middle text-center"
+                                >
+                                  {items.map((c, i) => (
+                                    <div
+                                      key={i}
+                                      className={cn(
+                                        'p-1 rounded text-[10px] mb-1 last:mb-0 leading-tight border border-neutral-200',
+                                        colorMode && c.subjectColor ? 'border-l-4' : 'bg-neutral-50'
+                                      )}
+                                      style={
+                                        colorMode && c.subjectColor
+                                          ? {
+                                              borderLeftColor: c.subjectColor,
+                                              backgroundColor: `${c.subjectColor}15`,
+                                            }
+                                          : undefined
+                                      }
+                                    >
+                                      <div className="font-bold text-black break-words">
+                                        {reportType === 'daily-teachers'
+                                          ? c.students.join(', ')
+                                          : c.subject}
+                                      </div>
+                                      {c.weekParity === 'numerator' && (
+                                        <div className="text-[8.5px] text-neutral-600">Чисельник</div>
+                                      )}
+                                      {c.weekParity === 'denominator' && (
+                                        <div className="text-[8.5px] text-neutral-600">Знаменник</div>
+                                      )}
+                                      {c.room && (
+                                        <div className="text-[8.5px] text-neutral-500">
+                                          каб. {c.room}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {/* Official Footer */}
