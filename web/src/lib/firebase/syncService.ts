@@ -44,6 +44,19 @@ export class SyncService {
   }
 
   /**
+   * Syncs school metadata to Firestore
+   */
+  public async syncSchool(uid: string, school: School): Promise<void> {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    try {
+      const schoolRef = doc(firestore, `users/${uid}/schools/${school.id}`);
+      await setDoc(schoolRef, school, { merge: true });
+    } catch (err) {
+      console.warn('[SyncService] Failed to sync school metadata:', err);
+    }
+  }
+
+  /**
    * Imports private school/workspace metadata for a returning user. Snapshot
    * bodies remain in Storage and are pulled only for the selected workspace.
    */

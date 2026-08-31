@@ -22,6 +22,8 @@ import { db } from '@/db';
 import { parseFETFile, exportToFETXml } from '@/lib/fetParser';
 import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
+import { renameSchoolAction } from '@/store/slices/workspaceSlice';
+import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
@@ -156,6 +158,18 @@ export function Dashboard() {
       dispatch(setTimeConstraints(data.timeConstraints));
       dispatch(setSpaceConstraints(data.spaceConstraints));
       
+      if (data.institutionName?.trim()) {
+        const currentContext = await workspaceManager.getActiveContext();
+        if (currentContext.school) {
+          await dispatch(
+            renameSchoolAction({
+              schoolId: currentContext.school.id,
+              name: data.institutionName.trim(),
+            })
+          ).unwrap();
+        }
+      }
+
       setLastSolution(null);
       setImportSuccess(t('dashboard.import.success', { count: data.activities.length }));
 

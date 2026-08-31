@@ -9,6 +9,7 @@ import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { historyManager } from '@/lib/history';
 import { trackEvent } from '@/lib/analytics';
 import { syncService } from '@/lib/firebase/syncService';
+import { updateInstitutionName } from '@/store/slices/rulesSlice';
 
 interface WorkspaceState {
   activeSchool: School | null;
@@ -90,6 +91,33 @@ export const createSchoolAction = createAsyncThunk(
     const workspaces = await workspaceManager.listWorkspaces();
 
     return { school, workspace: context.workspace, schools, workspaces, isGuest: context.isGuest };
+  }
+);
+
+export const renameSchoolAction = createAsyncThunk(
+  'workspace/renameSchool',
+  async (
+    { schoolId, name, shortName }: { schoolId: string; name: string; shortName?: string },
+    { getState, dispatch }
+  ) => {
+    const updated = await workspaceManager.renameSchool(schoolId, name, shortName);
+    const schools = await workspaceManager.listSchools();
+    const activeContext = await workspaceManager.getActiveContext();
+
+    if (activeContext.school.id === schoolId) {
+      dispatch(updateInstitutionName(updated.name));
+    }
+
+    const state = getState() as { auth: { user: { uid: string } | null } };
+    if (state.auth.user && updated.ownerUid) {
+      await syncService.syncSchool(state.auth.user.uid, updated);
+    }
+
+    return {
+      school: updated,
+      schools,
+      activeSchool: activeContext.school,
+    };
   }
 );
 
@@ -273,6 +301,13 @@ const workspaceSlice = createSlice({
         state.activeWorkspace = action.payload.workspace;
         state.isGuest = action.payload.isGuest;
         state.workspaces = action.payload.workspaces;
+      })
+      // Rename school
+      .addCase(renameSchoolAction.fulfilled, (state, action) => {
+        state.schools = action.payload.schools;
+        if (state.activeSchool?.id === action.payload.school.id) {
+          state.activeSchool = action.payload.school;
+        }
       })
       // Create workspace
       .addCase(createWorkspaceAction.fulfilled, (state, action) => {

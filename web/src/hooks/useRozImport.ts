@@ -12,6 +12,8 @@ import { setRooms, setBuildings } from '../store/slices/roomsSlice';
 import { setTimeConstraints, setSpaceConstraints } from '../store/slices/constraintsSlice';
 import { setStudents } from '../store/slices/studentsSlice';
 import { parseROZFile, type RozImportResult } from '../lib/rozParser';
+import { renameSchoolAction } from '../store/slices/workspaceSlice';
+import { workspaceManager } from '../lib/workspace/workspaceManager';
 
 function serializeDates<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
@@ -139,6 +141,18 @@ export function useRozImport() {
           subgroups: data.studentsSubgroups,
         })
       );
+
+      if (data.institutionName?.trim()) {
+        const currentContext = await workspaceManager.getActiveContext();
+        if (currentContext.school) {
+          await dispatch(
+            renameSchoolAction({
+              schoolId: currentContext.school.id,
+              name: data.institutionName.trim(),
+            })
+          ).unwrap();
+        }
+      }
 
       setPreview(null);
     } catch (err) {
