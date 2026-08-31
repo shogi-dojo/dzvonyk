@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Pagination, usePagination } from '@/components/ui/pagination';
 import { PageHeader, EmptyState } from '@/components/PageTransition';
-import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useAppDispatch, useAppSelector, useInstitutionPreset } from '@/hooks';
 import { loadTeachers, addTeacher, updateTeacher, deleteTeacher } from '@/store/slices/teachersSlice';
 import { addActivities, replaceActivities } from '@/store/slices/activitiesSlice';
 import { addTimeConstraint, updateTimeConstraint, deleteTimeConstraint } from '@/store/slices/constraintsSlice';
@@ -92,9 +92,12 @@ export function Teachers() {
     () => calculateTeacherAssignedLoad(teachers, activities),
     [teachers, activities]
   );
+  const institutionPreset = useInstitutionPreset();
   const workloadAudienceOptions = useMemo(
-    () => buildWorkloadAudienceOptions(years, groups, subgroups),
-    [years, groups, subgroups],
+    () => buildWorkloadAudienceOptions(years, groups, subgroups, {
+      includeStreams: institutionPreset.features.streams,
+    }),
+    [years, groups, subgroups, institutionPreset.features.streams],
   );
   const workloadTeacher = useMemo(
     () => teachers.find((teacher) => teacher.id === workloadTeacherId) ?? null,
@@ -185,10 +188,15 @@ export function Teachers() {
     const audience = workloadAudienceOptions.find((option) => option.key === workloadForm.audienceKey);
     if (!workloadTeacher || !audience || !workloadForm.subjectName || workloadForm.weeklyHours < 1) return;
 
+    const streamYearId = audience.kind === 'stream'
+      ? audience.key.slice('stream:'.length)
+      : null;
     const newActivities = createTeacherWorkloadActivities({
       teacherName: workloadTeacher.name,
       subjectName: workloadForm.subjectName,
-      targetNames: audience.targetNames,
+      // A stream is a single activity addressed to the whole year; the year
+      // option instead expands to one activity per group.
+      targetNames: streamYearId ? [streamYearId] : audience.targetNames,
       weeklyHours: workloadForm.weeklyHours,
       weekParity: workloadForm.weekParity,
       idFactory: uuidv4,
@@ -218,6 +226,9 @@ export function Teachers() {
       : t('activities.dialog.weekParityBoth');
 
   const workloadAudienceLabel = (option: (typeof workloadAudienceOptions)[number]) => {
+    if (option.kind === 'stream') {
+      return t('teachers.workload.streamOption', { name: option.name });
+    }
     if (option.kind === 'year') {
       return t('teachers.workload.parallelOption', {
         name: option.name,

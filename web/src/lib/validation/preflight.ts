@@ -193,6 +193,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   for (const g of studentsGroups) {
     for (const sgId of g.subgroups) subgroupToGroup.set(sgId, g.id);
   }
+  const years = input.studentsYears ?? [];
 
   // Activities affecting a class = activities directly on group + one of the
   // subgroup activities per activityGroupId (split subjects). We conservatively
@@ -210,6 +211,16 @@ export function runPreflight(input: PreflightInput): PreflightResult {
       else {
         const parent = subgroupToGroup.get(setId);
         if (parent) affectedGroups.add(parent);
+        else {
+          // A stream: the activity names a whole year, so every group of the
+          // year carries its duration.
+          const year = years.find((y) => y.id === setId || y.name === setId);
+          if (year) {
+            for (const groupId of year.groups) {
+              if (groupById.has(groupId)) affectedGroups.add(groupId);
+            }
+          }
+        }
       }
     }
     for (const gid of affectedGroups) {

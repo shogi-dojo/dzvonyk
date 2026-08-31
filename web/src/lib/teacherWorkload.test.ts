@@ -171,3 +171,34 @@ describe('teacher workload flow', () => {
     expect(replacements.every((activity) => !template.some((old) => old.id === activity.id))).toBe(true);
   });
 });
+
+describe('buildWorkloadAudienceOptions streams', () => {
+  const year = { id: 'y1', name: '1 курс', numberOfStudents: 90, type: 1 as const, groups: ['g1', 'g2', 'g3'], divisions: [], separator: '-' };
+  const makeGroup = (id: string) => ({ id, name: id, numberOfStudents: 30, type: 2 as const, subgroups: [] });
+  const groups = [makeGroup('g1'), makeGroup('g2'), makeGroup('g3')];
+
+  it('offers a stream option counted once with all groups as targets', () => {
+    const options = buildWorkloadAudienceOptions([year], groups, [], { includeStreams: true });
+    const stream = options.find((o) => o.kind === 'stream');
+    expect(stream).toBeDefined();
+    expect(stream!.key).toBe('stream:y1');
+    expect(stream!.classCount).toBe(1);
+    expect(stream!.targetNames).toEqual(['g1', 'g2', 'g3']);
+  });
+
+  it('omits stream options unless the preset unlocks streams', () => {
+    expect(
+      buildWorkloadAudienceOptions([year], groups, []).some((o) => o.kind === 'stream')
+    ).toBe(false);
+    expect(
+      buildWorkloadAudienceOptions([year], groups, [], { includeStreams: false }).some((o) => o.kind === 'stream')
+    ).toBe(false);
+  });
+
+  it('keeps the multiplying year option alongside the stream', () => {
+    const options = buildWorkloadAudienceOptions([year], groups, [], { includeStreams: true });
+    const yearOption = options.find((o) => o.kind === 'year');
+    expect(yearOption).toBeDefined();
+    expect(yearOption!.classCount).toBe(3);
+  });
+});

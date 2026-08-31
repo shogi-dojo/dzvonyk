@@ -12,7 +12,7 @@ export type WorkloadWeekParity = 'both' | 'numerator' | 'denominator';
 
 export interface WorkloadAudienceOption {
   key: string;
-  kind: 'year' | 'group' | 'subgroup';
+  kind: 'year' | 'group' | 'subgroup' | 'stream';
   name: string;
   parentName?: string;
   classCount: number;
@@ -68,20 +68,35 @@ function resolveByIdOrName<T extends { id: string; name: string }>(
  * Build the audience choices used by the teacher-first workload editor.
  * A parallel expands to its classes because those lessons must be scheduled
  * separately; a class or subgroup remains one scheduling target.
+ *
+ * When `includeStreams` is on, each year also offers a stream: one activity
+ * covering every group of the year simultaneously, counted once (classCount 1)
+ * rather than multiplied per class.
  */
 export function buildWorkloadAudienceOptions(
   years: StudentsYear[],
   groups: StudentsGroup[],
   subgroups: StudentsSubgroup[],
+  options?: { includeStreams?: boolean }
 ): WorkloadAudienceOption[] {
-  const options: WorkloadAudienceOption[] = [];
+  const audienceOptions: WorkloadAudienceOption[] = [];
 
   for (const year of years) {
     const yearGroups = year.groups
       .map((groupId) => resolveByIdOrName(groups, groupId))
       .filter((group): group is StudentsGroup => Boolean(group));
 
-    options.push({
+    if (options?.includeStreams && yearGroups.length > 0) {
+      audienceOptions.push({
+        key: `stream:${year.id}`,
+        kind: 'stream',
+        name: year.name,
+        classCount: 1,
+        targetNames: yearGroups.map((group) => group.name),
+      });
+    }
+
+    audienceOptions.push({
       key: `year:${year.id}`,
       kind: 'year',
       name: year.name,
@@ -90,7 +105,7 @@ export function buildWorkloadAudienceOptions(
     });
 
     for (const group of yearGroups) {
-      options.push({
+      audienceOptions.push({
         key: `group:${group.id}`,
         kind: 'group',
         name: group.name,
@@ -102,7 +117,7 @@ export function buildWorkloadAudienceOptions(
       for (const subgroupId of group.subgroups) {
         const subgroup = resolveByIdOrName(subgroups, subgroupId);
         if (!subgroup) continue;
-        options.push({
+        audienceOptions.push({
           key: `subgroup:${subgroup.id}`,
           kind: 'subgroup',
           name: subgroup.name,
@@ -116,8 +131,8 @@ export function buildWorkloadAudienceOptions(
 
   // Keep orphaned sets usable after imperfect imports.
   for (const group of groups) {
-    if (options.some((option) => option.kind === 'group' && option.targetNames[0] === group.name)) continue;
-    options.push({
+    if (audienceOptions.some((option) => option.kind === 'group' && option.targetNames[0] === group.name)) continue;
+    audienceOptions.push({
       key: `group:${group.id}`,
       kind: 'group',
       name: group.name,
@@ -126,8 +141,8 @@ export function buildWorkloadAudienceOptions(
     });
   }
   for (const subgroup of subgroups) {
-    if (options.some((option) => option.kind === 'subgroup' && option.targetNames[0] === subgroup.name)) continue;
-    options.push({
+    if (audienceOptions.some((option) => option.kind === 'subgroup' && option.targetNames[0] === subgroup.name)) continue;
+    audienceOptions.push({
       key: `subgroup:${subgroup.id}`,
       kind: 'subgroup',
       name: subgroup.name,
@@ -136,7 +151,7 @@ export function buildWorkloadAudienceOptions(
     });
   }
 
-  return options;
+  return audienceOptions;
 }
 
 export interface CreateTeacherWorkloadInput {

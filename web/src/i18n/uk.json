@@ -226,7 +226,8 @@
       "weekBreakdown": "У тиждень чисельника: {{numerator}} год · у тиждень знаменника: {{denominator}} год",
       "deleteButton": "Видалити навантаження",
       "confirmDelete": "Видалити весь цей рядок навантаження? Цю дію неможливо скасувати.",
-      "lowLevelHint": "Окремі уроки й додаткові параметри залишаються доступними на сторінці «Уроки»."
+      "lowLevelHint": "Окремі уроки й додаткові параметри залишаються доступними на сторінці «Уроки».",
+      "streamOption": "Потік {{name}} · одна пара для всіх груп"
     },
     "dialog": {
       "addTitle": "Додати вчителя",
@@ -380,7 +381,9 @@
       "weekParity": "Тиждень",
       "weekParityBoth": "Щотижня",
       "weekParityNumerator": "Чисельник",
-      "weekParityDenominator": "Знаменник"
+      "weekParityDenominator": "Знаменник",
+      "multiTeacherHint": "Оберіть одного або кількох викладачів — для спільного ведення пари",
+      "multiStudentsHint": "Оберіть кілька груп, щоб створити потік: одна пара для всіх водночас"
     },
     "studentLabelYear": "{{name}} (Паралель)",
     "studentLabelGroup": "{{name}} (Клас)"

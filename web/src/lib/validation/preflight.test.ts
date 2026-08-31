@@ -7,7 +7,7 @@ import type {
   Activity, Teacher, Room, TimetableRules, StudentsGroup,
   TimeConstraint, SpaceConstraint,
 } from '../../types';
-import { OFFICIAL_MODE, STUDENTS_GROUP } from '../../types';
+import { OFFICIAL_MODE, STUDENTS_GROUP, STUDENTS_YEAR } from '../../types';
 
 function baseRules(days = 5, hours = 8): TimetableRules {
   return {
@@ -155,5 +155,43 @@ describe('runPreflight', () => {
     const acts = [activity('a1', { activityGroupId: 7 })];
     const r = runPreflight(baseInput({ activities: acts }));
     expect(r.warnings.some((i) => i.code === 'SPLIT_ORPHAN')).toBe(true);
+  });
+
+  describe('year-wide streams', () => {
+    const makeYearInput = (over: Partial<PreflightInput> = {}): PreflightInput => {
+      const groups = Array.from({ length: 5 }, (_, i) => baseGroup(`g${i + 1}`, `КН-1${i + 1}`));
+      const year = {
+        id: 'y1', name: '1 курс', numberOfStudents: 150,
+        type: STUDENTS_YEAR, groups: ['g1', 'g2', 'g3', 'g4', 'g5'], divisions: [], separator: '-',
+      };
+      return baseInput({
+        studentsGroups: groups,
+        studentsYears: [year],
+        ...over,
+      });
+    };
+
+    it('spreads a stream onto every group: 5 groups × 2h = 2h per group, not 10', () => {
+      const stream = activity('stream', { studentSetIds: ['y1'], duration: 2 });
+      const r = runPreflight(makeYearInput({ activities: [stream], rules: baseRules(1, 2) }));
+      // 1 day × 2h = 2 weekly slots; each group carries exactly the 2 stream
+      // hours — at the limit, so blocking only fires if counting is wrong.
+      expect(r.blocking).toHaveLength(0);
+
+      const tight = runPreflight(makeYearInput({ activities: [stream], rules: baseRules(1, 1) }));
+      const overloads = tight.blocking.filter((i) => i.code === 'CLASS_OVERLOAD');
+      // Every one of the 5 groups reads 2h against a 1-slot week. A naive
+      // implementation would count 10h on a single entity or miss the stream.
+      expect(overloads).toHaveLength(5);
+      expect(overloads.map((i) => i.entity?.name).sort()).toEqual(
+        ['КН-11', 'КН-12', 'КН-13', 'КН-14', 'КН-15']
+      );
+    });
+
+    it('expands stream references by year name as well as id', () => {
+      const stream = activity('stream', { studentSetIds: ['1 курс'], duration: 2 });
+      const r = runPreflight(makeYearInput({ activities: [stream], rules: baseRules(1, 1) }));
+      expect(r.blocking.filter((i) => i.code === 'CLASS_OVERLOAD')).toHaveLength(5);
+    });
   });
 });

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Pagination, usePagination } from '@/components/ui/pagination';
 import { PageHeader, EmptyState } from '@/components/PageTransition';
-import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useAppDispatch, useAppSelector, useInstitutionPreset } from '@/hooks';
 import { loadActivities, addActivity, updateActivity, deleteActivity } from '@/store/slices/activitiesSlice';
 import { loadActivityTags, addActivityTag, updateActivityTag, deleteActivityTag } from '@/store/slices/activityTagsSlice';
 import type { Activity, ActivityTag } from '@/types';
@@ -25,6 +25,7 @@ import type { Activity, ActivityTag } from '@/types';
 export function Activities() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const institutionPreset = useInstitutionPreset();
   const { items: activities, loading } = useAppSelector((state) => state.activities);
   const teachers = useAppSelector((state) => state.teachers.items);
   const subjects = useAppSelector((state) => state.subjects.items);
@@ -171,6 +172,28 @@ export function Activities() {
       activityTagIds: prev.activityTagIds.includes(tagName)
         ? prev.activityTagIds.filter(t => t !== tagName)
         : [...prev.activityTagIds, tagName]
+    }));
+  };
+
+  // Streams (academic presets): one activity may name several student sets
+  // (e.g. a whole year) and several co-teachers.
+  const streamsEnabled = institutionPreset.features.streams;
+
+  const toggleTeacher = (teacherName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      teacherIds: prev.teacherIds.includes(teacherName)
+        ? prev.teacherIds.filter(t => t !== teacherName)
+        : [...prev.teacherIds, teacherName]
+    }));
+  };
+
+  const toggleStudentSet = (setName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      studentSetIds: prev.studentSetIds.includes(setName)
+        ? prev.studentSetIds.filter(t => t !== setName)
+        : [...prev.studentSetIds, setName]
     }));
   };
 
@@ -472,22 +495,56 @@ export function Activities() {
 
               <div className="grid gap-2">
                 <Label>{t('activities.dialog.teacher')}</Label>
-                <select value={formData.teacherIds[0] || ''} onChange={(e) => setFormData({ ...formData, teacherIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                  <option value="">{t('activities.dialog.selectTeacher')}</option>
-                  {teachers.map((tt) => (
-                    <option key={tt.id} value={tt.name}>{tt.name}{tt.code ? ` (${tt.code})` : ''}</option>
-                  ))}
-                </select>
+                {streamsEnabled ? (
+                  <>
+                    <div className="flex flex-wrap gap-2 p-3 rounded-md border border-border bg-card max-h-32 overflow-y-auto">
+                      {teachers.map((tt) => {
+                        const selected = formData.teacherIds.includes(tt.name);
+                        return (
+                          <Badge key={tt.id} variant={selected ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleTeacher(tt.name)}>
+                            {tt.name}{tt.code ? ` (${tt.code})` : ''}
+                            {selected && <X className="h-3 w-3 ml-1" />}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('activities.dialog.multiTeacherHint')}</p>
+                  </>
+                ) : (
+                  <select value={formData.teacherIds[0] || ''} onChange={(e) => setFormData({ ...formData, teacherIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
+                    <option value="">{t('activities.dialog.selectTeacher')}</option>
+                    {teachers.map((tt) => (
+                      <option key={tt.id} value={tt.name}>{tt.name}{tt.code ? ` (${tt.code})` : ''}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="grid gap-2">
                 <Label>{t('activities.dialog.students')}</Label>
-                <select value={formData.studentSetIds[0] || ''} onChange={(e) => setFormData({ ...formData, studentSetIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
-                  <option value="">{t('activities.dialog.selectStudents')}</option>
-                  {studentOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                {streamsEnabled ? (
+                  <>
+                    <div className="flex flex-wrap gap-2 p-3 rounded-md border border-border bg-card max-h-36 overflow-y-auto">
+                      {studentOptions.map((opt) => {
+                        const selected = formData.studentSetIds.includes(opt.value);
+                        return (
+                          <Badge key={opt.value} variant={selected ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleStudentSet(opt.value)}>
+                            {opt.label}
+                            {selected && <X className="h-3 w-3 ml-1" />}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('activities.dialog.multiStudentsHint')}</p>
+                  </>
+                ) : (
+                  <select value={formData.studentSetIds[0] || ''} onChange={(e) => setFormData({ ...formData, studentSetIds: e.target.value ? [e.target.value] : [] })} className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground">
+                    <option value="">{t('activities.dialog.selectStudents')}</option>
+                    {studentOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {activityTags.length > 0 && (
