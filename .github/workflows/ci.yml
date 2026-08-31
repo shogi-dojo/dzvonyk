@@ -1,9 +1,18 @@
 name: CI
 
-# Firebase Web Auth requires a non-empty API key during module initialisation.
-# CI never contacts production Firebase, so use an explicit non-secret placeholder.
+# CI never contacts production services. These explicit placeholders exercise
+# the same fail-fast configuration path without exposing deployment values.
 env:
   VITE_FIREBASE_API_KEY: ci-placeholder-api-key
+  VITE_FIREBASE_AUTH_DOMAIN: ci.invalid
+  VITE_FIREBASE_PROJECT_ID: ci-project
+  VITE_FIREBASE_STORAGE_BUCKET: ci.invalid
+  VITE_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+  VITE_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
+  VITE_FIREBASE_MEASUREMENT_ID: G-TEST000000
+  VITE_FIREBASE_FUNCTIONS_REGION: europe-central2
+  VITE_FEEDBACK_EMAIL: feedback@example.invalid
+  VITE_DONATE_URL: ''
 
 on:
   push:

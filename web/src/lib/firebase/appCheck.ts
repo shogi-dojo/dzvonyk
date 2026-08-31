@@ -1,5 +1,6 @@
 import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
 import type { FirebaseApp } from 'firebase/app';
+import { publicEnv } from '@/config/publicEnv';
 
 let appCheckInstance: AppCheck | null = null;
 
@@ -13,7 +14,7 @@ export function setupAppCheck(app: FirebaseApp): AppCheck | null {
 
   try {
     const isDev = import.meta.env.DEV || window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1';
-    const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+    const siteKey = publicEnv.appCheckSiteKey;
     const win = window as unknown as WindowWithAppCheck;
 
     if (isDev && siteKey) {

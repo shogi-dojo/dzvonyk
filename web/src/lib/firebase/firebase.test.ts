@@ -8,11 +8,16 @@ describe('Firebase Platform Foundation', () => {
     vi.restoreAllMocks();
   });
 
-  it('provides valid default firebase config for dzvonyk', () => {
-    expect(firebaseConfig.projectId).toBe('dzvonyk');
-    expect(firebaseConfig.authDomain).toBe('dzvonyk.firebaseapp.com');
-    expect(firebaseConfig.storageBucket).toBe('dzvonyk.firebasestorage.app');
-    expect(firebaseConfig.appId).toBe('1:395917789018:web:0ef3b1a1a4b6c680d5d563');
+  it('maps Firebase config from Vite environment variables', () => {
+    expect(firebaseConfig).toEqual({
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+      measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+    });
   });
 
   it('initializes core Firebase services with correct regions', () => {
@@ -21,7 +26,7 @@ describe('Firebase Platform Foundation', () => {
     expect(db).toBeDefined();
     expect(storage).toBeDefined();
     expect(functions).toBeDefined();
-    expect(functions.region).toBe('europe-central2');
+    expect(functions.region).toBe(import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION);
   });
 
   it('handles App Check monitor mode gracefully without throwing', () => {

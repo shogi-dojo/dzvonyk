@@ -3,6 +3,7 @@ import { getAuth, type Auth, connectAuthEmulator } from 'firebase/auth';
 import { initializeFirestore, type Firestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, type Functions, connectFunctionsEmulator } from 'firebase/functions';
+import { publicEnv } from '@/config/publicEnv';
 import { firebaseConfig } from './config';
 import { setupAppCheck } from './appCheck';
 
@@ -13,7 +14,7 @@ export const auth: Auth = getAuth(app);
 export const firestore: Firestore = initializeFirestore(app, { ignoreUndefinedProperties: true });
 export const db: Firestore = firestore;
 export const storage: FirebaseStorage = getStorage(app);
-export const functions: Functions = getFunctions(app, 'europe-central2');
+export const functions: Functions = getFunctions(app, publicEnv.firebase.functionsRegion);
 
 // Initialize App Check in monitor mode
 setupAppCheck(app);
