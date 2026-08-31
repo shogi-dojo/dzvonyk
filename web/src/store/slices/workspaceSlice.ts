@@ -10,6 +10,7 @@ import { historyManager } from '@/lib/history';
 import { trackEvent } from '@/lib/analytics';
 import { syncService } from '@/lib/firebase/syncService';
 import { updateInstitutionName } from '@/store/slices/rulesSlice';
+import type { InstitutionPresetId } from '@/lib/institution/presets';
 
 interface WorkspaceState {
   activeSchool: School | null;
@@ -75,9 +76,12 @@ export const switchWorkspaceAction = createAsyncThunk(
 
 export const createSchoolAction = createAsyncThunk(
   'workspace/createSchool',
-  async ({ name, shortName }: { name: string; shortName?: string }, { getState }) => {
+  async (
+    { name, shortName, institutionType }: { name: string; shortName?: string; institutionType?: InstitutionPresetId },
+    { getState }
+  ) => {
     const state = getState() as { auth: { user: { uid: string } | null } };
-    const school = await workspaceManager.createSchool(name, shortName, state.auth.user?.uid);
+    const school = await workspaceManager.createSchool(name, shortName, state.auth.user?.uid, institutionType);
     const newSchoolWorkspaces = await workspaceManager.listWorkspaces(school.id);
     const firstWorkspace = newSchoolWorkspaces[0];
     const context = firstWorkspace

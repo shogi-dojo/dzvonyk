@@ -113,6 +113,27 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
     expect(rules.hoursOfTheDay[0].name).toBe('1 урок');
   });
 
+  it('seeds an academic workspace from the university preset when chosen at creation', async () => {
+    await workspaceManager.init();
+
+    const university = await workspaceManager.createSchool(
+      'Університет', undefined, undefined, 'university'
+    );
+    const workspaces = await workspaceManager.listWorkspaces(university.id);
+    await workspaceManager.switchWorkspace(workspaces[0].id);
+
+    const storedSchool = await db.schools.get(university.id);
+    expect(storedSchool?.institutionType).toBe('university');
+
+    const seeded = (await db.rules.toArray())[0] as TimetableRules;
+    expect(seeded.institutionType).toBe('university');
+    expect(seeded.nHoursPerDay).toBe(
+      INSTITUTION_PRESETS.university.defaults.nHoursPerDay
+    );
+    expect(seeded.hoursOfTheDay).toEqual(buildDefaultHours(INSTITUTION_PRESETS.university));
+    expect(seeded.hoursOfTheDay[0].name).toBe('1 пара');
+  });
+
   it('creates recovery snapshot before restoring a saved version', async () => {
     await workspaceManager.init();
     await db.teachers.put(mockTeacher);

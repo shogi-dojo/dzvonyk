@@ -13,6 +13,8 @@ import {
   restoreSnapshotEnvelopeToDatabase,
 } from './snapshotCodec';
 import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
+import { resolveInstitutionType } from '@/lib/institution/resolveInstitutionType';
+import type { InstitutionPresetId } from '@/lib/institution/presets';
 
 export const MAX_AUTO_VERSIONS = 20;
 
@@ -193,15 +195,19 @@ export class WorkspaceManager {
       if (latestTargetVersion?.snapshotEnvelope) {
         await restoreSnapshotEnvelopeToDatabase(this.database, latestTargetVersion.snapshotEnvelope);
       } else {
-        // Empty workspace initialization
+        // Empty workspace initialization. The school's (immutable) institution
+        // type decides the bell schedule; the rules mirror the type so
+        // snapshots stay portable.
         await this.database.clearAllData();
         const rulesId = uuidv4();
+        const preset = INSTITUTION_PRESETS[resolveInstitutionType(targetSchool)];
         const defaultRules: TimetableRules = {
           id: rulesId,
           mode: 0,
           institutionName: targetSchool.name,
-          nDaysPerWeek: INSTITUTION_PRESETS.school.defaults.nDaysPerWeek,
-          nHoursPerDay: INSTITUTION_PRESETS.school.defaults.nHoursPerDay,
+          institutionType: preset.id,
+          nDaysPerWeek: preset.defaults.nDaysPerWeek,
+          nHoursPerDay: preset.defaults.nHoursPerDay,
           daysOfTheWeek: [
             { name: 'Monday', longName: 'Monday' },
             { name: 'Tuesday', longName: 'Tuesday' },
@@ -209,7 +215,7 @@ export class WorkspaceManager {
             { name: 'Thursday', longName: 'Thursday' },
             { name: 'Friday', longName: 'Friday' },
           ],
-          hoursOfTheDay: buildDefaultHours(INSTITUTION_PRESETS.school),
+          hoursOfTheDay: buildDefaultHours(preset),
           modified: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -234,15 +240,22 @@ export class WorkspaceManager {
   }
 
   /**
-   * Creates a new School
+   * Creates a new School. The institution type is chosen here and never
+   * changes afterwards — it shapes data (bell schedule) as well as labels.
    */
-  async createSchool(name: string, shortName?: string, ownerUid?: string): Promise<School> {
+  async createSchool(
+    name: string,
+    shortName?: string,
+    ownerUid?: string,
+    institutionType: InstitutionPresetId = 'school'
+  ): Promise<School> {
     const now = new Date().toISOString();
     const school: School = {
       id: uuidv4(),
       name,
       shortName,
       ownerUid,
+      institutionType,
       createdAt: now,
       updatedAt: now,
     };
