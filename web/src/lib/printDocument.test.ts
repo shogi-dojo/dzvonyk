@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import i18n from '@/i18n';
 import {
   generateClassPrintHtml,
   generateTeacherWorkloadPrintHtml,
@@ -41,7 +42,7 @@ describe('printDocument', () => {
 
     const html = generateClassPrintHtml('8-А', grid, rules);
     expect(html).toContain('08:30 – 09:15');
-    expect(html).toContain('Чисельник');
+    expect(html).toContain(i18n.t('print.numerator'));
     expect(html).toContain('1 група');
     expect(html).toContain('Практика');
     expect(html).toContain('Ткачук Ігор');
@@ -96,7 +97,7 @@ describe('printDocument', () => {
     expect(html).toContain('Українська література');
     expect(html).toContain('5-А (4)');
     expect(html).toContain('5-А (2)');
-    expect(html).toContain('РАЗОМ ГОДИН ПО ЗАКЛАДУ:');
+    expect(html).toContain(i18n.t('print.totalHoursRow'));
     expect(html).toContain('6');
   });
 
@@ -151,12 +152,12 @@ describe('printDocument', () => {
       activities,
     });
 
-    expect(html).toContain('ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ');
+    expect(html).toContain(i18n.t('print.classesWorkloadTitle'));
     expect(html).toContain('5-А');
     expect(html).toContain('5-Б');
     expect(html).toContain('30,5');
-    expect(html).toContain('Різниця 1 год');
-    expect(html).toContain('Збалансовано');
+    expect(html).toContain(i18n.t('print.diffWarn', { hours: '1' }));
+    expect(html).toContain(i18n.t('print.balanced'));
   });
 
   it('uses full matrix labels when space is available and compact labels on fixed paper sizes', () => {
@@ -268,9 +269,9 @@ describe('printDocument', () => {
       expect(pageBreakMatches).toHaveLength(2);
 
       // Headers for all days
-      expect(html).toContain('РОЗКЛАД УРОКІВ — ПОНЕДІЛОК');
-      expect(html).toContain('РОЗКЛАД УРОКІВ — ВІВТОРОК');
-      expect(html).toContain('РОЗКЛАД УРОКІВ — СЕРЕДА');
+      expect(html).toContain(i18n.t('print.dailyTitle', { day: 'ПОНЕДІЛОК' }));
+      expect(html).toContain(i18n.t('print.dailyTitle', { day: 'ВІВТОРОК' }));
+      expect(html).toContain(i18n.t('print.dailyTitle', { day: 'СЕРЕДА' }));
     });
 
     it('places activity in correct day/hour and renders student class for teachers vs subject for classes', () => {
@@ -331,7 +332,7 @@ describe('printDocument', () => {
       expect(teacherHtml).toContain('Петренко');
       expect(teacherHtml).toContain('І.');
       expect(teacherHtml).toContain('10-Б');
-      expect(teacherHtml).toContain('каб. 302');
+      expect(teacherHtml).toContain(i18n.t('print.roomShort', { room: '302' }));
 
       // 2. rowAxis === 'classes': shows subject name ('Фізика') and room
       const classHtml = generateDailyMatrixPrintHtml({
@@ -348,7 +349,7 @@ describe('printDocument', () => {
 
       expect(classHtml).toContain('10-Б');
       expect(classHtml).toContain('Фізика');
-      expect(classHtml).toContain('каб. 302');
+      expect(classHtml).toContain(i18n.t('print.roomShort', { room: '302' }));
     });
 
     it('renders two shift rows when shifts are configured and one when not', () => {
@@ -420,8 +421,8 @@ describe('printDocument', () => {
 
       // Two unlabelled rows of bell times are unreadable: the завуч cannot tell
       // which row is which shift. Each shift row must name itself.
-      expect(htmlWithShifts).toContain('I зміна');
-      expect(htmlWithShifts).toContain('II зміна');
+      expect(htmlWithShifts).toContain(i18n.t('print.shift1'));
+      expect(htmlWithShifts).toContain(i18n.t('print.shift2'));
       const shiftLabelCount = (htmlWithShifts.match(/class="th-shift-label"/g) || []).length;
       expect(shiftLabelCount).toBe(2);
 

@@ -237,8 +237,8 @@ export function Print() {
   const dailyHeader = useMemo(() => {
     if (!rules) return null;
     return buildDayReportHeader(rules, {
-      shift1Label: t('print.shift1', { defaultValue: 'I зміна' }),
-      shift2Label: t('print.shift2', { defaultValue: 'II зміна' }),
+      shift1Label: t('print.shift1'),
+      shift2Label: t('print.shift2'),
     });
   }, [rules, t]);
 
@@ -452,14 +452,14 @@ export function Print() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title={t('print.title', { defaultValue: 'Друк звітів та розкладу' })}
-          description={t('print.noRulesDesc', { defaultValue: 'Спершу налаштуйте дані закладу в налаштуваннях' })}
+          title={t('print.emptyTitle')}
+          description={t('print.noRulesDesc')}
           icon={<Printer className="h-6 w-6" />}
         />
         <Card>
           <CardContent className="py-12 text-center space-y-4">
-            <p className="text-muted-foreground">{t('print.needRulesPrompt', { defaultValue: 'Дані закладу ще не налаштовано' })}</p>
-            <Button asChild><Link to="/settings">{t('settings.title', { defaultValue: 'Налаштування' })}</Link></Button>
+            <p className="text-muted-foreground">{t('print.needRulesPrompt')}</p>
+            <Button asChild><Link to="/settings">{t('settings.title')}</Link></Button>
           </CardContent>
         </Card>
       </div>
@@ -477,7 +477,7 @@ export function Print() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                {t('print.title', { defaultValue: 'Друк та експорт звітів' })}
+                {t('print.title')}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {rules.institutionName} {latestSolution ? `• ${latestSolution.placements.length} уроків` : ''}
@@ -493,46 +493,46 @@ export function Print() {
               {exportingPdf ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{t('print.generatingPdf', { defaultValue: 'Формування PDF...' })}</span>
+                  <span>{t('print.generatingPdf')}</span>
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  <span>{t('print.savePdfButton', { defaultValue: 'Зберегти PDF' })}</span>
+                  <span>{t('print.savePdfButton')}</span>
                 </>
               )}
             </Button>
             <Button onClick={handlePrint} variant="outline" className="gap-2">
               <Printer className="h-4 w-4" />
-              {t('print.printButton', { defaultValue: 'Друк (Папір)' })}
+              {t('print.printButton')}
             </Button>
             <Button onClick={handlePrintAllClasses} variant="outline" className="gap-2">
               <FileText className="h-4 w-4" />
-              {t('print.printAllClasses', { defaultValue: 'Друк усіх класів' })}
+              {t('print.printAllClasses')}
             </Button>
             <Button onClick={handlePrintAllTeachers} variant="outline" className="gap-2">
               <Users className="h-4 w-4" />
-              {t('print.printAllTeachers', { defaultValue: 'Друк усіх учителів' })}
+              {t('print.printAllTeachers')}
             </Button>
           </div>
         </div>
 
         <Card className="animate-slide-up">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">{t('print.reportSettings', { defaultValue: 'Параметри звіту' })}</CardTitle>
+            <CardTitle className="text-base">{t('print.reportSettings')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Report Type Switcher */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {[
-                { type: 'summary-classes' as ReportType, icon: LayoutGrid, label: 'Зведений (Класи)' },
-                { type: 'summary-teachers' as ReportType, icon: Users, label: 'Зведений (Вчителі)' },
-                { type: 'daily-teachers' as ReportType, icon: CalendarDays, label: t('print.dailyTeachers', { defaultValue: 'По днях (Вчителі)' }) },
-                { type: 'daily-classes' as ReportType, icon: CalendarDays, label: t('print.dailyClasses', { defaultValue: 'По днях (Класи)' }) },
-                { type: 'class' as ReportType, icon: FileText, label: 'Окремий клас' },
-                { type: 'teacher' as ReportType, icon: UserCheck, label: 'Окремий вчитель' },
-                { type: 'teacher-workload' as ReportType, icon: Clock, label: 'Тарифікація / Навантаження' },
-                { type: 'classes-workload' as ReportType, icon: BarChart3, label: 'Навантаження класів (Тижні)' },
+                { type: 'summary-classes' as ReportType, icon: LayoutGrid, label: t('print.reportSummaryClasses') },
+                { type: 'summary-teachers' as ReportType, icon: Users, label: t('print.reportSummaryTeachers') },
+                { type: 'daily-teachers' as ReportType, icon: CalendarDays, label: t('print.dailyTeachers') },
+                { type: 'daily-classes' as ReportType, icon: CalendarDays, label: t('print.dailyClasses') },
+                { type: 'class' as ReportType, icon: FileText, label: t('print.reportClass') },
+                { type: 'teacher' as ReportType, icon: UserCheck, label: t('print.reportTeacher') },
+                { type: 'teacher-workload' as ReportType, icon: Clock, label: t('print.reportWorkload') },
+                { type: 'classes-workload' as ReportType, icon: BarChart3, label: t('print.reportClassesWorkload') },
               ].map((item) => (
                 <Button
                   key={item.type}
@@ -551,7 +551,7 @@ export function Print() {
             <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-border">
               {reportType === 'class' && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Клас:</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t('print.classSelector')}</span>
                   <select
                     value={selectedClassId}
                     onChange={(e) => setSelectedClassId(e.target.value)}
@@ -566,7 +566,7 @@ export function Print() {
 
               {reportType === 'teacher' && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Вчитель:</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t('print.teacherSelector')}</span>
                   <select
                     value={selectedTeacherId}
                     onChange={(e) => setSelectedTeacherId(e.target.value)}
@@ -586,7 +586,7 @@ export function Print() {
                   onChange={(e) => setIncludeApproval(e.target.checked)}
                   className="rounded border-input text-primary focus:ring-primary"
                 />
-                <span>Гриф «ЗАТВЕРДЖУЮ» директора</span>
+                <span>{t('print.approvalToggle')}</span>
               </label>
 
               <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
@@ -596,7 +596,7 @@ export function Print() {
                   onChange={(e) => setColorMode(e.target.checked)}
                   className="rounded border-input text-primary focus:ring-primary"
                 />
-                <span>Кольорове виділення предметів</span>
+                <span>{t('print.colorToggle')}</span>
               </label>
 
               {(reportType === 'summary-classes' ||
@@ -604,15 +604,15 @@ export function Print() {
                 reportType === 'daily-teachers' ||
                 reportType === 'daily-classes') && (
                 <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-xs font-medium text-muted-foreground">Формат аркуша для друку:</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t('print.paperLabel')}</span>
                   <select
                     value={pageSize}
                     onChange={(e) => setPageSize(e.target.value as 'a4' | 'a3' | 'auto')}
                     className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium"
                   >
-                    <option value="auto">Авто (без стиснення для PDF/екрана)</option>
-                    <option value="a3">A3 (великий аркуш)</option>
-                    <option value="a4">A4 (стандартний)</option>
+                    <option value="auto">{t('print.paperAuto')}</option>
+                    <option value="a3">{t('print.paperA3')}</option>
+                    <option value="a4">{t('print.paperA4')}</option>
                   </select>
                 </div>
               )}
@@ -636,11 +636,11 @@ export function Print() {
               {rules.comments && <p className="text-neutral-600 text-xs">{rules.comments}</p>}
             </div>
             <div className="text-left w-64 border-l-2 border-neutral-300 pl-3">
-              <p className="font-bold uppercase tracking-wider text-[11px]">«ЗАТВЕРДЖУЮ»</p>
-              <p className="mt-1">Директор {rules.institutionName}</p>
+              <p className="font-bold uppercase tracking-wider text-[11px]">{t('print.approvalTitle')}</p>
+              <p className="mt-1">{t('print.approvalRole', {name: rules.institutionName})}</p>
               <div className="mt-3 border-b border-black w-40"></div>
-              <p className="text-[10px] text-neutral-500 mt-0.5">(підпис / ПІБ)</p>
-              <p className="mt-1.5 text-[11px]">«_____» ________________ 202___ р.</p>
+              <p className="text-[10px] text-neutral-500 mt-0.5">{t('print.approvalSign')}</p>
+              <p className="mt-1.5 text-[11px]">{t('print.approvalDateBlank')}</p>
             </div>
           </div>
         )}
@@ -648,17 +648,17 @@ export function Print() {
         {/* Title */}
         <div className="text-center mb-5 pb-2 border-b-2 border-neutral-800">
           <h2 className="text-lg font-bold uppercase tracking-wide text-black">
-            {reportType === 'class' && `РОЗКЛАД УРОКІВ ДЛЯ ${selectedClassId} КЛАСУ`}
-            {reportType === 'teacher' && `РОЗКЛАД УРОКІВ ВИКЛАДАЧА: ${selectedTeacherId}`}
-            {reportType === 'summary-classes' && 'ЗВЕДЕНИЙ РОЗКЛАД УРОКІВ УСІХ КЛАСІВ'}
-            {reportType === 'summary-teachers' && 'ЗВЕДЕНИЙ РОЗКЛАД УСІХ ВИКЛАДАЧІВ'}
-            {reportType === 'daily-teachers' && t('print.dailyTeachersTitle', { defaultValue: 'ПОДОБОВИЙ РОЗКЛАД УРОКІВ (ВЧИТЕЛІ)' })}
-            {reportType === 'daily-classes' && t('print.dailyClassesTitle', { defaultValue: 'ПОДОБОВИЙ РОЗКЛАД УРОКІВ (КЛАСИ)' })}
-            {reportType === 'teacher-workload' && 'ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ'}
-            {reportType === 'classes-workload' && 'ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ'}
+            {reportType === 'class' && t('print.classTitleFor', {name: selectedClassId})}
+            {reportType === 'teacher' && t('print.teacherTitle', {name: selectedTeacherId})}
+            {reportType === 'summary-classes' && t('print.summaryClassesTitle')}
+            {reportType === 'summary-teachers' && t('print.summaryTeachersTitle')}
+            {reportType === 'daily-teachers' && t('print.dailyTeachersTitle')}
+            {reportType === 'daily-classes' && t('print.dailyClassesTitle')}
+            {reportType === 'teacher-workload' && t('print.workloadTitle')}
+            {reportType === 'classes-workload' && t('print.classesWorkloadTitle')}
           </h2>
           <p className="text-xs text-neutral-600 mt-0.5">
-            {rules.daysOfTheWeek.length} робочих днів • {rules.hoursOfTheDay.length} уроків на день
+            {t('print.workDaysMeta', {days: rules.daysOfTheWeek.length, hours: rules.hoursOfTheDay.length})}
           </p>
         </div>
 
@@ -666,10 +666,10 @@ export function Print() {
         {reportType !== 'teacher-workload' && reportType !== 'classes-workload' && !latestSolution && (
           <div className="py-12 text-center space-y-4 border border-dashed border-neutral-300 rounded-lg p-6 bg-neutral-50">
             <p className="text-sm text-neutral-600">
-              {t('print.needSolutionPrompt', { defaultValue: 'Розклад ще не сформовано для цієї таблиці. Згенеруйте розклад у розділі «Генерація».' })}
+              {t('print.needSolutionPrompt')}
             </p>
             <Button asChild size="sm">
-              <Link to="/generate">{t('timetable.generateTimetable', { defaultValue: 'Генерація розкладу' })}</Link>
+              <Link to="/generate">{t('timetable.generateTimetable')}</Link>
             </Button>
           </div>
         )}
@@ -679,7 +679,7 @@ export function Print() {
           <table className="w-full border-collapse border border-black text-xs timetable-grid">
             <thead>
               <tr className="bg-neutral-100">
-                <th className="border border-black p-2 font-bold text-center w-16">Урок</th>
+                <th className="border border-black p-2 font-bold text-center w-16">{t('print.lessonCol')}</th>
                 {rules.daysOfTheWeek.map((d) => (
                   <th key={d.name} className="border border-black p-2 font-bold text-center">
                     {d.name}
@@ -715,7 +715,7 @@ export function Print() {
                                 <div className="text-[11px] text-neutral-700">{c.teachers.join(', ')}</div>
                               )}
                               {c.room && (
-                                <div className="text-[10px] text-neutral-600">каб. {c.room}</div>
+                                <div className="text-[10px] text-neutral-600">{t('print.roomShort', {room: c.room})}</div>
                               )}
                             </div>
                           ))}
@@ -788,7 +788,7 @@ export function Print() {
             <table className="w-full border-collapse border border-black text-[11px] timetable-grid">
               <thead>
                 <tr className="bg-neutral-100">
-                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">Час</th>
+                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">{t('print.timeCol')}</th>
                   {summaryClassesGrid.groups.map((g) => (
                     <th key={g.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {g.name}
@@ -845,7 +845,7 @@ export function Print() {
             <table className="w-full border-collapse border border-black text-[11px] timetable-grid">
               <thead>
                 <tr className="bg-neutral-100">
-                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">Час</th>
+                  <th className="border border-black p-1.5 font-bold text-center min-w-[90px]">{t('print.timeCol')}</th>
                   {summaryTeachersGrid.teachers.map((t) => (
                     <th key={t.id} className="border border-black p-1.5 font-bold text-center min-w-[120px]">
                       {t.name}
@@ -899,11 +899,11 @@ export function Print() {
             <thead>
               <tr className="bg-neutral-100">
                 <th className="border border-black p-2 font-bold text-center w-10">№</th>
-                <th className="border border-black p-2 font-bold text-left w-48">ПІБ Викладача</th>
-                <th className="border border-black p-2 font-bold text-left w-44">Предмет</th>
-                <th className="border border-black p-2 font-bold text-left">Класи / підгрупи та години</th>
-                <th className="border border-black p-2 font-bold text-center w-20">Годин</th>
-                <th className="border border-black p-2 font-bold text-center w-24">Разом / тижд.</th>
+                <th className="border border-black p-2 font-bold text-left w-48">{t('print.teacherNameCol')}</th>
+                <th className="border border-black p-2 font-bold text-left w-44">{t('print.subjectCol')}</th>
+                <th className="border border-black p-2 font-bold text-left">{t('print.classesHoursCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-20">{t('print.hoursCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-24">{t('print.totalPerWeekCol')}</th>
               </tr>
             </thead>
             <tbody>
@@ -923,7 +923,7 @@ export function Print() {
                           )}
                           {teacher.targetHours && teacher.targetHours > 0 ? (
                             <span className="block text-[10px] font-normal text-neutral-500 mt-0.5">
-                              (план: {formatHours(teacher.targetHours)})
+                              {t('print.plannedHours', {hours: formatHours(teacher.targetHours)})}
                             </span>
                           ) : null}
                         </td>
@@ -948,7 +948,7 @@ export function Print() {
               })}
               <tr className="bg-neutral-100 font-bold">
                 <td colSpan={5} className="border border-black p-2 text-right">
-                  РАЗОМ ГОДИН ПО ЗАКЛАДУ:
+                  {t('print.totalHoursRow')}
                 </td>
                 <td className="border border-black p-2 text-center text-sm">
                   {formatHours(teacherWorkloadData.totalSchoolHours)}
@@ -964,13 +964,13 @@ export function Print() {
             <thead>
               <tr className="bg-neutral-100">
                 <th className="border border-black p-2 font-bold text-center w-10">№</th>
-                <th className="border border-black p-2 font-bold text-left">Клас</th>
-                <th className="border border-black p-2 font-bold text-center w-24">Чисельник</th>
-                <th className="border border-black p-2 font-bold text-center w-24">Знаменник</th>
-                <th className="border border-black p-2 font-bold text-center w-24">Середнє</th>
-                <th className="border border-black p-2 font-bold text-center w-36">Баланс тижнів</th>
-                <th className="border border-black p-2 font-bold text-center w-20">Предметів</th>
-                <th className="border border-black p-2 font-bold text-center w-20">Уроків</th>
+                <th className="border border-black p-2 font-bold text-left">{t('print.classCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-24">{t('print.numeratorCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-24">{t('print.denominatorCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-24">{t('print.averageCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-36">{t('print.balanceCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-20">{t('print.subjectsCol')}</th>
+                <th className="border border-black p-2 font-bold text-center w-20">{t('print.lessonsCol')}</th>
               </tr>
             </thead>
             <tbody>
@@ -989,11 +989,11 @@ export function Print() {
                   <td className="border border-black p-2 text-center">
                     {c.isBalanced ? (
                       <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                        ✓ Збалансовано
+                        {t('print.balanced')}
                       </span>
                     ) : (
                       <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-900">
-                        ⚠ Різниця {formatHours(c.difference)} год
+                        {t('print.diffWarn', {hours: formatHours(c.difference)})}
                       </span>
                     )}
                   </td>
@@ -1003,7 +1003,7 @@ export function Print() {
               ))}
               <tr className="bg-neutral-100 font-bold">
                 <td colSpan={2} className="border border-black p-2 text-right">
-                  РАЗОМ ПО ЗАКЛАДУ:
+                  {t('print.totalRow')}
                 </td>
                 <td className="border border-black p-2 text-center">{formatHours(classesWorkloadData.totalNumerator)}</td>
                 <td className="border border-black p-2 text-center">{formatHours(classesWorkloadData.totalDenominator)}</td>
@@ -1011,11 +1011,11 @@ export function Print() {
                 <td className="border border-black p-2 text-center">
                   {classesWorkloadData.totalNumerator === classesWorkloadData.totalDenominator ? (
                     <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                      ✓ Збалансовано
+                      {t('print.balanced')}
                     </span>
                   ) : (
                     <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-900">
-                      ⚠ Різниця {formatHours(Math.abs(classesWorkloadData.totalNumerator - classesWorkloadData.totalDenominator))} год
+                      {t('print.diffWarn', {hours: formatHours(Math.abs(classesWorkloadData.totalNumerator - classesWorkloadData.totalDenominator))})}
                     </span>
                   )}
                 </td>

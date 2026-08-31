@@ -16,6 +16,9 @@ import type {
 } from '../../types';
 import { runSanitaryChecks } from './sanitary';
 import { sumWeeklyLoad, type WeeklyLoad } from '../weeklyLoad';
+import i18n from '@/i18n';
+
+const tr = (...args: Parameters<typeof i18n.t>) => i18n.t(...args);
 
 export type IssueSeverity = 'blocking' | 'warning';
 
@@ -126,7 +129,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     blocking.push({
       code: 'RULES_MISSING',
       severity: 'blocking',
-      message: 'Не задано параметри розкладу. Відкрийте розділ «Налаштування» і задайте кількість днів та годин на день.',
+      message: tr('preflight.rulesMissing'),
     });
     return { blocking, warnings, ok: false };
   }
@@ -139,7 +142,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     blocking.push({
       code: 'RULES_ZERO_SLOTS',
       severity: 'blocking',
-      message: `У тижні ${weeklySlots} годин. Задайте додатні значення днів на тиждень і годин на день у «Налаштуваннях».`,
+      message: tr('preflight.rulesZeroSlots', { slots: weeklySlots }),
     });
     return { blocking, warnings, ok: false };
   }
@@ -151,7 +154,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     blocking.push({
       code: 'NO_ACTIVITIES',
       severity: 'blocking',
-      message: 'Немає жодного активного уроку. Додайте уроки перед генерацією розкладу.',
+      message: tr('preflight.noActivities'),
     });
     return { blocking, warnings, ok: false };
   }
@@ -236,14 +239,18 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         code: 'CLASS_OVERLOAD',
         severity: 'blocking',
         entity: { kind: 'class', id: g.id, name: g.name },
-        message: `Клас ${g.name}: заплановано ${load} уроків на тиждень, а в розкладі лише ${weeklySlots} слотів (${nDays} × ${nHours}). Приберіть ${load - weeklySlots} урок(и) або збільште кількість годин на день.`,
+        message: tr('preflight.classOverload', {
+          name: g.name, load, slots: weeklySlots, days: nDays, hours: nHours, excess: load - weeklySlots,
+        }),
       });
     } else if (load / weeklySlots >= WARN_LOAD_RATIO) {
       warnings.push({
         code: 'CLASS_NEAR_CAPACITY',
         severity: 'warning',
         entity: { kind: 'class', id: g.id, name: g.name },
-        message: `Клас ${g.name} завантажено на ${Math.round((load / weeklySlots) * 100)} % (${load}/${weeklySlots}). Мало простору для маневру — можливі складнощі з генерацією.`,
+        message: tr('preflight.classNearCapacity', {
+          name: g.name, percent: Math.round((load / weeklySlots) * 100), load, slots: weeklySlots,
+        }),
       });
     }
   }
@@ -266,7 +273,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         code: 'TEACHER_NO_SLOTS',
         severity: 'blocking',
         entity: { kind: 'teacher', id: tid, name },
-        message: `Вчитель ${name}: заявлено ${load} уроків, але всі слоти позначено як «недоступний». Перевірте обмеження «TeacherNotAvailableTimes».`,
+        message: tr('preflight.teacherNoSlots', { name, load }),
       });
       continue;
     }
@@ -275,14 +282,18 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         code: 'TEACHER_OVERLOAD',
         severity: 'blocking',
         entity: { kind: 'teacher', id: tid, name },
-        message: `Вчитель ${name}: заплановано ${load} уроків, а доступно лише ${available} слотів (${weeklySlots} − ${unavail} недоступних). Зменште навантаження або перегляньте обмеження.`,
+        message: tr('preflight.teacherOverload', {
+          name, load, available, slots: weeklySlots, unavailable: unavail,
+        }),
       });
     } else if (load / available >= WARN_LOAD_RATIO) {
       warnings.push({
         code: 'TEACHER_NEAR_CAPACITY',
         severity: 'warning',
         entity: { kind: 'teacher', id: tid, name },
-        message: `Вчитель ${name}: навантаження ${load}/${available} (${Math.round((load / available) * 100)} %). Може бути важко скласти без «вікон».`,
+        message: tr('preflight.teacherNearCapacity', {
+          name, load, available, percent: Math.round((load / available) * 100),
+        }),
       });
     }
   }
@@ -323,7 +334,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         code: 'ROOM_NO_SLOTS',
         severity: 'blocking',
         entity: { kind: 'room', id: rid, name },
-        message: `Аудиторія ${name}: усі слоти позначено як недоступні, але на неї є жорсткі прив'язки уроків.`,
+        message: tr('preflight.roomNoSlots', { name }),
       });
       continue;
     }
@@ -332,14 +343,16 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         code: 'ROOM_OVERLOAD',
         severity: 'blocking',
         entity: { kind: 'room', id: rid, name },
-        message: `Аудиторія ${name}: жорстко закріплено ${demand} уроків, а вміщує лише ${supply}. Розширте перелік аудиторій для цього предмета або приберіть частину прив'язок.`,
+        message: tr('preflight.roomOverload', { name, demand, supply }),
       });
     } else if (demand / supply >= WARN_LOAD_RATIO) {
       warnings.push({
         code: 'ROOM_NEAR_CAPACITY',
         severity: 'warning',
         entity: { kind: 'room', id: rid, name },
-        message: `Аудиторія ${name}: заповнення ${demand}/${supply} (${Math.round((demand / supply) * 100)} %).`,
+        message: tr('preflight.roomNearCapacity', {
+          name, demand, supply, percent: Math.round((demand / supply) * 100),
+        }),
       });
     }
   }
@@ -362,7 +375,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
       warnings.push({
         code: 'SPLIT_ORPHAN',
         severity: 'warning',
-        message: `Знайдено «розщеплений» урок (activityGroupId=${gid}) без пари для другої підгрупи. Перевірте, чи створено обидві підгрупи для цього предмета.`,
+        message: tr('preflight.splitOrphan', { group: gid }),
       });
     }
   }

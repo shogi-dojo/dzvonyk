@@ -1,5 +1,6 @@
 import type { Activity, Teacher, Room, Subject, TimetableRules, TimetableSolution, StudentsYear, StudentsGroup, StudentsSubgroup, TimeConstraint, ConstraintFields } from '@/types';
 import { deriveSubjectCode } from './subjectCodes';
+import i18n from '@/i18n';
 
 export interface CellData {
   activityId: string;
@@ -143,21 +144,21 @@ export function findSolutionConflicts(
         a2.teacherIds.some((t2) => t1 === t2)
       );
       if (commonTeachers.length > 0) {
-        const msg = `Накладка вчителя (${commonTeachers.join(', ')})`;
+        const msg = i18n.t('timetable.conflict.teacherOverlap', { teachers: commonTeachers.join(', ') });
         addConflict(a1.id, msg);
         addConflict(a2.id, msg);
       }
 
       // 2. Student clash
       if (activitiesShareStudents(a1, a2, groups, subgroups)) {
-        const msg = `Накладка класу / групи`;
+        const msg = i18n.t('timetable.conflict.classOverlap');
         addConflict(a1.id, msg);
         addConflict(a2.id, msg);
       }
 
       // 3. Room clash
       if (p1.roomId && p2.roomId && p1.roomId === p2.roomId) {
-        const msg = `Накладка кабінету`;
+        const msg = i18n.t('timetable.conflict.roomOverlap');
         addConflict(a1.id, msg);
         addConflict(a2.id, msg);
       }
@@ -207,7 +208,7 @@ export function validateSlotMove(params: {
 
   const activity = activities.find((a) => a.id === activityId);
   if (!activity) {
-    return { valid: false, reason: 'Урок не знайдено' };
+    return { valid: false, reason: i18n.t('timetable.conflict.lessonNotFound') };
   }
 
   const duration = activity.duration || 1;
@@ -219,7 +220,7 @@ export function validateSlotMove(params: {
     targetHour < 0 ||
     targetHour + duration > rules.nHoursPerDay
   ) {
-    return { valid: false, reason: 'Слот виходить за межі сітки розкладу' };
+    return { valid: false, reason: i18n.t('timetable.conflict.slotOutOfRange') };
   }
 
   // 2. Shift bounds check
@@ -235,7 +236,11 @@ export function validateSlotMove(params: {
         ) {
           return {
             valid: false,
-            reason: `Поза ${group.shift}-ю зміною класу (${shiftRange.firstHour + 1}–${shiftRange.lastHour + 1} уроки)`,
+            reason: i18n.t('timetable.conflict.outsideShift', {
+              shift: group.shift,
+              from: shiftRange.firstHour + 1,
+              to: shiftRange.lastHour + 1,
+            }),
           };
         }
       }
@@ -257,7 +262,7 @@ export function validateSlotMove(params: {
             const tObj = teachers.find((t) => t.id === rawTid || t.name === rawTid);
             return {
               valid: false,
-              reason: `Вчитель ${tObj?.name || rawTid} не може викладати в цей час`,
+              reason: i18n.t('timetable.conflict.teacherUnavailable', { name: tObj?.name || rawTid }),
             };
           }
         }
@@ -281,7 +286,7 @@ export function validateSlotMove(params: {
           if (times.some((t) => t.day === targetDay && t.hour === targetHour + h)) {
             return {
               valid: false,
-              reason: `Клас не навчається в цей час`,
+              reason: i18n.t('timetable.conflict.classNotStudying'),
             };
           }
         }
@@ -311,7 +316,7 @@ export function validateSlotMove(params: {
     if (commonTeachers.length > 0) {
       return {
         valid: false,
-        reason: `Вчитель ${commonTeachers.join(', ')} вже має урок у цей час`,
+        reason: i18n.t('timetable.conflict.teacherBusy', { teachers: commonTeachers.join(', ') }),
       };
     }
 
@@ -319,7 +324,7 @@ export function validateSlotMove(params: {
     if (activitiesShareStudents(activity, otherAct, studentsGroups, studentsSubgroups, studentsYears)) {
       return {
         valid: false,
-        reason: `Клас або підгрупа вже має інший урок у цей час`,
+        reason: i18n.t('timetable.conflict.classBusy'),
       };
     }
 
@@ -329,7 +334,7 @@ export function validateSlotMove(params: {
       const rObj = rooms.find((r) => r.id === p.roomId || r.name === p.roomId);
       return {
         valid: false,
-        reason: `Кабінет ${rObj?.name || p.roomId} вже зайнятий у цей час`,
+        reason: i18n.t('timetable.conflict.roomBusy', { name: rObj?.name || p.roomId }),
       };
     }
   }
@@ -693,7 +698,7 @@ export function buildClassDayHourMatrix(params: {
     return {
       id: group.id,
       label: group.name,
-      sublabel: group.shift ? `${group.shift}-а зміна` : undefined,
+      sublabel: group.shift ? i18n.t('timetable.shiftBadge', { shift: group.shift }) : undefined,
       availableSlots,
     };
   });

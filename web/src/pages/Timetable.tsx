@@ -354,7 +354,7 @@ export function Timetable() {
     });
 
     if (!validation.valid) {
-      setMoveError(validation.reason || t('timetable.moveError', { defaultValue: 'Не вдалося перемістити урок' }));
+      setMoveError(validation.reason || t('timetable.moveError'));
       setTimeout(() => setMoveError(null), 5000);
       return;
     }
@@ -379,8 +379,11 @@ export function Timetable() {
 
     const previous = latestSolution.placements.find((p) => p.activityId === activityId);
     const moveLabel = previous
-      ? `Перенесено урок ${describeLesson(activityId)}: ${describeSlot(previous.day, previous.hour)} → ${describeSlot(targetDay, targetHour)}`
-      : `Поставлено урок ${describeLesson(activityId)}: ${describeSlot(targetDay, targetHour)}`;
+      ? t('timetable.historyMoved', {lesson: describeLesson(activityId),
+          from: describeSlot(previous.day, previous.hour),
+          to: describeSlot(targetDay, targetHour)})
+      : t('timetable.historyPlaced', {lesson: describeLesson(activityId),
+          slot: describeSlot(targetDay, targetHour)});
     await db.withMutationLabel(moveLabel, () =>
       workspaceRepository.saveSolution(updatedSolution, moveLabel)
     );
@@ -400,7 +403,7 @@ export function Timetable() {
     }
 
     setSelectedActivityForMove(null);
-    setMoveSuccess(t('timetable.moveSuccess', { defaultValue: 'Урок успішно переміщено' }));
+    setMoveSuccess(t('timetable.moveSuccess'));
     setTimeout(() => setMoveSuccess(null), 3000);
   };
 
@@ -478,7 +481,9 @@ export function Timetable() {
 
     const isComplete = updatedPlacements.length >= activities.length;
 
-    const pairLabel = `Зʼєднано як чисельник/знаменник: ${describeLesson(activityAId)} + ${describeLesson(activityBId)} (${describeSlot(targetDay, targetHour)})`;
+    const pairLabel = t('timetable.historyPaired', {a: describeLesson(activityAId),
+      b: describeLesson(activityBId),
+      slot: describeSlot(targetDay, targetHour)});
     await db.withMutationLabel(pairLabel, () =>
       workspaceRepository.saveSolution(
         { ...latestSolution, placements: updatedPlacements, isComplete },
@@ -487,7 +492,7 @@ export function Timetable() {
     );
 
     setSelectedActivityForMove(null);
-    setMoveSuccess(t('timetable.pairedSuccess', { defaultValue: 'Уроки спаровано як чисельник/знаменник' }));
+    setMoveSuccess(t('timetable.pairedSuccess'));
     setTimeout(() => setMoveSuccess(null), 3000);
   };
 
@@ -501,7 +506,8 @@ export function Timetable() {
 
     if (isLocked) {
       if (existingConstraint) {
-        const unlockLabel = `Відкріплено урок ${describeLesson(activityId)} (${describeSlot(day, hour)})`;
+        const unlockLabel = t('timetable.historyUnlocked', {lesson: describeLesson(activityId),
+          slot: describeSlot(day, hour)});
         await db.withMutationLabel(unlockLabel, () =>
           workspaceRepository.deleteTimeConstraint(existingConstraint.id, unlockLabel)
         );
@@ -519,7 +525,8 @@ export function Timetable() {
         active: true,
         comments: 'Locked from Timetable UI',
       };
-      const lockLabel = `Закріплено урок ${describeLesson(activityId)} (${describeSlot(day, hour)})`;
+      const lockLabel = t('timetable.historyLocked', {lesson: describeLesson(activityId),
+        slot: describeSlot(day, hour)});
       await db.withMutationLabel(lockLabel, () =>
         workspaceRepository.saveTimeConstraint(newConstraint, lockLabel)
       );
@@ -687,9 +694,9 @@ export function Timetable() {
   };
 
   const getSelectedDisplayName = () => {
-    if (viewType === 'full-matrix') return t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу (класи)' });
-    if (viewType === 'teacher-matrix') return t('timetable.teacherMatrixTitle', { defaultValue: 'Загальна матриця розкладу (вчителі)' });
-    if (viewType === 'all-classes') return t('timetable.allClassesTitle', { defaultValue: 'Зведений розклад усіх класів' });
+    if (viewType === 'full-matrix') return t('timetable.fullMatrixTitle');
+    if (viewType === 'teacher-matrix') return t('timetable.teacherMatrixTitle');
+    if (viewType === 'all-classes') return t('timetable.allClassesTitle');
     if (viewType === 'teachers') return teachers.find((tt) => tt.name === selectedEntity || tt.id === selectedEntity)?.name || selectedEntity;
     if (viewType === 'students') return studentHierarchy.find((i) => i.id === selectedEntity)?.displayName || selectedEntity;
     if (viewType === 'rooms') return rooms.find((r) => r.name === selectedEntity || r.id === selectedEntity)?.name || selectedEntity;
@@ -721,7 +728,7 @@ export function Timetable() {
       const html = generateTeacherPrintHtml(name, timetableData, rules);
       printHtmlDocument(html);
     } else if (viewType === 'rooms') {
-      const html = generateClassPrintHtml(`Кабінет ${name}`, timetableData, rules);
+      const html = generateClassPrintHtml(t('timetable.roomPrintTitle', {name}), timetableData, rules);
       printHtmlDocument(html);
     } else {
       const html = generateClassPrintHtml(name, timetableData, rules);
@@ -752,7 +759,7 @@ export function Timetable() {
       return generateClassPrintHtml(displayName, grid, rules);
     } else if (entityType === 'rooms') {
       displayName = rooms.find((r) => r.name === entityId || r.id === entityId)?.name || entityId;
-      return generateClassPrintHtml(`Кабінет ${displayName}`, grid, rules);
+      return generateClassPrintHtml(t('timetable.roomPrintTitle', {name: displayName}), grid, rules);
     }
 
     return generateClassPrintHtml(displayName, grid, rules);
@@ -854,7 +861,7 @@ export function Timetable() {
     <div className="space-y-6">
       <PageHeader
         title={t('timetable.title')}
-        description={t('timetable.meta', { name: rules.institutionName, days: rules.nDaysPerWeek, hours: rules.nHoursPerDay })}
+        description={t('timetable.meta', {name: rules.institutionName, days: rules.nDaysPerWeek, hours: rules.nHoursPerDay})}
         icon={<Grid3X3 className="h-6 w-6" aria-hidden="true" />}
         actions={
           <div className="flex gap-2 flex-wrap">
@@ -922,7 +929,7 @@ export function Timetable() {
             <div className="flex items-center gap-2 text-sm font-medium text-primary">
               <Move className="h-4 w-4 animate-pulse" />
               <span>
-                {t('timetable.movePrompt', { defaultValue: 'Оберіть вільний слот для переміщення уроку' })}:{' '}
+                {t('timetable.movePrompt')}:{' '}
                 <strong>{selectedActivityObj?.subjectId}</strong> ({selectedActivityObj?.teacherIds.join(', ')})
               </span>
             </div>
@@ -933,7 +940,7 @@ export function Timetable() {
               className="h-7 text-xs gap-1"
             >
               <X className="h-3.5 w-3.5" />
-              {t('timetable.cancelMove', { defaultValue: 'Скасувати' })}
+              {t('timetable.cancelMove')}
             </Button>
           </CardContent>
         </Card>
@@ -979,10 +986,8 @@ export function Timetable() {
               {latestSolution.isComplete ? t('timetable.complete') : t('timetable.partial')}
             </span>
             <span className="text-muted-foreground">
-              {t('timetable.activitiesMeta', {
-                count: latestSolution.placements.length,
-                when: new Date(latestSolution.generatedAt).toLocaleDateString(),
-              })}
+              {t('timetable.activitiesMeta', {count: latestSolution.placements.length,
+                when: new Date(latestSolution.generatedAt).toLocaleDateString()})}
             </span>
             {conflictsMap.size > 0 && (
               <span className="text-destructive font-semibold">
@@ -1008,12 +1013,12 @@ export function Timetable() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { type: 'full-matrix' as ViewType, icon: Grid3X3, label: t('timetable.byFullMatrix', { defaultValue: 'Загальна матриця (класи)' }), count: groups.length },
-                { type: 'teacher-matrix' as ViewType, icon: UserCircle, label: t('timetable.byTeacherMatrix', { defaultValue: 'Загальна матриця (вчителі)' }), count: teachers.length },
+                { type: 'full-matrix' as ViewType, icon: Grid3X3, label: t('timetable.byFullMatrix'), count: groups.length },
+                { type: 'teacher-matrix' as ViewType, icon: UserCircle, label: t('timetable.byTeacherMatrix'), count: teachers.length },
                 { type: 'teachers' as ViewType, icon: UserCircle, label: t('timetable.byTeacher'), count: teachers.length },
                 { type: 'students' as ViewType, icon: GraduationCap, label: t('timetable.byStudents'), count: studentHierarchy.length },
                 { type: 'rooms' as ViewType, icon: Building2, label: t('timetable.byRoom'), count: rooms.length },
-                { type: 'all-classes' as ViewType, icon: LayoutGrid, label: t('timetable.byAllClasses', { defaultValue: 'Усі класи' }), count: groups.length },
+                { type: 'all-classes' as ViewType, icon: LayoutGrid, label: t('timetable.byAllClasses'), count: groups.length },
               ].map((opt) => (
                 <Button
                   key={opt.type}
@@ -1048,9 +1053,9 @@ export function Timetable() {
                       : viewType === 'all-classes'
                       ? t('timetable.byAllClasses')
                       : viewType === 'full-matrix'
-                      ? t('timetable.byFullMatrix', { defaultValue: 'Матриця' })
+                      ? t('timetable.byFullMatrix')
                       : viewType === 'teacher-matrix'
-                      ? t('timetable.byTeacherMatrix', { defaultValue: 'Матриця вчителів' })
+                      ? t('timetable.byTeacherMatrix')
                       : t('timetable.step2Placeholder'),
                 })}
               </CardTitle>
@@ -1064,24 +1069,24 @@ export function Timetable() {
               ) : viewType === 'full-matrix' ? (
                 <div className="py-8 text-center space-y-2">
                   <Grid3X3 className="h-8 w-8 mx-auto text-primary opacity-80" />
-                  <p className="font-medium text-foreground">{t('timetable.fullMatrixTitle', { defaultValue: 'Загальна матриця розкладу (класи)' })}</p>
-                  <p className="text-xs text-muted-foreground">{t('timetable.fullMatrixDescription', { defaultValue: 'Усі класи по вертикалі, дні та уроки по горизонталі' })}</p>
+                  <p className="font-medium text-foreground">{t('timetable.fullMatrixTitle')}</p>
+                  <p className="text-xs text-muted-foreground">{t('timetable.fullMatrixDescription')}</p>
                 </div>
               ) : viewType === 'teacher-matrix' ? (
                 <div className="py-8 text-center space-y-2">
                   <UserCircle className="h-8 w-8 mx-auto text-primary opacity-80" />
-                  <p className="font-medium text-foreground">{t('timetable.teacherMatrixTitle', { defaultValue: 'Загальна матриця розкладу (вчителі)' })}</p>
-                  <p className="text-xs text-muted-foreground">{t('timetable.teacherMatrixDescription', { defaultValue: 'Усі вчителі по вертикалі, дні та уроки по горизонталі' })}</p>
+                  <p className="font-medium text-foreground">{t('timetable.teacherMatrixTitle')}</p>
+                  <p className="text-xs text-muted-foreground">{t('timetable.teacherMatrixDescription')}</p>
                 </div>
               ) : viewType === 'all-classes' ? (
                 <div className="py-8 text-center space-y-2">
                   <LayoutGrid className="h-8 w-8 mx-auto text-primary opacity-80" />
-                  <p className="font-medium text-foreground">{t('timetable.allClassesTitle', { defaultValue: 'Зведений розклад усіх класів' })}</p>
-                  <p className="text-xs text-muted-foreground">{t('timetable.allClassesDescription', { defaultValue: 'Таблиця уроків для всіх класів одночасно' })}</p>
+                  <p className="font-medium text-foreground">{t('timetable.allClassesTitle')}</p>
+                  <p className="text-xs text-muted-foreground">{t('timetable.allClassesDescription')}</p>
                 </div>
               ) : (
                 <ScrollArea className="h-64">
-                  <div className="space-y-1" role="listbox" aria-label={t('timetable.selectAria', { type: viewType })}>
+                  <div className="space-y-1" role="listbox" aria-label={t('timetable.selectAria', {type: viewType})}>
                     {viewType === 'teachers' &&
                       teachers.map((tt) => (
                         <Button
@@ -1192,7 +1197,7 @@ export function Timetable() {
                         : t('timetable.allClassesTitle')}
                       {' • '}
                       <span className="text-xs text-muted-foreground">
-                        {t('timetable.dragOrClickToMove', { defaultValue: 'Перетягніть урок або натисніть для переміщення' })}
+                        {t('timetable.dragOrClickToMove')}
                       </span>
                     </CardDescription>
                   </div>
@@ -1207,7 +1212,7 @@ export function Timetable() {
                         disabled={matrixZoom <= 0}
                         onClick={() => setMatrixZoom((z) => Math.max(z - 1, 0))}
                         className="h-7 w-7 p-0"
-                        title={t('timetable.zoomOut', { defaultValue: 'Зменшити' })}
+                        title={t('timetable.zoomOut')}
                       >
                         <ZoomOut className="h-3.5 w-3.5" />
                       </Button>
@@ -1220,10 +1225,8 @@ export function Timetable() {
                         data-testid="zoom-slider"
                         onChange={(e) => setMatrixZoom(Number(e.target.value))}
                         className="h-7 w-24 accent-primary cursor-pointer"
-                        aria-label={t('timetable.zoom', { defaultValue: 'Масштаб' })}
-                        title={t('timetable.zoomHint', {
-                          defaultValue: 'Масштаб — на мінімумі видно всі дні',
-                        })}
+                        aria-label={t('timetable.zoom')}
+                        title={t('timetable.zoomHint')}
                       />
                       <Button
                         variant="ghost"
@@ -1232,7 +1235,7 @@ export function Timetable() {
                         disabled={matrixZoom >= MAX_ZOOM}
                         onClick={() => setMatrixZoom((z) => Math.min(z + 1, MAX_ZOOM))}
                         className="h-7 w-7 p-0"
-                        title={t('timetable.zoomIn', { defaultValue: 'Збільшити' })}
+                        title={t('timetable.zoomIn')}
                       >
                         <ZoomIn className="h-3.5 w-3.5" />
                       </Button>
@@ -1244,11 +1247,11 @@ export function Timetable() {
                     data-testid="focus-mode-toggle"
                     onClick={() => setIsFocusMode(!isFocusMode)}
                     className="gap-1.5 text-xs h-8"
-                    title={isFocusMode ? t('timetable.exitFocusMode', { defaultValue: 'Вийти з фокусування' }) : t('timetable.focusMode', { defaultValue: 'Режим фокусування' })}
+                    title={isFocusMode ? t('timetable.exitFocusMode') : t('timetable.focusMode')}
                   >
                     {isFocusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                     <span className="hidden sm:inline">
-                      {isFocusMode ? t('timetable.exitFocusMode', { defaultValue: 'Вийти з фокусування' }) : t('timetable.focusMode', { defaultValue: 'Режим фокусування' })}
+                      {isFocusMode ? t('timetable.exitFocusMode') : t('timetable.focusMode')}
                     </span>
                   </Button>
                   <Button variant="outline" onClick={handleChangeSelection} className="gap-2 h-8 text-xs">
@@ -1279,8 +1282,8 @@ export function Timetable() {
                     className="flex-1 min-h-0"
                     cornerLabel={
                       viewType === 'teacher-matrix'
-                        ? t('teachers.title', { defaultValue: 'Вчителі' })
-                        : t('students.stats.groups', { defaultValue: 'Класи' })
+                        ? t('teachers.title')
+                        : t('students.stats.groups')
                     }
                   />
                   {isFocusMode && statsStrip}
@@ -1317,7 +1320,7 @@ export function Timetable() {
                               {group.name}
                               {group.shift && (
                                 <span className="block text-[10px] font-normal text-muted-foreground">
-                                  {group.shift === 1 ? t('students.dialog.shift1', { defaultValue: '1 зміна' }) : t('students.dialog.shift2', { defaultValue: '2 зміна' })}
+                                  {group.shift === 1 ? t('students.dialog.shift1') : t('students.dialog.shift2')}
                                 </span>
                               )}
                             </th>
@@ -1610,22 +1613,18 @@ export function Timetable() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {t('timetable.pairConfirmTitle', { defaultValue: 'Зʼєднати як чисельник/знаменник?' })}
+              {t('timetable.pairConfirmTitle')}
             </DialogTitle>
             <DialogDescription>
               {pendingPair
-                ? t('timetable.pairConfirmBody', {
-                    a: subjectNameOf(pendingPair.activityAId),
-                    b: subjectNameOf(pendingPair.activityBId),
-                    defaultValue:
-                      'Уроки стануть в один слот: перший у чисельнику, другий у знаменнику.',
-                  })
+                ? t('timetable.pairConfirmBody', {a: subjectNameOf(pendingPair.activityAId),
+                    b: subjectNameOf(pendingPair.activityBId)})
                 : null}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingPair(null)}>
-              {t('timetable.pairConfirmCancel', { defaultValue: 'Скасувати' })}
+              {t('timetable.pairConfirmCancel')}
             </Button>
             <Button
               onClick={() => {
@@ -1635,7 +1634,7 @@ export function Timetable() {
                 void confirmPairActivities(activityAId, activityBId, day, hour);
               }}
             >
-              {t('timetable.pairConfirmAction', { defaultValue: 'Зʼєднати' })}
+              {t('timetable.pairConfirmAction')}
             </Button>
           </DialogFooter>
         </DialogContent>

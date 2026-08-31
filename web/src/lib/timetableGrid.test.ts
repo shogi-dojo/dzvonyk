@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { describe, it, expect } from 'vitest';
 import {
   resolveSubgroupNames,
@@ -120,7 +121,7 @@ describe('timetableGrid', () => {
 
       expect(conflicts.has('act-1')).toBe(true);
       expect(conflicts.has('act-4-num')).toBe(true);
-      expect(conflicts.get('act-1')?.[0]).toContain('Накладка вчителя');
+      expect(conflicts.get('act-1')?.[0]).toContain(i18n.t('timetable.conflict.teacherOverlap', { teachers: 'Вчитель А' }));
     });
 
     it('detects student clash when same students are scheduled simultaneously', () => {
@@ -143,7 +144,7 @@ describe('timetableGrid', () => {
 
       expect(conflicts.has('act-1')).toBe(true);
       expect(conflicts.has('act-2')).toBe(true);
-      expect(conflicts.get('act-1')?.[0]).toContain('Накладка класу');
+      expect(conflicts.get('act-1')?.[0]).toContain(i18n.t('timetable.conflict.classOverlap'));
     });
 
     it('detects room clash when different activities use same room simultaneously', () => {
@@ -166,7 +167,7 @@ describe('timetableGrid', () => {
 
       expect(conflicts.has('act-1')).toBe(true);
       expect(conflicts.has('act-3')).toBe(true);
-      expect(conflicts.get('act-1')?.[0]).toContain('Накладка кабінету');
+      expect(conflicts.get('act-1')?.[0]).toContain(i18n.t('timetable.conflict.roomOverlap'));
     });
 
     it('permits simultaneous numerator and denominator placements for same subgroup without conflict', () => {
@@ -324,7 +325,7 @@ describe('timetableGrid', () => {
         rules: fixture.rules,
       });
       expect(res.valid).toBe(false);
-      expect(res.reason).toContain('Клас не навчається в цей час');
+      expect(res.reason).toContain(i18n.t('timetable.conflict.classNotStudying'));
     });
 
     it('rejects moves clashing with another placed activity for the same teacher or student group', () => {
@@ -345,7 +346,7 @@ describe('timetableGrid', () => {
         rules: fixture.rules,
       });
       expect(studentClash.valid).toBe(false);
-      expect(studentClash.reason).toContain('вже має інший урок');
+      expect(studentClash.reason).toContain(i18n.t('timetable.conflict.classBusy'));
     });
 
     it('allows moving an activity into the same slot as an opposite-parity activity without clash', () => {

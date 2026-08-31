@@ -36,6 +36,9 @@ import {
   computeTeacherWorkloadReportData,
   computeAllClassesWeeklyLoad,
 } from './weeklyLoad';
+import i18n from '@/i18n';
+
+const tr = (...args: Parameters<typeof i18n.t>) => i18n.t(...args);
 
 export interface PrintOptions {
   includeApproval?: boolean;
@@ -280,11 +283,11 @@ function renderHeader(
         ${rules.comments ? `<div>${escapeHtml(rules.comments)}</div>` : ''}
       </div>
       <div class="approval-block">
-        <div class="approval-title">«ЗАТВЕРДЖУЮ»</div>
-        <div>Директор ${escapeHtml(rules.institutionName)}</div>
+        <div class="approval-title">${escapeHtml(tr('print.approvalTitle'))}</div>
+        <div>${escapeHtml(tr('print.approvalRole', { name: rules.institutionName }))}</div>
         <div style="margin-top: 12px; border-bottom: 1px solid #000; width: 140px;"></div>
-        <div style="font-size: 8.5px; color: #666;">(підпис / ПІБ)</div>
-        <div style="margin-top: 4px;">«____» ____________ 202___ р.</div>
+        <div style="font-size: 8.5px; color: #666;">${escapeHtml(tr('print.approvalSign'))}</div>
+        <div style="margin-top: 4px;">${escapeHtml(tr('print.approvalDate'))}</div>
       </div>
     </div>
   `;
@@ -293,8 +296,8 @@ function renderHeader(
 function renderFooter(): string {
   return `
     <div class="footer-row">
-      <div>Заступник директора з НВР: __________________ / __________________</div>
-      <div>Сформовано в системі «Дзвоник»: ${new Date().toLocaleDateString('uk-UA')}</div>
+      <div>${escapeHtml(tr('print.deputy'))}</div>
+      <div>${escapeHtml(tr('print.generatedBy', { date: new Date().toLocaleDateString('uk-UA') }))}</div>
     </div>
   `;
 }
@@ -309,8 +312,8 @@ function escapeHtml(str: string): string {
 }
 
 function renderWeekParity(parity?: 'both' | 'numerator' | 'denominator'): string {
-  if (parity === 'numerator') return '<div class="lesson-details">Чисельник</div>';
-  if (parity === 'denominator') return '<div class="lesson-details">Знаменник</div>';
+  if (parity === 'numerator') return `<div class="lesson-details">${escapeHtml(tr('print.numerator'))}</div>`;
+  if (parity === 'denominator') return `<div class="lesson-details">${escapeHtml(tr('print.denominator'))}</div>`;
   return '';
 }
 
@@ -332,7 +335,7 @@ function renderSingleGridTable(
     <table class="tt-table">
       <thead>
         <tr>
-          <th class="time-col">Урок</th>
+          <th class="time-col">${escapeHtml(tr('print.lessonCol'))}</th>
           ${days.map((d) => `<th>${escapeHtml(d.name)}</th>`).join('')}
         </tr>
       </thead>
@@ -400,7 +403,7 @@ function renderSingleGridTable(
               }
               ${
                 c.room
-                  ? `<div class="lesson-room">каб. ${escapeHtml(c.room)}</div>`
+                  ? `<div class="lesson-room">${escapeHtml(tr('print.roomShort', { room: c.room }))}</div>`
                   : ''
               }
             </div>
@@ -432,15 +435,15 @@ export function generateClassPrintHtml(
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Розклад ${escapeHtml(className)} - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.classDocTitle', { name: className }))} - ${escapeHtml(rules.institutionName)}</title>
   <style>${getPrintStyles(orientation)}</style>
 </head>
 <body>
   <div class="sheet">
     ${renderHeader(rules, includeApproval)}
     <div class="doc-title">
-      <h1>РОЗКЛАД УРОКІВ ${escapeHtml(className)} КЛАСУ</h1>
-      <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
+      <h1>${escapeHtml(tr('print.classTitle', { name: className }))}</h1>
+      <p>${escapeHtml(tr('print.daysHoursMeta', { days: rules.daysOfTheWeek.length, hours: rules.hoursOfTheDay.length }))}</p>
     </div>
     ${renderSingleGridTable(grid, rules, colorMode, true, false, className)}
     ${renderFooter()}
@@ -464,15 +467,15 @@ export function generateTeacherPrintHtml(
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Розклад: ${escapeHtml(teacherName)} - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.teacherDocTitle', { name: teacherName }))} - ${escapeHtml(rules.institutionName)}</title>
   <style>${getPrintStyles(orientation)}</style>
 </head>
 <body>
   <div class="sheet">
     ${renderHeader(rules, includeApproval)}
     <div class="doc-title">
-      <h1>РОЗКЛАД УРОКІВ ВИКЛАДАЧА: ${escapeHtml(teacherName)}</h1>
-      <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
+      <h1>${escapeHtml(tr('print.teacherTitle', { name: teacherName }))}</h1>
+      <p>${escapeHtml(tr('print.daysHoursMeta', { days: rules.daysOfTheWeek.length, hours: rules.hoursOfTheDay.length }))}</p>
     </div>
     ${renderSingleGridTable(grid, rules, colorMode, false, true)}
     ${renderFooter()}
@@ -518,8 +521,8 @@ export function generateAllClassesPrintHtml(params: {
       <div class="sheet page-break">
         ${renderHeader(rules, includeApproval)}
         <div class="doc-title">
-          <h1>РОЗКЛАД УРОКІВ ${escapeHtml(group.name)} КЛАСУ</h1>
-          <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
+          <h1>${escapeHtml(tr('print.classTitle', { name: group.name }))}</h1>
+          <p>${escapeHtml(tr('print.daysHoursMeta', { days: rules.daysOfTheWeek.length, hours: rules.hoursOfTheDay.length }))}</p>
         </div>
         ${renderSingleGridTable(grid, rules, colorMode, true, false, group.name)}
         ${renderFooter()}
@@ -531,7 +534,7 @@ export function generateAllClassesPrintHtml(params: {
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Розклади всіх класів - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.allClassesDocTitle'))} - ${escapeHtml(rules.institutionName)}</title>
   <style>${getPrintStyles(orientation)}</style>
 </head>
 <body>
@@ -576,8 +579,8 @@ export function generateAllTeachersPrintHtml(params: {
       <div class="sheet page-break">
         ${renderHeader(rules, includeApproval)}
         <div class="doc-title">
-          <h1>РОЗКЛАД УРОКІВ ВИКЛАДАЧА: ${escapeHtml(teacher.name)}</h1>
-          <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
+          <h1>${escapeHtml(tr('print.teacherTitle', { name: teacher.name }))}</h1>
+          <p>${escapeHtml(tr('print.daysHoursMeta', { days: rules.daysOfTheWeek.length, hours: rules.hoursOfTheDay.length }))}</p>
         </div>
         ${renderSingleGridTable(grid, rules, colorMode, false, true)}
         ${renderFooter()}
@@ -589,7 +592,7 @@ export function generateAllTeachersPrintHtml(params: {
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Розклади всіх учителів - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.allTeachersDocTitle'))} - ${escapeHtml(rules.institutionName)}</title>
   <style>${getPrintStyles(orientation)}</style>
 </head>
 <body>
@@ -632,7 +635,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Зведений розклад усіх класів - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.summaryClassesDocTitle'))} - ${escapeHtml(rules.institutionName)}</title>
   <style>
     ${getPrintStyles(orientation, pageSize)}
     table.summary-matrix {
@@ -667,13 +670,13 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
   <div class="sheet">
     ${renderHeader(rules, includeApproval)}
     <div class="doc-title">
-      <h1>ЗВЕДЕНИЙ РОЗКЛАД УРОКІВ УСІХ КЛАСІВ</h1>
-      <p>${rules.institutionName}</p>
+      <h1>${escapeHtml(tr('print.summaryClassesTitle'))}</h1>
+      <p>${escapeHtml(rules.institutionName)}</p>
     </div>
     <table class="summary-matrix">
       <thead>
         <tr>
-          <th class="day-header-cell">Час</th>
+          <th class="day-header-cell">${escapeHtml(tr('print.timeCol'))}</th>
           ${matrix.groups.map((g) => `<th>${escapeHtml(g.name)}</th>`).join('')}
         </tr>
       </thead>
@@ -714,9 +717,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
                     }
                     ${
                       c.room
-                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">каб. ${escapeHtml(
-                            c.room
-                          )}</div>`
+                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">${escapeHtml(tr('print.roomShort', { room: c.room }))}</div>`
                         : ''
                     }
                   </div>
@@ -822,7 +823,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Зведений розклад учителів - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.summaryTeachersDocTitle'))} - ${escapeHtml(rules.institutionName)}</title>
   <style>
     ${getPrintStyles(orientation, pageSize)}
     table.summary-matrix {
@@ -857,13 +858,13 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
   <div class="sheet">
     ${renderHeader(rules, includeApproval)}
     <div class="doc-title">
-      <h1>ЗВЕДЕНИЙ РОЗКЛАД УСІХ ВИКЛАДАЧІВ</h1>
-      <p>${rules.institutionName}</p>
+      <h1>${escapeHtml(tr('print.summaryTeachersTitle'))}</h1>
+      <p>${escapeHtml(rules.institutionName)}</p>
     </div>
     <table class="summary-matrix">
       <thead>
         <tr>
-          <th class="day-header-cell">Час</th>
+          <th class="day-header-cell">${escapeHtml(tr('print.timeCol'))}</th>
           ${sortedTeachers.map((t) => `<th>${escapeHtml(t.name)}</th>`).join('')}
         </tr>
       </thead>
@@ -903,9 +904,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
                     }
                     ${
                       c.room
-                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">каб. ${escapeHtml(
-                            c.room
-                          )}</div>`
+                        ? `<div style="font-size: 8px; color: #666; line-height: 1.15; margin-top: 0.5px;">${escapeHtml(tr('print.roomShort', { room: c.room }))}</div>`
                         : ''
                     }
                   </div>
@@ -949,7 +948,7 @@ export function generateTeacherWorkloadPrintHtml(params: {
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Тарифікаційний звіт навантаження - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.workloadDocTitle'))} - ${escapeHtml(rules.institutionName)}</title>
   <style>
     ${getPrintStyles(orientation)}
     table.workload-table {
@@ -972,18 +971,18 @@ export function generateTeacherWorkloadPrintHtml(params: {
   <div class="sheet">
     ${renderHeader(rules, includeApproval)}
     <div class="doc-title">
-      <h1>ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ</h1>
+      <h1>${escapeHtml(tr('print.workloadTitle'))}</h1>
       <p>${rules.institutionName}</p>
     </div>
     <table class="workload-table">
       <thead>
         <tr>
           <th style="width: 30px; text-align: center;">№</th>
-          <th style="width: 170px; text-align: left;">ПІБ Викладача</th>
-          <th style="width: 160px; text-align: left;">Предмет</th>
-          <th style="text-align: left;">Класи / підгрупи та години</th>
-          <th style="width: 65px; text-align: center;">Годин</th>
-          <th style="width: 85px; text-align: center;">Разом / тижд.</th>
+          <th style="width: 170px; text-align: left;">${escapeHtml(tr('print.teacherNameCol'))}</th>
+          <th style="width: 160px; text-align: left;">${escapeHtml(tr('print.subjectCol'))}</th>
+          <th style="text-align: left;">${escapeHtml(tr('print.classesHoursCol'))}</th>
+          <th style="width: 65px; text-align: center;">${escapeHtml(tr('print.hoursCol'))}</th>
+          <th style="width: 85px; text-align: center;">${escapeHtml(tr('print.totalPerWeekCol'))}</th>
         </tr>
       </thead>
       <tbody>
@@ -1007,9 +1006,7 @@ export function generateTeacherWorkloadPrintHtml(params: {
                     }
                     ${
                       teacher.targetHours && teacher.targetHours > 0
-                        ? `<div style="font-weight: normal; font-size: 9px; color: #666; margin-top: 2px;">(план: ${formatHours(
-                            teacher.targetHours
-                          )})</div>`
+                        ? `<div style="font-weight: normal; font-size: 9px; color: #666; margin-top: 2px;">${escapeHtml(tr('print.plannedHours', { hours: formatHours(teacher.targetHours) }))}</div>`
                         : ''
                     }
                   </td>
@@ -1035,7 +1032,7 @@ export function generateTeacherWorkloadPrintHtml(params: {
           })
           .join('')}
         <tr style="background: #f0f0f0; font-weight: bold;">
-          <td colspan="5" style="text-align: right;">РАЗОМ ГОДИН ПО ЗАКЛАДУ:</td>
+          <td colspan="5" style="text-align: right;">${escapeHtml(tr('print.totalHoursRow'))}</td>
           <td style="text-align: center; font-size: 13px;">${formatHours(totalSchoolHours)}</td>
         </tr>
       </tbody>
@@ -1064,7 +1061,7 @@ export function generateClassesWorkloadMatrixPrintHtml(params: {
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <title>Навантаження класів по тижнях - ${escapeHtml(rules.institutionName)}</title>
+  <title>${escapeHtml(tr('print.classesWorkloadDocTitle'))} - ${escapeHtml(rules.institutionName)}</title>
   <style>
     ${getPrintStyles(orientation)}
     table.workload-table {
@@ -1105,20 +1102,20 @@ export function generateClassesWorkloadMatrixPrintHtml(params: {
   <div class="sheet">
     ${renderHeader(rules, includeApproval)}
     <div class="doc-title">
-      <h1>ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ (ЧИСЕЛЬНИК / ЗНАМЕННИК)</h1>
+      <h1>${escapeHtml(tr('print.classesWorkloadTitle'))}</h1>
       <p>${rules.institutionName}</p>
     </div>
     <table class="workload-table">
       <thead>
         <tr>
           <th style="width: 35px; text-align: center;">№</th>
-          <th style="text-align: left;">Клас</th>
-          <th style="width: 80px; text-align: center;">Чисельник</th>
-          <th style="width: 80px; text-align: center;">Знаменник</th>
-          <th style="width: 90px; text-align: center;">Середнє</th>
-          <th style="width: 130px; text-align: center;">Баланс тижнів</th>
-          <th style="width: 70px; text-align: center;">Предметів</th>
-          <th style="width: 60px; text-align: center;">Уроків</th>
+          <th style="text-align: left;">${escapeHtml(tr('print.classCol'))}</th>
+          <th style="width: 80px; text-align: center;">${escapeHtml(tr('print.numeratorCol'))}</th>
+          <th style="width: 80px; text-align: center;">${escapeHtml(tr('print.denominatorCol'))}</th>
+          <th style="width: 90px; text-align: center;">${escapeHtml(tr('print.averageCol'))}</th>
+          <th style="width: 130px; text-align: center;">${escapeHtml(tr('print.balanceCol'))}</th>
+          <th style="width: 70px; text-align: center;">${escapeHtml(tr('print.subjectsCol'))}</th>
+          <th style="width: 60px; text-align: center;">${escapeHtml(tr('print.lessonsCol'))}</th>
         </tr>
       </thead>
       <tbody>
@@ -1143,8 +1140,8 @@ export function generateClassesWorkloadMatrixPrintHtml(params: {
             <td style="text-align: center;">
               ${
                 c.isBalanced
-                  ? '<span class="badge-ok">✓ Збалансовано</span>'
-                  : `<span class="badge-warn">⚠ Різниця ${formatHours(c.difference)} год</span>`
+                  ? `<span class="badge-ok">${escapeHtml(tr('print.balanced'))}</span>`
+                  : `<span class="badge-warn">${escapeHtml(tr('print.diffWarn', { hours: formatHours(c.difference) }))}</span>`
               }
             </td>
             <td style="text-align: center;">${c.subjectsCount}</td>
@@ -1154,17 +1151,15 @@ export function generateClassesWorkloadMatrixPrintHtml(params: {
           )
           .join('')}
         <tr style="background: #f0f0f0; font-weight: bold;">
-          <td colspan="2" style="text-align: right;">РАЗОМ ПО ЗАКЛАДУ:</td>
+          <td colspan="2" style="text-align: right;">${escapeHtml(tr('print.totalRow'))}</td>
           <td style="text-align: center;">${formatHours(data.totalNumerator)}</td>
           <td style="text-align: center;">${formatHours(data.totalDenominator)}</td>
           <td style="text-align: center; font-size: 13px;">${formatHours(data.totalAverage)}</td>
           <td style="text-align: center;">
             ${
               data.totalNumerator === data.totalDenominator
-                ? '<span class="badge-ok">✓ Збалансовано</span>'
-                : `<span class="badge-warn">⚠ Різниця ${formatHours(
-                    Math.abs(data.totalNumerator - data.totalDenominator)
-                  )} год</span>`
+                ? `<span class="badge-ok">${escapeHtml(tr('print.balanced'))}</span>`
+                : `<span class="badge-warn">${escapeHtml(tr('print.diffWarn', { hours: formatHours(Math.abs(data.totalNumerator - data.totalDenominator)) }))}</span>`
             }
           </td>
           <td colspan="2"></td>
@@ -1251,7 +1246,7 @@ export function generateDailyMatrixPrintHtml(params: {
 
   for (let d = 0; d < nDays; d++) {
     const dayObj = rules.daysOfTheWeek?.[d];
-    const dayName = dayObj?.name || `День ${d + 1}`;
+    const dayName = dayObj?.name || tr('print.dayFallback', { n: d + 1 });
     const isLastDay = d === nDays - 1;
 
     let rowsHtml = '';
@@ -1281,7 +1276,7 @@ export function generateDailyMatrixPrintHtml(params: {
             const coloredClass = colorMode && c.subjectColor ? 'colored' : '';
 
             const mainTitle = rowAxis === 'teachers' ? c.students.join(', ') : c.subject;
-            const roomHtml = c.room ? `<div class="cell-room">каб. ${escapeHtml(c.room)}</div>` : '';
+            const roomHtml = c.room ? `<div class="cell-room">${escapeHtml(tr('print.roomShort', { room: c.room }))}</div>` : '';
             const parityHtml = renderWeekParity(c.weekParity);
 
             return `
@@ -1319,9 +1314,9 @@ export function generateDailyMatrixPrintHtml(params: {
       `;
     }
 
-    const reportTitle = `РОЗКЛАД УРОКІВ — ${escapeHtml(dayName.toUpperCase())}`;
+    const reportTitle = escapeHtml(tr('print.dailyTitle', { day: dayName.toUpperCase() }));
 
-    const firstColLabel = rowAxis === 'teachers' ? 'Викладач' : 'Клас';
+    const firstColLabel = rowAxis === 'teachers' ? tr('print.firstColTeachers') : tr('print.firstColClasses');
     // An unlabelled shift row is just two anonymous rows of times, so the shift
     // name occupies the first column of its own row. The axis header therefore
     // spans only the lesson-number row when the shifts are named.
@@ -1379,8 +1374,8 @@ export function generateDailyMatrixPrintHtml(params: {
 
   const pageDocTitle =
     rowAxis === 'teachers'
-      ? `Розклад уроків по днях (вчителі) - ${escapeHtml(rules.institutionName)}`
-      : `Розклад уроків по днях (класи) - ${escapeHtml(rules.institutionName)}`;
+      ? `${escapeHtml(tr('print.dailyTeachersDocTitle'))} - ${escapeHtml(rules.institutionName)}`
+      : `${escapeHtml(tr('print.dailyClassesDocTitle'))} - ${escapeHtml(rules.institutionName)}`;
 
   return `<!DOCTYPE html>
 <html lang="uk">
