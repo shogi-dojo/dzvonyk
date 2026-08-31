@@ -600,18 +600,20 @@ export function Activities() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>{t('activities.dialog.shiftOverride')}</Label>
-                  <select
-                    value={formData.shiftOverride}
-                    onChange={(e) => setFormData({ ...formData, shiftOverride: (parseInt(e.target.value) || 0) as 0 | 1 | 2 })}
-                    className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground"
-                  >
-                    <option value={0}>{t('activities.dialog.shiftOverrideNone')}</option>
-                    <option value={1}>{t('activities.dialog.shift1')}</option>
-                    <option value={2}>{t('activities.dialog.shift2')}</option>
-                  </select>
-                </div>
+                {institutionPreset.features.shifts && (
+                  <div className="grid gap-2">
+                    <Label>{t('activities.dialog.shiftOverride')}</Label>
+                    <select
+                      value={formData.shiftOverride}
+                      onChange={(e) => setFormData({ ...formData, shiftOverride: (parseInt(e.target.value) || 0) as 0 | 1 | 2 })}
+                      className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground"
+                    >
+                      <option value={0}>{t('activities.dialog.shiftOverrideNone')}</option>
+                      <option value={1}>{t('activities.dialog.shift1')}</option>
+                      <option value={2}>{t('activities.dialog.shift2')}</option>
+                    </select>
+                  </div>
+                )}
                 <div className="grid gap-2">
                   <Label>{t('activities.dialog.weekParity')}</Label>
                   <select

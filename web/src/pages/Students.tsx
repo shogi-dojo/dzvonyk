@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
-import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useAppDispatch, useAppSelector, useInstitutionPreset } from '@/hooks';
 import {
   loadStudents,
   addYear,
@@ -39,6 +39,7 @@ type DialogMode = 'year' | 'group' | 'subgroup';
 
 export function Students() {
   const { t } = useTranslation();
+  const institutionPreset = useInstitutionPreset();
   const dispatch = useAppDispatch();
   const { years, groups, subgroups, loading } = useAppSelector((state) => state.students);
   const activities = useAppSelector((state) => state.activities.items);
@@ -387,7 +388,7 @@ export function Students() {
                                     </Badge>
                                   );
                                 })()}
-                                {group.shift ? (
+                                {group.shift && institutionPreset.features.shifts ? (
                                   <Badge variant="secondary" className="text-xs">
                                     {group.shift === 1 ? t('students.dialog.shift1') : t('students.dialog.shift2')}
                                   </Badge>
@@ -479,7 +480,7 @@ export function Students() {
                 <Label htmlFor="numberOfStudents">{t('students.dialog.numberOfStudents')}</Label>
                 <Input id="numberOfStudents" type="number" min="0" value={formData.numberOfStudents} onChange={(e) => setFormData({ ...formData, numberOfStudents: parseInt(e.target.value) || 0 })} />
               </div>
-              {dialogMode === 'group' && (
+              {dialogMode === 'group' && institutionPreset.features.shifts && (
                 <div className="grid gap-2">
                   <Label htmlFor="shift">{t('students.dialog.shift')}</Label>
                   <select

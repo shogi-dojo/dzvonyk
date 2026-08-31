@@ -590,7 +590,8 @@ export function Settings() {
           </Card>
           )}
 
-          {/* Shifts (двозмінне навчання) */}
+          {/* Shifts (двозмінне навчання) — schools only */}
+          {institutionPreset.features.shifts && (
           <Card className="animate-slide-up" style={{ animationDelay: '85ms' }}>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -648,6 +649,7 @@ export function Settings() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* Days of the Week */}
           <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
