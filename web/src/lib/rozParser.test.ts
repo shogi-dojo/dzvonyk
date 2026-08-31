@@ -54,6 +54,26 @@ describe('rozParser', () => {
     expect(res.file.teachers[0].qualifiedSubjects).toEqual(['Математика', 'Фізика']);
   });
 
+  it('does not treat the final multi-word subject as a teacher', () => {
+    const res = parseROZFile(
+      new SyntheticRozBuilder()
+        .setSubjects(['Математика', 'Захист України'])
+        .setTeachers(['Вербич Олена Ростиславівна'])
+        .setClasses(['10-А'])
+        .addLesson(1, 1, 1, 0, 0)
+        .addCard(1, 1, 1)
+        .build()
+    );
+
+    expect(res.file.subjects.map((subject) => subject.name)).toEqual([
+      'Математика',
+      'Захист України',
+    ]);
+    expect(res.file.teachers.map((teacher) => teacher.name)).toEqual([
+      'Вербич Олена Ростиславівна',
+    ]);
+  });
+
   it('uses configured bell ranges when enough periods are present', () => {
     const configured = Array.from({ length: 9 }, (_, index) => ({
       name: `${index + 1} урок`,
