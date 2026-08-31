@@ -71,7 +71,13 @@ export interface StudentsSubgroup extends StudentsSet {
 
 export interface StudentsGroup extends StudentsSet {
   type: typeof STUDENTS_GROUP;
-  subgroups: string[]; // subgroup IDs
+  /**
+   * Subgroup references — ids OR names. Despite the historical "IDs" label,
+   * names are what actually get written: the Students page appends
+   * `newSubgroup.name`, and both importers write names too. Resolve with
+   * `@/lib/studentSetLookup`, never by id alone.
+   */
+  subgroups: string[];
   // Ukrainian schools often run two shifts (зміни). If set, this class attends
   // only the hours in rules.shifts[shift].{firstHour, lastHour}. Individual
   // activities may override via Activity.shiftOverride.
@@ -80,7 +86,13 @@ export interface StudentsGroup extends StudentsSet {
 
 export interface StudentsYear extends StudentsSet {
   type: typeof STUDENTS_YEAR;
-  groups: string[]; // group IDs
+  /**
+   * Group references — ids OR names. See the note on
+   * `StudentsGroup.subgroups`: names dominate in practice, and code that
+   * matched ids only silently dropped every imported stream. Resolve with
+   * `@/lib/studentSetLookup`.
+   */
+  groups: string[];
   divisions: string[][];
   separator: string;
 }

@@ -21,6 +21,19 @@ describe('student set lookup', () => {
     expect(index.get('missing')).toBeUndefined();
   });
 
+  it('resolves the name-shaped references the app and importers actually write', () => {
+    // Students.tsx appends `newGroup.name` to year.groups, fetParser pushes
+    // gName, rozParser pushes className. The "group IDs" label on the type was
+    // wrong, and code that trusted it dropped imported streams entirely.
+    const groups = [
+      { id: 'uuid-a', name: 'КН-11' },
+      { id: 'uuid-b', name: 'КН-12' },
+    ];
+    const yearGroupsAsWritten = ['КН-11', 'КН-12'];
+    const index = createIdOrNameIndex(groups);
+    expect(yearGroupsAsWritten.map((ref) => index.get(ref)?.id)).toEqual(['uuid-a', 'uuid-b']);
+  });
+
   it('lets an id win over another set that is merely named like it', () => {
     // Pathological but possible after an import: one group is literally named
     // after another group's id. The id owner must still resolve to itself.
