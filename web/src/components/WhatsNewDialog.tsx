@@ -28,6 +28,7 @@ export function WhatsNewDialog() {
   const { t } = useTranslation();
   const latest = CHANGELOG_RELEASES[0];
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +52,10 @@ export function WhatsNewDialog() {
         }
       }
 
-      if (!cancelled) setOpen(true);
+      if (!cancelled) {
+        setMounted(true);
+        setOpen(true);
+      }
     };
     void evaluate();
     return () => {
@@ -70,7 +74,11 @@ export function WhatsNewDialog() {
     setOpen(next);
   };
 
-  if (!open) return null;
+  // Deliberately not `if (!open) return null`: unmounting on close cuts Radix's
+  // exit animation mid-flight. `mounted` keeps the dialog in the tree once it
+  // has opened so the close transition can finish; before the first open there
+  // is nothing to animate, so rendering nothing is still correct.
+  if (!mounted) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
