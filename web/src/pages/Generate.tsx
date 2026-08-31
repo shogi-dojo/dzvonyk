@@ -542,7 +542,7 @@ export function Generate() {
                             </Badge>
                           )}
                           <Badge variant="secondary" className="text-[10px]">
-                            {t('generate.history.lessonsCount', { count: sol.placements.length, defaultValue: `${sol.placements.length} уроків` })}
+                            {t('generate.history.lessonsCount', { count: sol.placements.length })}
                           </Badge>
                           {sol.conflicts.length > 0 && (
                             <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">

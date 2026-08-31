@@ -115,7 +115,10 @@
       "generate": "Згенерувати",
       "solutionComplete": "Розклад згенеровано повністю",
       "solutionPartial": "Згенеровано частковий розклад",
-      "solutionMeta": "{{count}} уроків • {{when}}"
+      "solutionMeta_one": "{{count}} урок • {{when}}",
+      "solutionMeta_few": "{{count}} уроки • {{when}}",
+      "solutionMeta_many": "{{count}} уроків • {{when}}",
+      "solutionMeta_other": "{{count}} уроків • {{when}}"
     },
     "stats": {
       "teachers": "Вчителі",
@@ -149,9 +152,12 @@
       }
     },
     "import": {
-      "success": "Успішно імпортовано {{count}} уроків",
       "exportSuccess": "Експортовано успішно!",
-      "unknownError": "Невідома помилка"
+      "unknownError": "Невідома помилка",
+      "success_one": "Успішно імпортовано {{count}} урок",
+      "success_few": "Успішно імпортовано {{count}} уроки",
+      "success_many": "Успішно імпортовано {{count}} уроків",
+      "success_other": "Успішно імпортовано {{count}} уроків"
     }
   },
   "teachers": {
@@ -274,8 +280,6 @@
     "emptyTitleSearch": "Паралелей не знайдено",
     "emptyDescription": "Почніть з додавання першої паралелі учнів.",
     "emptyDescriptionSearch": "Не знайдено паралелей за запитом.",
-    "studentsCount": "{{count}} учнів",
-    "groupsCount": "{{count}} класів",
     "noGroups": "Класів ще немає. Натисніть, щоб додати клас.",
     "confirmDeleteYear": "Видалити паралель «{{name}}» разом з усіма її класами?",
     "confirmDeleteGroup": "Видалити клас «{{name}}» разом з усіма підгрупами?",
@@ -304,7 +308,15 @@
       "shiftNone": "Не задано",
       "shift1": "1-ша зміна",
       "shift2": "2-га зміна"
-    }
+    },
+    "studentsCount_one": "{{count}} учень",
+    "studentsCount_few": "{{count}} учні",
+    "studentsCount_many": "{{count}} учнів",
+    "studentsCount_other": "{{count}} учнів",
+    "groupsCount_one": "{{count}} клас",
+    "groupsCount_few": "{{count}} класи",
+    "groupsCount_many": "{{count}} класів",
+    "groupsCount_other": "{{count}} класів"
   },
   "activities": {
     "title": "Уроки",
@@ -405,7 +417,6 @@
       "buildings": "Корпуси"
     },
     "buildingsSection": "Корпуси",
-    "roomsInBuilding": "{{count}} кабінетів",
     "searchPlaceholder": "Пошук кабінетів…",
     "emptyTitle": "Кабінетів ще немає",
     "emptyTitleSearch": "Кабінетів не знайдено",
@@ -428,7 +439,11 @@
     "buildingDialog": {
       "description": "Корпуси допомагають організувати кабінети за розташуванням.",
       "namePlaceholder": "напр., Головний корпус"
-    }
+    },
+    "roomsInBuilding_one": "{{count}} кабінет",
+    "roomsInBuilding_few": "{{count}} кабінети",
+    "roomsInBuilding_many": "{{count}} кабінетів",
+    "roomsInBuilding_other": "{{count}} кабінетів"
   },
   "constraints": {
     "title": "Обмеження",
@@ -503,13 +518,16 @@
       "studentsMaxHours": "{{students}}: макс. {{count}} год",
       "studentsMaxGaps": "{{students}}: макс. {{count}} вікон/день",
       "studentsMaxGapsWeek": "{{students}}: макс. {{count}} вікон/тиж.",
-      "minDaysBetween": "{{count}} уроків, мін. {{days}} днів між ними",
       "activityAt": "Урок у день {{day}}, година {{hour}}",
       "basicSpace": "Базова валідність за простором",
       "roomSlots": "{{room}}: {{count}} слотів",
       "activityToRoom": "Урок → {{room}}",
       "subjectToRoom": "{{subject}} → {{room}}",
-      "teacherToRoom": "{{teacher}} → {{room}}"
+      "teacherToRoom": "{{teacher}} → {{room}}",
+      "minDaysBetween_one": "{{count}} урок, мін. {{days}} днів між ними",
+      "minDaysBetween_few": "{{count}} уроки, мін. {{days}} днів між ними",
+      "minDaysBetween_many": "{{count}} уроків, мін. {{days}} днів між ними",
+      "minDaysBetween_other": "{{count}} уроків, мін. {{days}} днів між ними"
     },
     "typeLabels": {
       "BasicCompulsoryTime": "Базове обов'язкове часове",
@@ -678,11 +696,20 @@
       "studentsUnavail": "{{students}}: {{count}} недоступних слотів",
       "studentsMaxHours": "{{students}}: макс. {{count}} год/день",
       "studentsMaxGaps": "{{students}}: макс. {{count}} вікон/тиж.",
-      "minDaysBetween": "{{count}} уроків, мін. {{days}} днів між ними",
-      "sameStart": "{{count}} уроків мають початися разом",
-      "notOverlapping": "{{count}} уроків не мають перетинатись",
       "activityAt": "Урок у день {{day}}, година {{hour}}",
-      "activityAtLocked": "Урок у день {{day}}, година {{hour}} (зафіксовано)"
+      "activityAtLocked": "Урок у день {{day}}, година {{hour}} (зафіксовано)",
+      "minDaysBetween_one": "{{count}} урок, мін. {{days}} днів між ними",
+      "minDaysBetween_few": "{{count}} уроки, мін. {{days}} днів між ними",
+      "minDaysBetween_many": "{{count}} уроків, мін. {{days}} днів між ними",
+      "minDaysBetween_other": "{{count}} уроків, мін. {{days}} днів між ними",
+      "sameStart_one": "{{count}} урок має початися разом",
+      "sameStart_few": "{{count}} уроки мають початися разом",
+      "sameStart_many": "{{count}} уроків мають початися разом",
+      "sameStart_other": "{{count}} уроків мають початися разом",
+      "notOverlapping_one": "{{count}} урок не має перетинатись",
+      "notOverlapping_few": "{{count}} уроки не мають перетинатись",
+      "notOverlapping_many": "{{count}} уроків не мають перетинатись",
+      "notOverlapping_other": "{{count}} уроків не мають перетинатись"
     },
     "unknown": "Невідомо",
     "noTeacher": "Без вчителя",
@@ -827,7 +854,6 @@
     "bulkCreatingZip": "Створення ZIP-файлу…",
     "complete": "Повний розклад",
     "partial": "Частковий розклад",
-    "activitiesMeta": "{{count}} уроків • {{when}}",
     "regenerate": "Перегенерувати",
     "noRulesTitle": "Розклад не налаштовано",
     "noRulesDescription": "Спершу задайте параметри розкладу, щоб переглядати його",
@@ -924,7 +950,11 @@
       "teacherBusy": "Вчитель {{teachers}} вже має урок у цей час",
       "classBusy": "Клас або підгрупа вже має інший урок у цей час",
       "roomBusy": "Кабінет {{name}} вже зайнятий у цей час"
-    }
+    },
+    "activitiesMeta_one": "{{count}} урок • {{when}}",
+    "activitiesMeta_few": "{{count}} уроки • {{when}}",
+    "activitiesMeta_many": "{{count}} уроків • {{when}}",
+    "activitiesMeta_other": "{{count}} уроків • {{when}}"
   },
   "settings": {
     "title": "Налаштування",
@@ -1037,7 +1067,10 @@
       "confirmDelete": "Ви дійсно бажаєте видалити цей варіант розкладу?",
       "complete": "Повний",
       "partial": "Частковий",
-      "lessonsCount": "{{count}} уроків"
+      "lessonsCount_one": "{{count}} урок",
+      "lessonsCount_few": "{{count}} уроки",
+      "lessonsCount_many": "{{count}} уроків",
+      "lessonsCount_other": "{{count}} уроків"
     },
     "precheck": {
       "title": "Попередня перевірка",
@@ -1070,8 +1103,11 @@
     "lastSolution": {
       "success": "Розклад згенеровано успішно",
       "partial": "Створено частковий розклад",
-      "placed": "{{count}} уроків розміщено • {{when}}",
-      "view": "Переглянути розклад"
+      "view": "Переглянути розклад",
+      "placed_one": "{{count}} урок розміщено • {{when}}",
+      "placed_few": "{{count}} уроки розміщено • {{when}}",
+      "placed_many": "{{count}} уроків розміщено • {{when}}",
+      "placed_other": "{{count}} уроків розміщено • {{when}}"
     },
     "tips": {
       "title": "Поради",
@@ -1105,9 +1141,6 @@
     "constraintsNotImported": "Обмеження вчителів та простору не імпортовано — перевірте доступність",
     "roomsNotImported": "Кабінети відсутні у файлі aSc",
     "unplacedHours": "{{count}} год уроків не розміщено в сітці aSc",
-    "skippedLessons": "Пропущено {{count}} нерозпізнаних записів уроків",
-    "droppedCards": "Пропущено {{count}} зайвих розміщень, що не відповідають навантаженню",
-    "duplicateNamesResolved": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
     "sampleLessonsTitle": "Приклади розпізнаних уроків",
     "hoursSuffix": "год",
     "dangerNotice": "Це замінить усі поточні дані.",
@@ -1115,7 +1148,19 @@
     "cancelButton": "Скасувати",
     "success": "Розклад .roz успішно імпортовано",
     "successDetail": "Успішно імпортовано: {{classes}} класів, {{teachers}} вчителів, {{subjects}} предметів, {{hours}} год навантаження",
-    "error": "Не вдалося імпортувати файл .roz"
+    "error": "Не вдалося імпортувати файл .roz",
+    "skippedLessons_one": "Пропущено {{count}} нерозпізнаний запис уроків",
+    "skippedLessons_few": "Пропущено {{count}} нерозпізнаних записи уроків",
+    "skippedLessons_many": "Пропущено {{count}} нерозпізнаних записів уроків",
+    "skippedLessons_other": "Пропущено {{count}} нерозпізнаних записів уроків",
+    "duplicateNamesResolved_one": "Знайдено {{count}} однакову назву, автоматично додано суфікси",
+    "duplicateNamesResolved_few": "Знайдено {{count}} однакові назви, автоматично додано суфікси",
+    "duplicateNamesResolved_many": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
+    "duplicateNamesResolved_other": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
+    "droppedCards_one": "Пропущено {{count}} зайве розміщення, що не відповідає навантаженню",
+    "droppedCards_few": "Пропущено {{count}} зайві розміщення, що не відповідають навантаженню",
+    "droppedCards_many": "Пропущено {{count}} зайвих розміщень, що не відповідають навантаженню",
+    "droppedCards_other": "Пропущено {{count}} зайвих розміщень, що не відповідають навантаженню"
   },
   "analytics": {
     "bannerTitle": "Анонімна статистика",
