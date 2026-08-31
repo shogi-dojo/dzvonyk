@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppDispatch } from '@/hooks';
+import { useAppDispatch, useInstitutionPreset } from '@/hooks';
 import { setRules } from '@/store/slices/rulesSlice';
 import { setTeachers } from '@/store/slices/teachersSlice';
 import { setSubjects } from '@/store/slices/subjectsSlice';
@@ -38,6 +38,8 @@ function serializeDates<T>(obj: T): T {
 export function AppInitializer({ children }: AppInitializerProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  // Keeps the i18n language in sync with the active institution's preset.
+  useInstitutionPreset();
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
