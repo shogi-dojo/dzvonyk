@@ -2,13 +2,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from '@/store';
 import { FAQ } from './FAQ';
 
 function renderFAQ(initialEntries: string[] = ['/']) {
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <FAQ />
-    </MemoryRouter>
+    <Provider store={store}>
+      <MemoryRouter initialEntries={initialEntries}>
+        <FAQ />
+      </MemoryRouter>
+    </Provider>
   );
 }
 
