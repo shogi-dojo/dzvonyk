@@ -43,6 +43,7 @@ import {
   type FAQItem,
 } from '@/lib/faq/faqData';
 import { searchFAQ } from '@/lib/faq/faqSearch';
+import { useInstitutionPreset } from '@/hooks';
 
 const CATEGORY_ICONS: Record<FAQCategoryId, React.ComponentType<{ className?: string }>> = {
   start: Rocket,
@@ -94,12 +95,15 @@ export function FAQ() {
     return () => clearTimeout(timer);
   }, [targetId]);
 
+  const { id: presetId } = useInstitutionPreset();
+
   const filteredItems = useMemo(() => {
     return searchFAQ({
       query: searchQuery,
       categoryId: activeCategory,
+      preset: presetId,
     });
-  }, [searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory, presetId]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: FAQ_ITEMS.length };

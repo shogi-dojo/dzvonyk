@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, it, expect } from 'vitest';
-import { FAQ_CATEGORIES, FAQ_ITEMS } from './faqData';
+import { FAQ_CATEGORIES, FAQ_ITEMS, resolveFaqItem } from './faqData';
 import { searchFAQ, normalizeSearchString } from './faqSearch';
+import { searchFAQ as searchWithPreset } from './faqSearch';
 
 describe('FAQ Knowledge Base Catalog', () => {
   it('contains all 7 required categories', () => {
@@ -96,5 +97,50 @@ describe('FAQ Search Engine', () => {
   it('returns empty array when no match is found', () => {
     const results = searchFAQ({ query: 'неіснуючеслово12345xyz' });
     expect(results).toEqual([]);
+  });
+});
+
+
+describe('FAQ per-preset overrides', () => {
+  it('resolves the base item untouched for school when no override applies', () => {
+    const item = FAQ_ITEMS.find((i) => i.id === 'entities-students-hierarchy')!;
+    expect(resolveFaqItem(item, 'school')).toBe(item);
+    expect(resolveFaqItem(item, 'gymnasium')).toBe(item);
+  });
+
+  it('returns academic prose for university and college, keeping identity fields', () => {
+    const item = FAQ_ITEMS.find((i) => i.id === 'entities-students-hierarchy')!;
+    for (const preset of ['university', 'college'] as const) {
+      const resolved = resolveFaqItem(item, preset);
+      expect(resolved.id).toBe(item.id);
+      expect(resolved.categoryId).toBe(item.categoryId);
+      expect(resolved.question).toContain('груп');
+      expect(resolved.question).not.toContain('класи');
+      expect(resolved.answer).toContain('Курс');
+      expect(resolved.keywords).toContain('студенти');
+    }
+  });
+
+  it('explains the sanitary check is disabled for academic presets', () => {
+    const item = FAQ_ITEMS.find((i) => i.id === 'constraints-sanitary-rules')!;
+    expect(resolveFaqItem(item, 'university').question).toContain('Чи застосовується');
+    expect(resolveFaqItem(item, 'university').answer).toContain('вимкена');
+  });
+
+  it('search ranks items resolved in the preset terminology', () => {
+    const schoolResults = searchFAQ({ query: 'вчитель навантаження' });
+    expect(schoolResults.some((i) => i.id === 'entities-teacher-workload')).toBe(true);
+
+    const academicResults = searchWithPreset({ query: 'викладач навантаження', preset: 'university' });
+    expect(academicResults.some((i) => i.id === 'entities-teacher-workload')).toBe(true);
+  });
+
+  it('keeps every override partial: base prose fills the gaps', () => {
+    for (const item of FAQ_ITEMS) {
+      for (const override of Object.values(item.overrides ?? {})) {
+        expect(override.question === undefined || override.question.length > 10).toBe(true);
+        expect(override.answer === undefined || override.answer.length > 30).toBe(true);
+      }
+    }
   });
 });

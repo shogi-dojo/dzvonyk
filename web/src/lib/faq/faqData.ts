@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import type { InstitutionPresetId } from '@/lib/institution/presets';
+
 export type FAQCategoryId =
   | 'start'
   | 'entities'
@@ -14,6 +16,17 @@ export interface FAQCategory {
   title: string;
   description: string;
   iconName: string;
+}
+
+/**
+ * A handwritten per-preset variant of an item's prose. Only the fields that
+ * actually read differently are supplied — the rest falls back to the base
+ * item. Deliberately full sentences: school terminology is never templated in.
+ */
+export interface FaqPresetOverride {
+  question?: string;
+  answer?: string;
+  keywords?: string[];
 }
 
 export interface FAQItem {
@@ -31,6 +44,24 @@ export interface FAQItem {
   screenshotId?: string;
   screenshotCaption?: string;
   screenshotAlt?: string;
+  overrides?: Partial<Record<InstitutionPresetId, FaqPresetOverride>>;
+}
+
+/**
+ * The item as the given institution preset should read it.
+ */
+export function resolveFaqItem(
+  item: FAQItem,
+  preset: InstitutionPresetId
+): FAQItem {
+  const override = item.overrides?.[preset];
+  if (!override) return item;
+  return {
+    ...item,
+    question: override.question ?? item.question,
+    answer: override.answer ?? item.answer,
+    keywords: override.keywords ?? item.keywords,
+  };
 }
 
 export const FAQ_CATEGORIES: FAQCategory[] = [
@@ -149,6 +180,20 @@ export const FAQ_ITEMS: FAQItem[] = [
     screenshotId: '04-teachers-workload',
     screenshotCaption: 'Картка вчителя зі зведеним навантаженням та доступністю',
     screenshotAlt: 'Список викладачів із зазначенням тижневих годин',
+    overrides: {
+      university: {
+        question: 'Як розраховується та контролюється тижневе навантаження викладача?',
+        answer:
+          'На сторінці «Викладачі» біля кожного викладача відображається сумарне навантаження в годинах за тиждень. Якщо в викладача є пари з дробовим навантаженням (наприклад, 1.5 години на тиждень через чергування чисельник/знаменник), система точно враховує півгодини. Переглянути детальний розпис можна у вкладці навантаження або у тарифікаційному звіті в розділі друку.',
+        keywords: ['навантаження', 'викладач', 'години', 'тиждень', 'ставка', 'тарифікація'],
+      },
+      college: {
+        question: 'Як розраховується та контролюється тижневе навантаження викладача?',
+        answer:
+          'На сторінці «Викладачі» біля кожного викладача відображається сумарне навантаження в годинах за тиждень. Якщо в викладача є пари з дробовим навантаженням (наприклад, 1.5 години на тиждень через чергування чисельник/знаменник), система точно враховує півгодини. Переглянути детальний розпис можна у вкладці навантаження або у тарифікаційному звіті в розділі друку.',
+        keywords: ['навантаження', 'викладач', 'години', 'тиждень', 'ставка', 'тарифікація'],
+      },
+    },
   },
   {
     id: 'entities-fractional-parity',
@@ -194,6 +239,20 @@ export const FAQ_ITEMS: FAQItem[] = [
     screenshotId: '05-students-hierarchy',
     screenshotCaption: 'Ієрархічна структура класів та підгруп',
     screenshotAlt: 'Дерево класів та підгруп у розкладі',
+    overrides: {
+      university: {
+        question: 'Як правильно створити групи та поділ на підгрупи?',
+        answer:
+          'У розділі «Студенти» створено 3-рівневу ієрархію: Курс (наприклад, 1 курс) -> Група (КН-11) -> Підгрупи (1 група / 2 група). Це дозволяє призначати пари як для цілої групи, так і для окремих підгруп з одночасним проведенням різних предметів в один і той самий час, а також чіпляти потік одразу до цілого курсу.',
+        keywords: ['групи', 'підгрупи', 'курс', 'поділ', 'ієрархія', 'студенти', 'потік'],
+      },
+      college: {
+        question: 'Як правильно створити групи та поділ на підгрупи?',
+        answer:
+          'У розділі «Студенти» створено 3-рівневу ієрархію: Курс (наприклад, 2 курс) -> Група (КН-21) -> Підгрупи (1 група / 2 група). Це дозволяє призначати пари як для цілої групи, так і для окремих підгруп з одночасним проведенням різних предметів в один і той самий час.',
+        keywords: ['групи', 'підгрупи', 'курс', 'поділ', 'ієрархія', 'студенти'],
+      },
+    },
   },
   {
     id: 'entities-shifts-bells',
@@ -206,6 +265,20 @@ export const FAQ_ITEMS: FAQItem[] = [
     screenshotId: '03-settings-calendar-sanitary',
     screenshotCaption: 'Налаштування календаря, змін навчання та розкладу дзвінків',
     screenshotAlt: 'Екран налаштування дзвінків і змін',
+    overrides: {
+      university: {
+        question: 'Як налаштувати розклад дзвінків (дзвінки пар)?',
+        answer:
+          'У «Налаштуваннях» задайте початок і кінець кожної пари — типово пара триває 95 хвилин (дві академічні години з перервою). Поділ на зміни застосовується лише в школах, тому для університету він вимкнений: усі пари плануються в єдиному вікні дня.',
+        keywords: ['дзвінки', 'час пар', 'періоди', 'графік', 'пара'],
+      },
+      college: {
+        question: 'Як налаштувати розклад дзвінків (дзвінки пар)?',
+        answer:
+          'У «Налаштуваннях» задайте початок і кінець кожної пари — типово пара триває 80 хвилин. Поділ на зміни застосовується лише в школах, тому для коледжу він вимкнений: усі пари плануються в єдиному вікні дня.',
+        keywords: ['дзвінки', 'час пар', 'періоди', 'графік', 'пара'],
+      },
+    },
   },
   {
     id: 'entities-rooms-home',
@@ -275,6 +348,20 @@ export const FAQ_ITEMS: FAQItem[] = [
     screenshotId: '03-settings-calendar-sanitary',
     screenshotCaption: 'Увімкнення перевірки тижневого навантаження за МОЗ №2205',
     screenshotAlt: 'Блок санітарних норм у налаштуваннях',
+    overrides: {
+      university: {
+        question: 'Чи застосовується перевірка санітарного регламенту МОЗ №2205?',
+        answer:
+          'Ні. Санітарний регламент МОЗ №2205 регулює лише заклади загальної середньої освіти, тому для університету ця перевірка вимкена й не додає попереджень. Навантаження викладачів і груп контролюється загальною діагностикою перед генерацією.',
+        keywords: ['санітарні', 'норми', 'моз 2205', 'вимкнена', 'університет'],
+      },
+      college: {
+        question: 'Чи застосовується перевірка санітарного регламенту МОЗ №2205?',
+        answer:
+          'Ні. Санітарний регламент МОЗ №2205 регулює лише заклади загальної середньої освіти, тому для коледжу ця перевірка вимкена й не додає попереджень. Навантаження викладачів і груп контролюється загальною діагностикою перед генерацією.',
+        keywords: ['санітарні', 'норми', 'моз 2205', 'вимкнена', 'коледж'],
+      },
+    },
   },
   {
     id: 'constraints-preflight-check',

@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { FAQ_ITEMS, type FAQItem, type FAQCategoryId } from './faqData';
+import { FAQ_ITEMS, resolveFaqItem, type FAQItem, type FAQCategoryId } from './faqData';
+import type { InstitutionPresetId } from '@/lib/institution/presets';
 
 export interface FAQSearchOptions {
   query?: string;
   categoryId?: FAQCategoryId | 'all';
+  /** Institution preset whose terminology the items should be resolved in. */
+  preset?: InstitutionPresetId;
 }
 
 /**
@@ -20,10 +23,10 @@ export function normalizeSearchString(text: string): string {
  * Filters and ranks FAQ items based on category and query
  */
 export function searchFAQ(options: FAQSearchOptions = {}): FAQItem[] {
-  const { query = '', categoryId = 'all' } = options;
+  const { query = '', categoryId = 'all', preset } = options;
   const normalizedQuery = normalizeSearchString(query);
 
-  let items = FAQ_ITEMS;
+  let items = FAQ_ITEMS.map((item) => resolveFaqItem(item, preset ?? 'school'));
 
   if (categoryId !== 'all') {
     items = items.filter((item) => item.categoryId === categoryId);
