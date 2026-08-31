@@ -763,7 +763,7 @@ export function Timetable() {
     }
 
     return generateClassPrintHtml(displayName, grid, rules);
-  }, [rules, latestSolution, activities, teachers, subjects, rooms, studentHierarchy]);
+  }, [rules, latestSolution, activities, teachers, subjects, rooms, studentHierarchy, t]);
 
   const handleExport = () => {
     if (!selectedEntity || !viewType || !rules) return;

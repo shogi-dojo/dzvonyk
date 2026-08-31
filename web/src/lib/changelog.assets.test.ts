@@ -8,7 +8,7 @@ import { CHANGELOG_RELEASES } from './changelog';
 // formats under public/whats-new/. Versioned filenames mean nothing is ever
 // overwritten: 1.6.0.png stays forever, old installs can still load it.
 describe('What\'s New Screenshot Assets Integrity', () => {
-  const whatsNewDir = path.resolve(__dirname, '../../../public/whats-new');
+  const whatsNewDir = path.resolve(__dirname, '../../public/whats-new');
 
   it('ships png and webp for every release that declares a screenshotId', () => {
     // The newest release gains its screenshotId together with the version

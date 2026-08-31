@@ -4,14 +4,14 @@ import { CHANGELOG_RELEASES } from './changelog';
 import { APP_VERSION } from './version';
 
 describe('Changelog Milestones Data', () => {
-  it('contains current version 1.5.0 as the first release milestone', () => {
+  it('contains current version 1.6.0 as the first release milestone', () => {
     expect(CHANGELOG_RELEASES[0].version).toBe(APP_VERSION);
-    expect(CHANGELOG_RELEASES[0].version).toBe('1.5.0');
+    expect(CHANGELOG_RELEASES[0].version).toBe('1.6.0');
   });
 
   it('contains all milestones from v1.5.0 through v1.0.0', () => {
     const versions = CHANGELOG_RELEASES.map((r) => r.version);
-    expect(versions).toEqual(['1.5.0', '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.0']);
+    expect(versions).toEqual(['1.6.0', '1.5.0', '1.4.0', '1.3.0', '1.2.0', '1.1.0', '1.0.0']);
   });
 
   it('ensures each milestone has valid title, date, badge, and non-empty items', () => {
