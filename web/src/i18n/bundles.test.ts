@@ -201,7 +201,7 @@ describe('preset resource bundles', () => {
   it('resolves academic terminology at runtime and falls back for everything else', () => {
     void i18n.changeLanguage('uk-university');
     expect(i18n.t('nav.teachers')).toBe('Викладачі');
-    expect(i18n.t('timetable.lessonLabelFull', { count: 2 })).toBe('2 пара');
+    expect(i18n.t('timetable.lessonLabelFull', { number: 2 })).toBe('2 пара');
     expect(i18n.t('preflight.classOverload', { name: 'КН-21', load: 40, slots: 30, days: 5, hours: 6, excess: 10 }))
       .toContain('Група КН-21');
     // Untouched keys fall through to the complete school bundle.
@@ -224,7 +224,7 @@ describe('preset resource bundles', () => {
     void i18n.changeLanguage('uk-university');
     expect(i18n.t('print.approvalRole', { name: 'Університет' })).toContain('Ректор');
     void i18n.changeLanguage('uk');
-    expect(i18n.t('timetable.lessonLabelFull', { count: 2 })).toBe('2 урок');
+    expect(i18n.t('timetable.lessonLabelFull', { number: 2 })).toBe('2 урок');
   });
 
   it('college inherits every university override it does not itself redefine', () => {

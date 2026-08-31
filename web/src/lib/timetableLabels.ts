@@ -20,9 +20,13 @@ export function formatTimetableLessonLabel(
   lessonNumber: number,
   compact = false
 ): string {
+  // `number`, not `count`: this is the period's ordinal («2 урок» = period 2),
+  // not a quantity. Passing `count` would opt these keys into i18next plural
+  // resolution, so adding plural forms later would silently turn period 2 into
+  // «2 уроки» («2 lessons»).
   return compact
-    ? i18n.t('timetable.lessonLabelCompact', { count: lessonNumber })
-    : i18n.t('timetable.lessonLabelFull', { count: lessonNumber });
+    ? i18n.t('timetable.lessonLabelCompact', { number: lessonNumber })
+    : i18n.t('timetable.lessonLabelFull', { number: lessonNumber });
 }
 
 /**

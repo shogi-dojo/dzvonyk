@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import i18n from '@/i18n';
 import {
   SCHOOL_LESSON_LABEL,
   formatConfiguredLessonLabel,
@@ -11,8 +10,10 @@ import { INSTITUTION_PRESETS } from './institution/presets';
 describe('timetable labels', () => {
   it('keeps full labels when the timetable has enough space', () => {
     expect(formatTimetableDayLabel('Понеділок')).toBe('Понеділок');
-    expect(formatTimetableLessonLabel(1)).toBe(i18n.t('timetable.lessonLabelFull', { count: 1 }));
     expect(formatTimetableLessonLabel(1)).toBe('1 урок');
+    // Ordinals, not counts: the label must stay «N урок» for every period.
+    expect(formatTimetableLessonLabel(2)).toBe('2 урок');
+    expect(formatTimetableLessonLabel(5)).toBe('5 урок');
     expect(formatConfiguredLessonLabel('1 ур.')).toBe('1 урок');
     expect(formatConfiguredLessonLabel('08:30')).toBe('08:30');
   });

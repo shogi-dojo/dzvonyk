@@ -968,8 +968,8 @@
     "activitiesMeta_few": "{{count}} уроки • {{when}}",
     "activitiesMeta_many": "{{count}} уроків • {{when}}",
     "activitiesMeta_other": "{{count}} уроків • {{when}}",
-    "lessonLabelFull": "{{count}} урок",
-    "lessonLabelCompact": "{{count}} ур."
+    "lessonLabelFull": "{{number}} урок",
+    "lessonLabelCompact": "{{number}} ур."
   },
   "settings": {
     "title": "Налаштування",

@@ -415,8 +415,8 @@
     "activitiesMeta_few": "{{count}} пари • {{when}}",
     "activitiesMeta_many": "{{count}} пар • {{when}}",
     "activitiesMeta_other": "{{count}} пар • {{when}}",
-    "lessonLabelFull": "{{count}} пара",
-    "lessonLabelCompact": "{{count}} пар."
+    "lessonLabelFull": "{{number}} пара",
+    "lessonLabelCompact": "{{number}} пар."
   },
   "settings": {
     "importSuccessDetail": "Успішно імпортовано: {{teachers}} викладачів, {{subjects}} предметів, {{activities}} пар, {{rooms}} аудиторій",
