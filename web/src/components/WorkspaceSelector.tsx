@@ -37,6 +37,7 @@ import {
 import { useReloadTimetableState } from '@/hooks/useReloadTimetableState';
 import { GUEST_WORKSPACE_ID } from '@/db';
 import type { AcademicYearWorkspace, School } from '@/types';
+import { INSTITUTION_PRESETS, type InstitutionPresetId } from '@/lib/institution/presets';
 import { cn } from '@/lib/utils';
 
 export function WorkspaceSelector() {
@@ -79,6 +80,7 @@ export function WorkspaceSelector() {
   // New School Form
   const [schoolName, setSchoolName] = useState('');
   const [schoolShortName, setSchoolShortName] = useState('');
+  const [institutionType, setInstitutionType] = useState<InstitutionPresetId>('school');
 
   // New Workspace Form
   const [workspaceLabel, setWorkspaceLabel] = useState('');
@@ -99,11 +101,13 @@ export function WorkspaceSelector() {
       createSchoolAction({
         name: schoolName.trim(),
         shortName: schoolShortName.trim() || undefined,
+        institutionType,
       })
     ).unwrap();
 
     setSchoolName('');
     setSchoolShortName('');
+    setInstitutionType('school');
     setIsSchoolDialogOpen(false);
     await reloadState();
   };
@@ -520,13 +524,19 @@ export function WorkspaceSelector() {
       </Dialog>
 
       {/* New School Dialog */}
-      <Dialog open={isSchoolDialogOpen} onOpenChange={setIsSchoolDialogOpen}>
+      <Dialog
+        open={isSchoolDialogOpen}
+        onOpenChange={(open) => {
+          setIsSchoolDialogOpen(open);
+          if (!open) setInstitutionType('school');
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleCreateSchool}>
             <DialogHeader>
               <DialogTitle>{t('workspace.createSchoolTitle', 'Новий заклад освіти')}</DialogTitle>
               <DialogDescription>
-                {t('workspace.createSchoolDesc', 'Введіть назву школи чи гімназії')}
+                {t('workspace.createSchoolDesc', 'Введіть назву навчального закладу')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-4">
@@ -550,6 +560,43 @@ export function WorkspaceSelector() {
                   onChange={(e) => setSchoolShortName(e.target.value)}
                   placeholder="напр., Ліцей 15"
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('institution.selector.legend')}</Label>
+                <div
+                  className="grid grid-cols-2 gap-2"
+                  role="radiogroup"
+                  aria-label={t('institution.selector.legend')}
+                >
+                  {Object.values(INSTITUTION_PRESETS).map((preset) => {
+                    const selected = institutionType === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => setInstitutionType(preset.id)}
+                        className={cn(
+                          'rounded-lg border p-2.5 text-left transition-colors',
+                          selected
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:bg-muted/60'
+                        )}
+                      >
+                        <span className="block text-xs font-semibold text-foreground">
+                          {t(preset.labelKey)}
+                        </span>
+                        <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                          {t(preset.descriptionKey)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] leading-snug text-amber-600 dark:text-amber-500">
+                  {t('institution.selector.hint')}
+                </p>
               </div>
             </div>
             <DialogFooter>
