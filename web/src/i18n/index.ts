@@ -3,14 +3,20 @@
 //
 // Ukrainian is the sole supported base locale. Institution presets register
 // additional override bundles that contain ONLY the keys whose terminology
-// differs; every other key falls back through the chain into the complete
-// `uk` bundle. Handwritten sentences per preset — no term interpolation.
+// differs; every other key falls back into the complete `uk` bundle.
+// Handwritten sentences per preset — no term interpolation.
 
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import uk from './uk.json';
 import ukUniversity from './uk-university.json';
-import ukCollege from './uk-college.json';
+import ukCollegeDiffs from './uk-college.json';
+
+// College differs from university by only a handful of keys, so its bundle is
+// authored as diffs. They are merged at load time instead of relying on a
+// college→university fallbackLng chain: i18next resolves the implicit base
+// language («uk») BEFORE fallbackLng entries, which would preempt the chain.
+const ukCollege = { ...ukUniversity, ...ukCollegeDiffs };
 
 void i18n
   .use(initReactI18next)
@@ -21,13 +27,7 @@ void i18n
       'uk-college': { translation: ukCollege },
     },
     lng: 'uk',
-    // College deliberately differs from university by a handful of keys, so it
-    // falls back through the university bundle first.
-    fallbackLng: {
-      'uk-university': ['uk'],
-      'uk-college': ['uk-university', 'uk'],
-      default: ['uk'],
-    },
+    fallbackLng: { default: ['uk'] },
     supportedLngs: ['uk', 'uk-university', 'uk-college'],
     interpolation: { escapeValue: false },
   });

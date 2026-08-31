@@ -1,1 +1,521 @@
-{}
+{
+  "nav": {
+    "teachers": "Викладачі",
+    "students": "Студенти",
+    "studentsDesc": "Курси, групи та підгрупи",
+    "activities": "Пари",
+    "rooms": "Аудиторії"
+  },
+  "footer": {
+    "aboutLead": "Офлайн-планувальник розкладу занять для диспетчера."
+  },
+  "dashboard": {
+    "stats": {
+      "activities": "Пари",
+      "rooms": "Аудиторії"
+    },
+    "institution": {
+      "solutionMeta_one": "{{count}} пара • {{when}}",
+      "solutionMeta_few": "{{count}} пари • {{when}}",
+      "solutionMeta_many": "{{count}} пар • {{when}}",
+      "solutionMeta_other": "{{count}} пар • {{when}}"
+    },
+    "quickActions": {
+      "addStudents": "Додати студентів",
+      "addActivities": "Додати пари"
+    },
+    "gettingStarted": {
+      "steps": {
+        "4": "Визначте курси, групи та підгрупи студентів",
+        "5": "Створіть пари, пов'язавши викладачів, предмети та студентів",
+        "6": "Додайте аудиторії та корпуси"
+      }
+    },
+    "import": {
+      "success_one": "Успішно імпортовано {{count}} пару",
+      "success_few": "Успішно імпортовано {{count}} пари",
+      "success_many": "Успішно імпортовано {{count}} пар",
+      "success_other": "Успішно імпортовано {{count}} пар"
+    }
+  },
+  "teachers": {
+    "emptyDescriptionSearch": "Жоден викладач не відповідає пошуку.",
+    "workload": {
+      "description": "Оберіть викладача один раз і додайте всі предмети, групи та години, які він веде.",
+      "teacher": "Викладач",
+      "addTitle": "Додати пари",
+      "addDescription": "Потік записується одним рядком. Для половинок додайте ту саму пару ще раз і виберіть чисельник або знаменник.",
+      "audience": "Курс, група або підгрупа",
+      "selectAudience": "Оберіть курс, групу або підгрупу",
+      "classOption": "Група {{name}}",
+      "parallelHint": "Для курсу пари створяться окремо для кожної групи, але нижче показуватимуться одним рядком.",
+      "updatedNotice": "Оновлено: у середньому {{hours}} год на групу",
+      "summaryDescription": "Однакові пари всього курсу зведено в один рядок без повторів.",
+      "hoursPerClass": "Год на групу",
+      "advancedEditHint": "Ця складена пара редагується на сторінці «Пари»",
+      "scheduleTitle": "Скільки пар проводиться",
+      "averagePerClass": "Середнє навантаження на групу",
+      "lowLevelHint": "Окремі пари й додаткові параметри залишаються доступними на сторінці «Пари»."
+    }
+  },
+  "students": {
+    "title": "Студенти",
+    "description": "Керування студентами за курсами, групами та підгрупами",
+    "addGroup": "Додати групу",
+    "stats": {
+      "groups": "Групи"
+    },
+    "emptyDescription": "Почніть з додавання першого курсу.",
+    "noGroups": "Груп ще немає. Натисніть, щоб додати групу.",
+    "confirmDeleteYear": "Видалити курс «{{name}}» разом з усіма його групами?",
+    "confirmDeleteGroup": "Видалити групу «{{name}}» разом з усіма підгрупами?",
+    "availabilityDialogDesc": "Позначте слоти, коли ця група не навчається.",
+    "studentsCount_one": "{{count}} студент",
+    "studentsCount_few": "{{count}} студенти",
+    "studentsCount_many": "{{count}} студентів",
+    "studentsCount_other": "{{count}} студентів",
+    "groupsCount_one": "{{count}} група",
+    "groupsCount_few": "{{count}} групи",
+    "groupsCount_many": "{{count}} груп",
+    "groupsCount_other": "{{count}} груп"
+  },
+  "activities": {
+    "title": "Пари",
+    "description": "Керування парами — {{total}} усього, {{active}} активних",
+    "addActivity": "Додати пару",
+    "editActivity": "Редагувати пару",
+    "searchPlaceholder": "Пошук пар…",
+    "emptyTitle": "Пар ще немає",
+    "emptyTitleSearch": "Пар не знайдено",
+    "emptyDescription": "Почніть з додавання першої пари.",
+    "emptyDescriptionSearch": "Жодна пара не відповідає пошуку.",
+    "confirmDelete": "Видалити цю пару?",
+    "teacherLine": " • Викладач: {{name}}",
+    "selectActivity": "Обрати пару {{subject}}",
+    "tags": {
+      "description": "Типи занять допомагають групувати та фільтрувати пари"
+    },
+    "dialog": {
+      "addTitle": "Додати пару",
+      "editTitle": "Редагувати пару",
+      "addDescription": "Створити нову пару",
+      "editDescription": "Оновити дані пари",
+      "teacher": "Викладач",
+      "students": "Студенти",
+      "selectStudents": "Оберіть студентів",
+      "totalStudents": "Всього студентів",
+      "shiftOverrideNone": "Як у групи"
+    },
+    "studentLabelGroup": "{{name}} (Група)"
+  },
+  "activityTags": {
+    "dialog": {
+      "description": "Типи занять допомагають групувати та фільтрувати пари"
+    }
+  },
+  "rooms": {
+    "title": "Аудиторії",
+    "description": "Керування аудиторіями та корпусами ({{count}} усього)",
+    "addRoom": "Додати аудиторію",
+    "editRoom": "Редагувати аудиторію",
+    "stats": {
+      "totalRooms": "Аудиторії всього"
+    },
+    "searchPlaceholder": "Пошук аудиторій…",
+    "emptyTitle": "Аудиторій ще немає",
+    "emptyTitleSearch": "Аудиторій не знайдено",
+    "emptyDescription": "Почніть з додавання першої аудиторії.",
+    "emptyDescriptionSearch": "Жодна аудиторія не відповідає пошуку.",
+    "confirmDeleteRoom": "Видалити аудиторію «{{name}}»?",
+    "roomDialog": {
+      "description": "Введіть дані аудиторії.",
+      "namePlaceholder": "напр., Ауд. 101",
+      "longNamePlaceholder": "напр., Аудиторія фізики 101",
+      "isVirtual": "Віртуальна аудиторія"
+    },
+    "buildingDialog": {
+      "description": "Корпуси допомагають організувати аудиторії за розташуванням."
+    },
+    "roomsInBuilding_one": "{{count}} аудиторія",
+    "roomsInBuilding_few": "{{count}} аудиторії",
+    "roomsInBuilding_many": "{{count}} аудиторій",
+    "roomsInBuilding_other": "{{count}} аудиторій"
+  },
+  "constraints": {
+    "categories": {
+      "students": "Групи",
+      "activity": "Пари"
+    },
+    "dialog": {
+      "teacher": "Викладач",
+      "students": "Студенти",
+      "selectStudents": "Оберіть студентів",
+      "activity": "Пара",
+      "selectActivity": "Оберіть пару",
+      "room": "Аудиторія",
+      "selectRoom": "Оберіть аудиторію",
+      "activities": "Пари ({{count}} обрано)",
+      "hour": "Пара"
+    },
+    "descriptions": {
+      "activityAt": "Пара у день {{day}}, година {{hour}}",
+      "activityToRoom": "Пара → {{room}}",
+      "minDaysBetween_one": "{{count}} пара, мін. {{days}} днів між ними",
+      "minDaysBetween_few": "{{count}} пари, мін. {{days}} днів між ними",
+      "minDaysBetween_many": "{{count}} пар, мін. {{days}} днів між ними",
+      "minDaysBetween_other": "{{count}} пар, мін. {{days}} днів між ними"
+    },
+    "typeLabels": {
+      "TeacherNotAvailableTimes": "Викладач недоступний",
+      "TeacherMaxDaysPerWeek": "Викладач: макс. днів/тиж.",
+      "TeacherMinDaysPerWeek": "Викладач: мін. днів/тиж.",
+      "TeacherMaxHoursDaily": "Викладач: макс. год/день",
+      "TeacherMinHoursDaily": "Викладач: мін. год/день",
+      "TeacherMaxGapsPerWeek": "Викладач: макс. вікон/тиж.",
+      "TeacherMaxGapsPerDay": "Викладач: макс. вікон/день",
+      "StudentsSetNotAvailableTimes": "Група недоступна",
+      "StudentsSetMaxHoursDaily": "Група: макс. год/день",
+      "StudentsSetMaxGapsPerDay": "Група: макс. вікон/день",
+      "StudentsSetMaxGapsPerWeek": "Група: макс. вікон/тиж.",
+      "MinDaysBetweenActivities": "Мін. днів між парами",
+      "ActivityPreferredStartingTime": "Пара: бажаний час початку",
+      "RoomNotAvailableTimes": "Аудиторія недоступна",
+      "ActivityPreferredRoom": "Пара: бажана аудиторія",
+      "SubjectPreferredRoom": "Предмет: бажана аудиторія",
+      "TeacherHomeRoom": "Домашня аудиторія викладача"
+    },
+    "typeDescriptions": {
+      "BasicCompulsoryTime": "Гарантує, що пари не накладаються. Обов'язково.",
+      "TeacherNotAvailableTimes": "Час, коли викладач недоступний.",
+      "StudentsSetNotAvailableTimes": "Група недоступна.",
+      "StudentsSetMaxGapsPerDay": "Макс. вікон у групи за день.",
+      "StudentsSetMaxGapsPerWeek": "Макс. вікон у групи за тиждень.",
+      "BasicCompulsorySpace": "Без накладань в аудиторіях. Обов'язково.",
+      "RoomNotAvailableTimes": "Час, коли аудиторія недоступна.",
+      "ActivityPreferredRoom": "Аудиторія для пари.",
+      "SubjectPreferredRoom": "Аудиторія для предмета.",
+      "TeacherHomeRoom": "Домашня аудиторія викладача."
+    }
+  },
+  "timeConstraints": {
+    "description": "Визначте, коли пари можна ставити, а коли ні ({{count}} усього)",
+    "categories": {
+      "students": "Обмеження для студентів",
+      "activity": "Обмеження для пари"
+    },
+    "dialog": {
+      "teacher": "Викладач",
+      "studentsSet": "Група/курс",
+      "selectStudentsSet": "Оберіть групу/курс",
+      "activity": "Пара",
+      "selectActivity": "Оберіть пару",
+      "hour": "Пара",
+      "activities": "Пари ({{count}} обрано)",
+      "noActivities": "Немає доступних пар"
+    },
+    "types": {
+      "BasicCompulsoryTime": {
+        "description": "Гарантує, що пари не накладаються для одного викладача чи групи. Обов'язково для правильного розкладу."
+      },
+      "BreakTimes": {
+        "description": "Задайте перерви, коли не можна планувати пари."
+      },
+      "TeacherNotAvailableTimes": {
+        "label": "Викладач недоступний",
+        "description": "Час, коли конкретний викладач не може проводити заняття."
+      },
+      "TeacherMaxDaysPerWeek": {
+        "label": "Викладач: макс. днів/тиж."
+      },
+      "TeacherMaxHoursDaily": {
+        "label": "Викладач: макс. год/день"
+      },
+      "TeacherMaxGapsPerWeek": {
+        "label": "Викладач: макс. вікон/тиж.",
+        "description": "Обмежити максимальну кількість вікон (вільних періодів між парами) на тиждень."
+      },
+      "TeacherMaxGapsPerDay": {
+        "label": "Викладач: макс. вікон/день"
+      },
+      "StudentsSetNotAvailableTimes": {
+        "label": "Група недоступна",
+        "description": "Час, коли група недоступна."
+      },
+      "StudentsSetMaxHoursDaily": {
+        "label": "Група: макс. год/день",
+        "description": "Обмежити максимальну кількість годин на день для групи."
+      },
+      "StudentsSetMaxGapsPerWeek": {
+        "label": "Група: макс. вікон/тиж.",
+        "description": "Обмежити максимальну кількість вікон на тиждень для групи."
+      },
+      "MinDaysBetweenActivities": {
+        "label": "Мін. днів між парами",
+        "description": "Гарантувати мінімальну кількість днів між парами (напр., одного предмета в різні дні)."
+      },
+      "ActivitiesSameStartingTime": {
+        "label": "Пари починаються разом",
+        "description": "Змусити набір пар починатися одночасно."
+      },
+      "ActivitiesNotOverlapping": {
+        "label": "Пари не перетинаються",
+        "description": "Гарантувати, що набір пар не перетинаються за часом."
+      },
+      "ActivityPreferredStartingTime": {
+        "label": "Пара: бажаний час початку",
+        "description": "Задати бажаний чи зафіксований час початку пари."
+      }
+    },
+    "descriptions": {
+      "activityAt": "Пара у день {{day}}, година {{hour}}",
+      "activityAtLocked": "Пара у день {{day}}, година {{hour}} (зафіксовано)",
+      "minDaysBetween_one": "{{count}} пара, мін. {{days}} днів між ними",
+      "minDaysBetween_few": "{{count}} пари, мін. {{days}} днів між ними",
+      "minDaysBetween_many": "{{count}} пар, мін. {{days}} днів між ними",
+      "minDaysBetween_other": "{{count}} пар, мін. {{days}} днів між ними",
+      "sameStart_one": "{{count}} пара має початися разом",
+      "sameStart_few": "{{count}} пари мають початися разом",
+      "sameStart_many": "{{count}} пар мають початися разом",
+      "sameStart_other": "{{count}} пар мають початися разом",
+      "notOverlapping_one": "{{count}} пара не має перетинатись",
+      "notOverlapping_few": "{{count}} пари не мають перетинатись",
+      "notOverlapping_many": "{{count}} пар не мають перетинатись",
+      "notOverlapping_other": "{{count}} пар не мають перетинатись"
+    }
+  },
+  "spaceConstraints": {
+    "description": "Визначте, де пари можна ставити, а де ні ({{count}} усього)",
+    "categories": {
+      "room": "Обмеження для аудиторії",
+      "activity": "Обмеження для пари",
+      "students": "Обмеження для студентів"
+    },
+    "dialog": {
+      "room": "Аудиторія",
+      "selectRoom": "Оберіть аудиторію",
+      "rooms": "Аудиторії ({{count}} обрано)",
+      "noRooms": "Немає доступних аудиторій",
+      "activity": "Пара",
+      "selectActivity": "Оберіть пару",
+      "teacher": "Викладач",
+      "studentsSet": "Група/курс",
+      "selectStudentsSet": "Оберіть групу/курс"
+    },
+    "types": {
+      "BasicCompulsorySpace": {
+        "description": "Гарантує, що аудиторії не мають накладних занять. Обов'язково для правильного розкладу."
+      },
+      "RoomNotAvailableTimes": {
+        "label": "Аудиторія недоступна",
+        "description": "Час, коли аудиторія недоступна."
+      },
+      "ActivityPreferredRoom": {
+        "label": "Пара: бажана аудиторія",
+        "description": "Задати бажану аудиторію для конкретної пари."
+      },
+      "ActivityPreferredRooms": {
+        "label": "Пара: бажані аудиторії",
+        "description": "Задати кілька бажаних аудиторій для пари (можна будь-яку)."
+      },
+      "SubjectPreferredRoom": {
+        "label": "Предмет: бажана аудиторія",
+        "description": "Усі пари предмета мають бути в цій аудиторії."
+      },
+      "SubjectPreferredRooms": {
+        "label": "Предмет: бажані аудиторії",
+        "description": "Усі пари предмета можуть використовувати будь-яку з цих аудиторій."
+      },
+      "SubjectActivityTagPreferredRoom": {
+        "label": "Предмет + тип: бажана аудиторія",
+        "description": "Пари з певним предметом та типом мають бути в цій аудиторії."
+      },
+      "SubjectActivityTagPreferredRooms": {
+        "label": "Предмет + тип: бажані аудиторії",
+        "description": "Пари з певним предметом та типом можуть використовувати будь-яку з цих аудиторій."
+      },
+      "TeacherHomeRoom": {
+        "label": "Домашня аудиторія викладача",
+        "description": "Визначити домашню аудиторію викладача."
+      },
+      "TeacherHomeRooms": {
+        "label": "Домашні аудиторії викладача",
+        "description": "Визначити кілька домашніх аудиторій для викладача."
+      },
+      "StudentsSetHomeRoom": {
+        "label": "Домашня аудиторія групи",
+        "description": "Визначити домашню аудиторію для групи."
+      },
+      "StudentsSetHomeRooms": {
+        "label": "Домашні аудиторії групи",
+        "description": "Визначити кілька домашніх аудиторій для групи."
+      },
+      "ActivityTagPreferredRoom": {
+        "label": "Тип заняття: бажана аудиторія",
+        "description": "Усі пари з цим типом мають бути в цій аудиторії."
+      },
+      "ActivityTagPreferredRooms": {
+        "label": "Тип заняття: бажані аудиторії",
+        "description": "Усі пари з цим типом можуть використовувати будь-яку з цих аудиторій."
+      }
+    },
+    "descriptions": {
+      "activityToRoom": "Пара → {{room}}",
+      "activityToRoomLocked": "Пара → {{room}} (зафіксовано)",
+      "activityToRooms": "Пара → {{count}} аудиторій",
+      "subjectToRooms": "{{subject}} → {{count}} аудиторій",
+      "subjectTagToRooms": "{{subject}} + {{tag}} → {{count}} аудиторій",
+      "teacherToRooms": "{{teacher}} → {{count}} аудиторій",
+      "studentsToRooms": "{{students}} → {{count}} аудиторій",
+      "tagToRooms": "Тип «{{tag}}» → {{count}} аудиторій"
+    }
+  },
+  "timetable": {
+    "byStudents": "За групами",
+    "byRoom": "За аудиторією",
+    "byAllClasses": "Усі групи",
+    "allClassesTitle": "Зведений розклад усіх груп",
+    "allClassesDescription": "Таблиця пар для всіх груп одночасно",
+    "byFullMatrix": "Загальна матриця (групи)",
+    "fullMatrixTitle": "Загальна матриця розкладу (групи)",
+    "fullMatrixDescription": "Усі групи по вертикалі, дні та пари по горизонталі",
+    "teacherMatrixDescription": "Усі викладачі по вертикалі, дні та пари по горизонталі",
+    "details": {
+      "empty": "Натисніть на пару, щоб побачити деталі"
+    },
+    "pairedSuccess": "Пари спаровано як чисельник/знаменник",
+    "pairPrompt": "Спарувати з парою в цьому слоті як чисельник/знаменник",
+    "lockTooltip": "Закріпити / відкріпити пару",
+    "moveSuccess": "Пару переміщено",
+    "movePrompt": "Оберіть вільний слот для переміщення пари",
+    "moveError": "Не вдалося перемістити пару",
+    "dragOrClickToMove": "Перетягніть пару або натисніть для переміщення",
+    "step2Group": "групу",
+    "step2Room": "аудиторію",
+    "scheduleStudent": "Розклад групи",
+    "scheduleRoom": "Розклад аудиторії",
+    "stats": {
+      "totalPeriods": "Всього пар"
+    },
+    "historyMoved": "Перенесено пару {{lesson}}: {{from}} → {{to}}",
+    "historyPlaced": "Поставлено пару {{lesson}}: {{slot}}",
+    "historyUnlocked": "Відкріплено пару {{lesson}} ({{slot}})",
+    "historyLocked": "Закріплено пару {{lesson}} ({{slot}})",
+    "roomPrintTitle": "Аудиторія {{name}}",
+    "conflict": {
+      "classOverlap": "Накладка групи / підгрупи",
+      "roomOverlap": "Накладка аудиторії",
+      "lessonNotFound": "Пару не знайдено",
+      "teacherUnavailable": "Викладач {{name}} не може проводити заняття в цей час",
+      "classNotStudying": "Група не навчається в цей час",
+      "teacherBusy": "Викладач {{teachers}} вже має пару в цей час",
+      "classBusy": "Група або підгрупа вже має іншу пару в цей час",
+      "roomBusy": "Аудиторія {{name}} вже зайнята в цей час"
+    },
+    "activitiesMeta_one": "{{count}} пара • {{when}}",
+    "activitiesMeta_few": "{{count}} пари • {{when}}",
+    "activitiesMeta_many": "{{count}} пар • {{when}}",
+    "activitiesMeta_other": "{{count}} пар • {{when}}",
+    "lessonLabelFull": "{{count}} пара",
+    "lessonLabelCompact": "{{count}} пар."
+  },
+  "settings": {
+    "importSuccessDetail": "Успішно імпортовано: {{teachers}} викладачів, {{subjects}} предметів, {{activities}} пар, {{rooms}} аудиторій",
+    "hours": {
+      "title": "Пари дня",
+      "add": "Додати пару",
+      "defaultName": "{{index}} пара",
+      "startAria": "Початок пари {{index}}",
+      "endAria": "Кінець пари {{index}}",
+      "labelSr": "Пара {{index}}"
+    },
+    "stats": {
+      "hours": "Пар на день"
+    },
+    "danger": {
+      "resetDetail": "Видалити всіх викладачів, предмети, пари, аудиторії, обмеження та згенеровані розклади",
+      "confirmDetail": "Цю дію не можна скасувати. Це остаточно видалить усі ваші дані, включно з викладачами, предметами, парами, аудиторіями, обмеженнями та будь-якими згенерованими розкладами."
+    }
+  },
+  "generate": {
+    "controls": {
+      "lockedInfo": "{{count}} закріплених пар (🔒) залишаться на своїх місцях"
+    },
+    "history": {
+      "lessonsCount_one": "{{count}} пара",
+      "lessonsCount_few": "{{count}} пари",
+      "lessonsCount_many": "{{count}} пар",
+      "lessonsCount_other": "{{count}} пар"
+    },
+    "precheck": {
+      "activities": "Пари"
+    },
+    "stats": {
+      "placed": "Розміщено пар"
+    },
+    "lastSolution": {
+      "placed_one": "{{count}} пару розміщено • {{when}}",
+      "placed_few": "{{count}} пари розміщено • {{when}}",
+      "placed_many": "{{count}} пар розміщено • {{when}}",
+      "placed_other": "{{count}} пар розміщено • {{when}}"
+    },
+    "tips": {
+      "3": "Пари з більшою кількістю викладачів/студентів плануються першими",
+      "4": "Перевірте, чи достатньо часу в тижні для всіх пар"
+    },
+    "errors": {
+      "needActivities": "Додайте пари перед генерацією."
+    }
+  },
+  "workspace": {
+    "cloneStructureOnly": "Лише структуру (викладачі, предмети, групи, обмеження без розкладу)"
+  },
+  "account": {
+    "deleteAccountWarning": "Ця дія є незворотною. Усі ваші заклади, навчальні роки, збережені версії розкладів та історія будуть назавжди видалені з хмарного сховища."
+  },
+  "print": {
+    "dailyClasses": "По днях (Групи)",
+    "dailyTeachersTitle": "ПОДОБОВИЙ РОЗКЛАД ПАР (ВИКЛАДАЧІ)",
+    "dailyClassesTitle": "ПОДОБОВИЙ РОЗКЛАД ПАР (ГРУПИ)",
+    "approvalRole": "Ректор {{name}}",
+    "approvalToggle": "Гриф «ЗАТВЕРДЖУЮ» ректора",
+    "deputy": "Декан: __________________ / __________________",
+    "lessonCol": "Пара",
+    "classTitle": "РОЗКЛАД ПАР ГРУПИ {{name}}",
+    "classTitleFor": "РОЗКЛАД ПАР ДЛЯ ГРУПИ {{name}}",
+    "teacherTitle": "РОЗКЛАД ПАР ВИКЛАДАЧА: {{name}}",
+    "summaryClassesTitle": "ЗВЕДЕНИЙ РОЗКЛАД ПАР УСІХ ГРУП",
+    "summaryTeachersTitle": "ЗВЕДЕНИЙ РОЗКЛАД ПАР УСІХ ВИКЛАДАЧІВ",
+    "workloadTitle": "ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ",
+    "classesWorkloadTitle": "ЗВЕДЕНЕ НАВАНТАЖЕННЯ ГРУП ПО ТИЖНЯХ (ЧИСЕЛЬНИК / ЗНАМЕННИК)",
+    "dailyTitle": "РОЗКЛАД ПАР — {{day}}",
+    "daysHoursMeta": "{{days}} навчальних днів • {{hours}} пар на день",
+    "workDaysMeta": "{{days}} робочих днів • {{hours}} пар на день",
+    "firstColClasses": "Група",
+    "classesHoursCol": "Групи / підгрупи та години",
+    "classCol": "Група",
+    "lessonsCol": "Пар",
+    "allClassesDocTitle": "Розклади всіх груп",
+    "summaryClassesDocTitle": "Зведений розклад усіх груп",
+    "classesWorkloadDocTitle": "Навантаження груп по тижнях",
+    "dailyTeachersDocTitle": "Розклад пар по днях (викладачі)",
+    "dailyClassesDocTitle": "Розклад пар по днях (групи)",
+    "reportClass": "Окрема група",
+    "reportTeacher": "Окремий викладач",
+    "reportSummaryClasses": "Зведений (Групи)",
+    "reportClassesWorkload": "Навантаження груп (Тижні)",
+    "classSelector": "Група:",
+    "teacherSelector": "Викладач:",
+    "printAllClasses": "Друк усіх груп"
+  },
+  "preflight": {
+    "noActivities": "Немає жодної активної пари. Додайте пари перед генерацією розкладу.",
+    "classOverload": "Група {{name}}: заплановано {{load}} пар на тиждень, а в розкладі лише {{slots}} слотів ({{days}} × {{hours}}). Приберіть {{excess}} пару(и) або збільште кількість годин на день.",
+    "classNearCapacity": "Група {{name}} завантажено на {{percent}} % ({{load}}/{{slots}}). Мало простору для маневру — можливі складнощі з генерацією.",
+    "teacherNoSlots": "Викладач {{name}}: заявлено {{load}} пар, але всі слоти позначено як «недоступний». Перевірте обмеження «TeacherNotAvailableTimes».",
+    "teacherOverload": "Викладач {{name}}: заплановано {{load}} пар, а доступно лише {{available}} слотів ({{slots}} − {{unavailable}} недоступних). Зменште навантаження або перегляньте обмеження.",
+    "teacherNearCapacity": "Викладач {{name}}: навантаження {{load}}/{{available}} ({{percent}} %). Може бути важко скласти без «вікон».",
+    "roomNoSlots": "Аудиторія {{name}}: усі слоти позначено як недоступні, але на неї є жорсткі прив'язки пар.",
+    "roomOverload": "Аудиторія {{name}}: жорстко закріплено {{demand}} пар, а вміщує лише {{supply}}. Розширте перелік аудиторій для цього предмета або приберіть частину прив'язок.",
+    "splitOrphan": "Знайдено «розщеплену» пару (activityGroupId={{group}}) без пари для другої підгрупи. Перевірте, чи створено обидві підгрупи для цього предмета."
+  }
+}
