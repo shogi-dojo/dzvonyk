@@ -16,6 +16,7 @@
     "e2e": "playwright test",
     "e2e:faq-screenshots": "playwright test --config=playwright.screenshots.config.ts",
     "e2e:marketing-screenshots": "npm run build && playwright test --config=playwright.marketing.config.ts",
+    "e2e:whats-new-screenshot": "npm run build && playwright test --config=playwright.whatsnew.config.ts",
     "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
