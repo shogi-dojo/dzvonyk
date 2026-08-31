@@ -17,6 +17,7 @@ import type {
 import { runSanitaryChecks } from './sanitary';
 import { sumWeeklyLoad, type WeeklyLoad } from '../weeklyLoad';
 import i18n from '@/i18n';
+import { createIdOrNameIndex, resolveByIdOrName } from '@/lib/studentSetLookup';
 
 const tr = (...args: Parameters<typeof i18n.t>) => i18n.t(...args);
 
@@ -193,7 +194,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   for (const g of studentsGroups) {
     for (const sgId of g.subgroups) subgroupToGroup.set(sgId, g.id);
   }
-  const groupByName = new Map(studentsGroups.map((g) => [g.name, g.id]));
+  const groupByIdOrName = createIdOrNameIndex(studentsGroups);
   const years = input.studentsYears ?? [];
 
   // Activities affecting a class = activities directly on group + one of the
@@ -214,16 +215,13 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         if (parent) affectedGroups.add(parent);
         else {
           // A stream: the activity names a whole year, so every group of the
-          // year carries its duration. `groups` is typed as ids, but both
-          // importers write group NAMES into it, so resolve either form —
-          // the engine's resolveStudentSetIndices does the same.
-          const year = years.find((y) => y.id === setId || y.name === setId);
+          // year carries its duration. `year.groups` may hold ids or names
+          // (see studentSetLookup) — resolve either form, as the engine does.
+          const year = resolveByIdOrName(years, setId);
           if (year) {
             for (const groupIdOrName of year.groups) {
-              const group = groupById.has(groupIdOrName)
-                ? groupIdOrName
-                : groupByName.get(groupIdOrName);
-              if (group) affectedGroups.add(group);
+              const group = groupByIdOrName.get(groupIdOrName);
+              if (group) affectedGroups.add(group.id);
             }
           }
         }

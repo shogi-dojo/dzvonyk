@@ -7,6 +7,7 @@ import type {
   StudentsSubgroup,
   StudentsYear,
 } from '@/types';
+import { resolveByIdOrName } from '@/lib/studentSetLookup';
 
 export type WorkloadWeekParity = 'both' | 'numerator' | 'denominator';
 
@@ -55,13 +56,6 @@ function parityForSchedule(schedule: WorkloadHoursByWeek): WorkloadSummaryRow['w
   if (schedule.numerator > 0) return 'numerator';
   if (schedule.denominator > 0) return 'denominator';
   return 'both';
-}
-
-function resolveByIdOrName<T extends { id: string; name: string }>(
-  values: T[],
-  idOrName: string,
-): T | undefined {
-  return values.find((value) => value.id === idOrName || value.name === idOrName);
 }
 
 /**

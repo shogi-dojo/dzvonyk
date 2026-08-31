@@ -20,6 +20,7 @@
 
 import type { Activity, StudentsGroup, StudentsSubgroup, StudentsYear, TimetableRules } from '../../types';
 import type { PreflightIssue } from './preflight';
+import { createIdOrNameIndex, resolveByIdOrName } from '@/lib/studentSetLookup';
 
 // Додаток 8 до Санітарного регламенту (МОЗ №2205, 2020).
 // Гранично допустиме тижневе навчальне навантаження, в академічних годинах.
@@ -73,7 +74,7 @@ export function runSanitaryChecks(input: SanitaryInput): PreflightIssue[] {
   // Reuse the same class-load counting as preflight.ts: sum durations per
   // group, counting parallel subgroup activities (same activityGroupId) once.
   const groupById = new Map(studentsGroups.map((g) => [g.id, g]));
-  const groupByName = new Map(studentsGroups.map((g) => [g.name, g.id]));
+  const groupByIdOrName = createIdOrNameIndex(studentsGroups);
   const subgroupToGroup = new Map<string, string>();
   for (const g of studentsGroups) {
     for (const sgId of g.subgroups) subgroupToGroup.set(sgId, g.id);
@@ -92,14 +93,12 @@ export function runSanitaryChecks(input: SanitaryInput): PreflightIssue[] {
         else {
           // Stream activities name a whole year — spread onto every group so
           // the sanitary check never silently misses them.
-          const year = input.studentsYears?.find((y) => y.id === setId || y.name === setId);
+          const year = resolveByIdOrName(input.studentsYears ?? [], setId);
           if (year) {
-            // `groups` is typed as ids but the importers write names; accept both.
+            // `year.groups` may hold ids or names — see studentSetLookup.
             for (const groupIdOrName of year.groups) {
-              const group = groupById.has(groupIdOrName)
-                ? groupIdOrName
-                : groupByName.get(groupIdOrName);
-              if (group) affected.add(group);
+              const group = groupByIdOrName.get(groupIdOrName);
+              if (group) affected.add(group.id);
             }
           }
         }
