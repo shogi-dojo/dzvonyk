@@ -386,7 +386,17 @@
       "multiStudentsHint": "Оберіть кілька груп, щоб створити потік: одна пара для всіх водночас"
     },
     "studentLabelYear": "{{name}} (Паралель)",
-    "studentLabelGroup": "{{name}} (Клас)"
+    "studentLabelGroup": "{{name}} (Клас)",
+    "subtype": {
+      "label": "Тип пари",
+      "none": "Не визначено",
+      "all": "Усі типи пар",
+      "filterLabel": "Фільтр за типом пари",
+      "lecture": "Лекція",
+      "seminar": "Семінар",
+      "lab": "Лабораторна",
+      "practical": "Практична"
+    }
   },
   "activityTags": {
     "title": "Типи заняття",

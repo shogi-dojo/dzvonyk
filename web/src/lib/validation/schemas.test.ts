@@ -305,4 +305,32 @@ describe('Validation Schemas', () => {
       });
     });
   });
+
+  describe('ActivitySchema activitySubtype', () => {
+    const base = {
+      id: 'b3e64c1a-1a2b-4c3d-8e4f-0a9b8c7d6e5f',
+      activityGroupId: 0,
+      teacherIds: ['11111111-1111-4111-8111-111111111111'],
+      subjectId: ' subj',
+      duration: 1,
+      totalDuration: 1,
+      active: true,
+      computeNTotalStudents: true,
+      nTotalStudents: 0,
+      studentSetIds: [],
+      activityTagIds: [],
+    };
+
+    it('accepts the academic subtypes and defaults to undefined', () => {
+      const parsed = ActivitySchema.parse({ ...base, subjectId: 'subj', activitySubtype: 'lecture' });
+      expect(parsed.activitySubtype).toBe('lecture');
+      expect(ActivitySchema.parse({ ...base, subjectId: 'subj' }).activitySubtype).toBeUndefined();
+    });
+
+    it('rejects unknown subtypes', () => {
+      expect(
+        ActivitySchema.safeParse({ ...base, subjectId: 'subj', activitySubtype: 'olympiad' }).success
+      ).toBe(false);
+    });
+  });
 });

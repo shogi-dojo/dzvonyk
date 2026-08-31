@@ -109,6 +109,13 @@ export interface Room {
 
 // ============ ACTIVITY ============
 
+/**
+ * Display/reporting classification of an activity (lecture, seminar…).
+ * Purely informational in v1: the generator never reads it. Academic presets
+ * only — the UI is gated by features.activitySubtypes.
+ */
+export type ActivitySubtype = 'lecture' | 'seminar' | 'lab' | 'practical';
+
 export interface Activity {
   id: string;
   activityGroupId: number; // 0 for non-split, >0 for split activities
@@ -128,6 +135,8 @@ export interface Activity {
   // Biweekly rotation. Two activities with opposite parity may share a slot.
   // Undefined or 'both' = every week (default).
   weekParity?: 'both' | 'numerator' | 'denominator';
+  // See ActivitySubtype. Undefined = unclassified.
+  activitySubtype?: ActivitySubtype;
 }
 
 // ============ TIME STRUCTURE ============

@@ -20,7 +20,7 @@ import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector, useInstitutionPreset } from '@/hooks';
 import { loadActivities, addActivity, updateActivity, deleteActivity } from '@/store/slices/activitiesSlice';
 import { loadActivityTags, addActivityTag, updateActivityTag, deleteActivityTag } from '@/store/slices/activityTagsSlice';
-import type { Activity, ActivityTag } from '@/types';
+import type { Activity, ActivityTag, ActivitySubtype } from '@/types';
 
 export function Activities() {
   const { t } = useTranslation();
@@ -47,6 +47,7 @@ export function Activities() {
   
   // Activities section state
   const [searchQuery, setSearchQuery] = useState('');
+  const [subtypeFilter, setSubtypeFilter] = useState<ActivitySubtype | ''>('');
   const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -60,6 +61,7 @@ export function Activities() {
     active: true,
     shiftOverride: 0 as 0 | 1 | 2,
     weekParity: 'both' as 'both' | 'numerator' | 'denominator',
+    activitySubtype: '' as ActivitySubtype | '',
   });
 
   useEffect(() => {
@@ -79,16 +81,20 @@ export function Activities() {
   }, [activityTags, tagSearchQuery]);
 
   const filteredActivities = useMemo(() => {
-    if (!searchQuery) return activities;
+    const withSubtype = subtypeFilter
+      ? activities.filter((a) => a.activitySubtype === subtypeFilter)
+      : activities;
+    if (!searchQuery) return withSubtype;
+    const activities_ = withSubtype;
     const query = searchQuery.toLowerCase();
-    return activities.filter(
+    return activities_.filter(
       (a) =>
         a.subjectId.toLowerCase().includes(query) ||
         a.teacherIds.some(t => t.toLowerCase().includes(query)) ||
         a.studentSetIds.some(s => s.toLowerCase().includes(query)) ||
         a.activityTagIds.some(t => t.toLowerCase().includes(query))
     );
-  }, [activities, searchQuery]);
+  }, [activities, searchQuery, subtypeFilter]);
 
   const {
     paginatedItems: paginatedActivities,
@@ -146,7 +152,7 @@ export function Activities() {
   // Activity Functions
   const openNewDialog = () => {
     setEditingActivity(null);
-    setFormData({ subjectId: '', teacherIds: [], studentSetIds: [], activityTagIds: [], duration: 1, nTotalStudents: 0, active: true, shiftOverride: 0, weekParity: 'both' });
+    setFormData({ subjectId: '', teacherIds: [], studentSetIds: [], activityTagIds: [], duration: 1, nTotalStudents: 0, active: true, shiftOverride: 0, weekParity: 'both', activitySubtype: '' });
     setIsDialogOpen(true);
   };
 
@@ -162,6 +168,7 @@ export function Activities() {
       active: activity.active,
       shiftOverride: (activity.shiftOverride ?? 0) as 0 | 1 | 2,
       weekParity: activity.weekParity ?? 'both',
+      activitySubtype: activity.activitySubtype ?? '',
     });
     setIsDialogOpen(true);
   };
@@ -202,6 +209,7 @@ export function Activities() {
     const { shiftOverride, weekParity, ...rest } = formData;
     const payload = {
       ...rest,
+      activitySubtype: rest.activitySubtype || undefined,
       shiftOverride: shiftOverride === 0 ? undefined : shiftOverride,
       weekParity: weekParity === 'both' ? undefined : weekParity,
       totalDuration: formData.duration,
@@ -328,6 +336,20 @@ export function Activities() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder={t('activities.searchPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
         </div>
+        {institutionPreset.features.activitySubtypes && (
+          <select
+            value={subtypeFilter}
+            onChange={(e) => setSubtypeFilter(e.target.value as ActivitySubtype | '')}
+            aria-label={t('activities.subtype.filterLabel')}
+            className="h-10 rounded-md border border-border bg-card px-3 text-foreground"
+          >
+            <option value="">{t('activities.subtype.all')}</option>
+            <option value="lecture">{t('activities.subtype.lecture')}</option>
+            <option value="seminar">{t('activities.subtype.seminar')}</option>
+            <option value="lab">{t('activities.subtype.lab')}</option>
+            <option value="practical">{t('activities.subtype.practical')}</option>
+          </select>
+        )}
         {selectedActivityIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
             <Badge variant="secondary">{t('activities.bulkSelected', { count: selectedActivityIds.size })}</Badge>
@@ -419,6 +441,9 @@ export function Activities() {
                           {t}
                         </Badge>
                       ))}
+                      {activity.activitySubtype && (
+                        <Badge variant="outline">{t(`activities.subtype.${activity.activitySubtype}`)}</Badge>
+                      )}
                       <Badge variant={activity.weekParity ? 'default' : 'outline'}>
                         {weekParityLabel(activity.weekParity)}
                       </Badge>
@@ -600,6 +625,23 @@ export function Activities() {
                   </select>
                 </div>
               </div>
+
+              {institutionPreset.features.activitySubtypes && (
+                <div className="grid gap-2">
+                  <Label>{t('activities.subtype.label')}</Label>
+                  <select
+                    value={formData.activitySubtype}
+                    onChange={(e) => setFormData({ ...formData, activitySubtype: e.target.value as ActivitySubtype | '' })}
+                    className="h-10 w-full rounded-md border border-border bg-card px-3 text-foreground"
+                  >
+                    <option value="">{t('activities.subtype.none')}</option>
+                    <option value="lecture">{t('activities.subtype.lecture')}</option>
+                    <option value="seminar">{t('activities.subtype.seminar')}</option>
+                    <option value="lab">{t('activities.subtype.lab')}</option>
+                    <option value="practical">{t('activities.subtype.practical')}</option>
+                  </select>
+                </div>
+              )}
 
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="active" checked={formData.active} onChange={(e) => setFormData({ ...formData, active: e.target.checked })} className="h-4 w-4" />

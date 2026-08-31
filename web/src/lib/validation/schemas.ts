@@ -107,6 +107,7 @@ export const ActivitySchema = z.object({
   comments: z.string().optional(),
   shiftOverride: z.union([z.literal(1), z.literal(2)]).optional(),
   weekParity: z.enum(['both', 'numerator', 'denominator']).optional(),
+  activitySubtype: z.enum(['lecture', 'seminar', 'lab', 'practical']).optional(),
 });
 
 export const DaySchema = z.object({
