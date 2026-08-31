@@ -73,6 +73,7 @@ export function runSanitaryChecks(input: SanitaryInput): PreflightIssue[] {
   // Reuse the same class-load counting as preflight.ts: sum durations per
   // group, counting parallel subgroup activities (same activityGroupId) once.
   const groupById = new Map(studentsGroups.map((g) => [g.id, g]));
+  const groupByName = new Map(studentsGroups.map((g) => [g.name, g.id]));
   const subgroupToGroup = new Map<string, string>();
   for (const g of studentsGroups) {
     for (const sgId of g.subgroups) subgroupToGroup.set(sgId, g.id);
@@ -93,8 +94,12 @@ export function runSanitaryChecks(input: SanitaryInput): PreflightIssue[] {
           // the sanitary check never silently misses them.
           const year = input.studentsYears?.find((y) => y.id === setId || y.name === setId);
           if (year) {
-            for (const groupId of year.groups) {
-              if (groupById.has(groupId)) affected.add(groupId);
+            // `groups` is typed as ids but the importers write names; accept both.
+            for (const groupIdOrName of year.groups) {
+              const group = groupById.has(groupIdOrName)
+                ? groupIdOrName
+                : groupByName.get(groupIdOrName);
+              if (group) affected.add(group);
             }
           }
         }

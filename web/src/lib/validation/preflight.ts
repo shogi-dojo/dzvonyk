@@ -193,6 +193,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   for (const g of studentsGroups) {
     for (const sgId of g.subgroups) subgroupToGroup.set(sgId, g.id);
   }
+  const groupByName = new Map(studentsGroups.map((g) => [g.name, g.id]));
   const years = input.studentsYears ?? [];
 
   // Activities affecting a class = activities directly on group + one of the
@@ -213,11 +214,16 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         if (parent) affectedGroups.add(parent);
         else {
           // A stream: the activity names a whole year, so every group of the
-          // year carries its duration.
+          // year carries its duration. `groups` is typed as ids, but both
+          // importers write group NAMES into it, so resolve either form —
+          // the engine's resolveStudentSetIndices does the same.
           const year = years.find((y) => y.id === setId || y.name === setId);
           if (year) {
-            for (const groupId of year.groups) {
-              if (groupById.has(groupId)) affectedGroups.add(groupId);
+            for (const groupIdOrName of year.groups) {
+              const group = groupById.has(groupIdOrName)
+                ? groupIdOrName
+                : groupByName.get(groupIdOrName);
+              if (group) affectedGroups.add(group);
             }
           }
         }

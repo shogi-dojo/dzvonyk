@@ -193,5 +193,27 @@ describe('runPreflight', () => {
       const r = runPreflight(makeYearInput({ activities: [stream], rules: baseRules(1, 1) }));
       expect(r.blocking.filter((i) => i.code === 'CLASS_OVERLOAD')).toHaveLength(5);
     });
+
+    it('expands a year whose groups are listed by name (as both importers write them)', () => {
+      // StudentsYear.groups is documented as holding ids, but fetParser and
+      // rozParser both push group NAMES. The engine already resolves either
+      // form, so preflight must too or every imported stream goes uncounted.
+      const groups = Array.from({ length: 5 }, (_, i) => baseGroup(`g${i + 1}`, `КН-1${i + 1}`));
+      const yearByName = {
+        id: 'y1', name: '1 курс', numberOfStudents: 150, type: STUDENTS_YEAR,
+        groups: ['КН-11', 'КН-12', 'КН-13', 'КН-14', 'КН-15'],
+        divisions: [], separator: '-',
+      };
+      const stream = activity('stream', { studentSetIds: ['y1'], duration: 2 });
+      const r = runPreflight(
+        baseInput({
+          studentsGroups: groups,
+          studentsYears: [yearByName],
+          activities: [stream],
+          rules: baseRules(1, 1),
+        })
+      );
+      expect(r.blocking.filter((i) => i.code === 'CLASS_OVERLOAD')).toHaveLength(5);
+    });
   });
 });
