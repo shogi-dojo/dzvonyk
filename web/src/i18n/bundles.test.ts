@@ -212,7 +212,11 @@ describe('preset resource bundles', () => {
   it('falls back from college through university to the base bundle', () => {
     void i18n.changeLanguage('uk-college');
     expect(i18n.t('nav.teachers')).toBe('Викладачі');
+    // College-specific diffs land on top of the university vocabulary.
+    expect(i18n.t('print.approvalRole', { name: 'Коледж' })).toContain('Директор');
     expect(i18n.t('common.cancel')).toBe('Скасувати');
+    void i18n.changeLanguage('uk-university');
+    expect(i18n.t('print.approvalRole', { name: 'Університет' })).toContain('Ректор');
     void i18n.changeLanguage('uk');
     expect(i18n.t('timetable.lessonLabelFull', { count: 2 })).toBe('2 урок');
   });
