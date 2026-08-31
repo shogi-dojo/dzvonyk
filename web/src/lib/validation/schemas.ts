@@ -234,6 +234,7 @@ export const TimetableRulesSchema = z.object({
   mode: z.number().min(0).max(3).default(0),
   institutionName: z.string().min(1, 'Institution name is required'),
   comments: z.string().optional(),
+  institutionType: z.enum(['school', 'gymnasium', 'college', 'university']).optional(),
   nDaysPerWeek: z.number().min(1).max(7).default(5),
   nHoursPerDay: z.number().min(1).max(24).default(8),
   daysOfTheWeek: z.array(DaySchema),

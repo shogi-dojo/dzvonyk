@@ -6,6 +6,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Day, Hour } from '../../types';
 import { OFFICIAL_MODE } from '../../types';
+import type { InstitutionPresetId } from '@/lib/institution/presets';
 import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 
 // Interface with string dates for Redux compatibility
@@ -14,6 +15,7 @@ export interface TimetableRulesState {
   mode: number;
   institutionName: string;
   comments?: string;
+  institutionType?: InstitutionPresetId;
   nDaysPerWeek: number;
   nHoursPerDay: number;
   daysOfTheWeek: Day[];

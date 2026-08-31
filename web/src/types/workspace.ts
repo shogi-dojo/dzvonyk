@@ -1,3 +1,4 @@
+import type { InstitutionPresetId } from '@/lib/institution/presets';
 import type {
   TimetableRules,
   Teacher,
@@ -21,6 +22,9 @@ export interface School {
   name: string;
   shortName?: string;
   address?: string;
+  // Source of truth for the institution preset. Optional for legacy schools;
+  // resolveInstitutionType defaults missing values to 'school'.
+  institutionType?: InstitutionPresetId;
   createdAt: string;
   updatedAt: string;
   ownerUid?: string;

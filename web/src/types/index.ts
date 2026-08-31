@@ -3,6 +3,8 @@
  * Based on the original FET (Free Timetabling Software) C++ implementation
  */
 
+import type { InstitutionPresetId } from '@/lib/institution/presets';
+
 // ============ CONSTANTS ============
 
 export const OFFICIAL_MODE = 0;
@@ -361,6 +363,9 @@ export interface TimetableRules {
   mode: number;
   institutionName: string;
   comments?: string;
+  // Terminology preset chosen at institution creation. Optional for legacy
+  // rows; resolveInstitutionType defaults missing values to 'school'.
+  institutionType?: InstitutionPresetId;
   
   // Time structure
   nDaysPerWeek: number;
