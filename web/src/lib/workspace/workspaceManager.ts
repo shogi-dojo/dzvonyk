@@ -73,7 +73,24 @@ export class WorkspaceManager {
     }
 
     const currentWorkspace = (await this.database.workspaces.get(activeState.currentWorkspaceId)) || guestWorkspace;
-    const currentSchool = (await this.database.schools.get(currentWorkspace.schoolId)) || guestSchool;
+    let currentSchool = (await this.database.schools.get(currentWorkspace.schoolId)) || guestSchool;
+
+    // Self-healing: If active timetable rules has a custom institutionName, sync it to the active school
+    const rulesList = await this.database.rules.toArray();
+    const currentRulesName = (rulesList[0] as TimetableRules)?.institutionName?.trim();
+    if (
+      currentRulesName &&
+      currentRulesName !== 'Default Institution' &&
+      currentRulesName !== 'Untitled' &&
+      currentRulesName !== currentSchool.name
+    ) {
+      currentSchool = {
+        ...currentSchool,
+        name: currentRulesName,
+        updatedAt: now,
+      };
+      await this.database.schools.put(currentSchool);
+    }
 
     return {
       school: currentSchool,
@@ -243,6 +260,41 @@ export class WorkspaceManager {
     await this.createWorkspace(school.id, '2025-2026');
 
     return school;
+  }
+
+  /**
+   * Renames a school and syncs the active timetable rules institution name if active
+   */
+  async renameSchool(schoolId: string, newName: string, shortName?: string): Promise<School> {
+    const school = await this.database.schools.get(schoolId);
+    if (!school) throw new Error(`School ${schoolId} not found`);
+
+    const trimmedName = newName.trim();
+    const updated: School = {
+      ...school,
+      name: trimmedName,
+      ...(shortName !== undefined ? { shortName: shortName.trim() || undefined } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.database.schools.put(updated);
+
+    // If this school is currently active, sync the name to the active rules table
+    const activeState = await this.database.activeWorkspaceState.get('current');
+    if (activeState && activeState.currentSchoolId === schoolId) {
+      const rulesList = await this.database.rules.toArray();
+      if (rulesList.length > 0) {
+        const activeRules = rulesList[0] as TimetableRules;
+        if (activeRules.institutionName !== trimmedName) {
+          await this.database.rules.update(activeRules.id, {
+            institutionName: trimmedName,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    return updated;
   }
 
   /**

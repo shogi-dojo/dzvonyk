@@ -248,8 +248,11 @@ export function parseROZFile(
   for (let i = 0; i < allStrings.length - 1; i++) {
     if (allStrings[i].text === '#3375') {
       rawSubjects.push(allStrings[i + 1].text);
-      if (allStrings[i].offset > lastSubjOffset) {
-        lastSubjOffset = allStrings[i].offset;
+      // The subject value follows the #3375 marker. Teacher extraction starts
+      // after the final value, not after its marker; otherwise a multi-word
+      // final subject (for example, "Захист України") looks like a teacher.
+      if (allStrings[i + 1].offset > lastSubjOffset) {
+        lastSubjOffset = allStrings[i + 1].offset;
       }
     }
   }

@@ -143,4 +143,67 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
     expect(dupVersions.length).toBeGreaterThan(0);
     expect(dupVersions[0].snapshotEnvelope?.data.teachers[0].name).toBe('Франко І. Я.');
   });
+
+  it('renames school and synchronizes active rules institution name', async () => {
+    await workspaceManager.init();
+    await db.rules.put(mockRules);
+
+    // Create a new school
+    const newSchool = await workspaceManager.createSchool('Гімназія 131');
+    const newWorkspaces = await workspaceManager.listWorkspaces(newSchool.id);
+    await workspaceManager.switchWorkspace(newWorkspaces[0].id);
+
+    // Active rules now exist under the new school
+    const activeRulesBefore = await db.rules.toArray();
+    expect(activeRulesBefore[0].institutionName).toBe('Гімназія 131');
+
+    // Rename school to "Гімназія 1"
+    const renamed = await workspaceManager.renameSchool(newSchool.id, 'Гімназія 1', 'Гімн 1');
+    expect(renamed.name).toBe('Гімназія 1');
+    expect(renamed.shortName).toBe('Гімн 1');
+
+    const fetchedSchool = await db.schools.get(newSchool.id);
+    expect(fetchedSchool?.name).toBe('Гімназія 1');
+
+    // Verify active rules institution name was synchronized
+    const activeRulesAfter = await db.rules.toArray();
+    expect(activeRulesAfter[0].institutionName).toBe('Гімназія 1');
+  });
+
+  it('self-heals and synchronizes school name with rules institution name during init', async () => {
+    // Simulate legacy state where rules were renamed in settings to "Гімназія 1",
+    // but the school entity still retained "Гімназія 131"
+    await db.schools.put({
+      id: GUEST_SCHOOL_ID,
+      name: 'Гімназія 131',
+      createdAt: '2026-08-30T00:00:00.000Z',
+      updatedAt: '2026-08-30T00:00:00.000Z',
+    });
+    await db.workspaces.put({
+      id: GUEST_WORKSPACE_ID,
+      schoolId: GUEST_SCHOOL_ID,
+      label: 'Основний',
+      localRevision: 1,
+      createdAt: '2026-08-30T00:00:00.000Z',
+      updatedAt: '2026-08-30T00:00:00.000Z',
+    });
+    await db.activeWorkspaceState.put({
+      id: 'current',
+      currentWorkspaceId: GUEST_WORKSPACE_ID,
+      currentSchoolId: GUEST_SCHOOL_ID,
+      activeRevision: 1,
+    });
+    await db.rules.put({
+      ...mockRules,
+      institutionName: 'Гімназія 1',
+    });
+
+    // Run init
+    const context = await workspaceManager.init();
+
+    expect(context.school.name).toBe('Гімназія 1');
+
+    const schools = await workspaceManager.listSchools();
+    expect(schools[0].name).toBe('Гімназія 1');
+  });
 });

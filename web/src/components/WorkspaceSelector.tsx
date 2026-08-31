@@ -27,6 +27,7 @@ import { useAppDispatch, useAppSelector } from '@/hooks';
 import {
   switchWorkspaceAction,
   createSchoolAction,
+  renameSchoolAction,
   createWorkspaceAction,
   renameWorkspaceAction,
   duplicateWorkspaceAction,
@@ -35,7 +36,7 @@ import {
 } from '@/store/slices/workspaceSlice';
 import { useReloadTimetableState } from '@/hooks/useReloadTimetableState';
 import { GUEST_WORKSPACE_ID } from '@/db';
-import type { AcademicYearWorkspace } from '@/types';
+import type { AcademicYearWorkspace, School } from '@/types';
 import { cn } from '@/lib/utils';
 
 export function WorkspaceSelector() {
@@ -50,10 +51,16 @@ export function WorkspaceSelector() {
   const [isSchoolDialogOpen, setIsSchoolDialogOpen] = useState(false);
   const [isWorkspaceDialogOpen, setIsWorkspaceDialogOpen] = useState(false);
 
-  // Rename Dialog
+  // Rename Workspace Dialog
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [workspaceToRename, setWorkspaceToRename] = useState<AcademicYearWorkspace | null>(null);
   const [newWorkspaceLabel, setNewWorkspaceLabel] = useState('');
+
+  // Rename School Dialog
+  const [renameSchoolDialogOpen, setRenameSchoolDialogOpen] = useState(false);
+  const [schoolToRename, setSchoolToRename] = useState<School | null>(null);
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newSchoolShortName, setNewSchoolShortName] = useState('');
 
   // Duplicate Dialog
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
@@ -116,6 +123,30 @@ export function WorkspaceSelector() {
 
     setWorkspaceLabel('');
     setIsWorkspaceDialogOpen(false);
+    await reloadState();
+  };
+
+  const openRenameSchool = (school: School) => {
+    setSchoolToRename(school);
+    setNewSchoolName(school.name);
+    setNewSchoolShortName(school.shortName || '');
+    setRenameSchoolDialogOpen(true);
+  };
+
+  const handleRenameSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolToRename || !newSchoolName.trim()) return;
+
+    await dispatch(
+      renameSchoolAction({
+        schoolId: schoolToRename.id,
+        name: newSchoolName.trim(),
+        shortName: newSchoolShortName.trim() || undefined,
+      })
+    ).unwrap();
+
+    setRenameSchoolDialogOpen(false);
+    setSchoolToRename(null);
     await reloadState();
   };
 
@@ -228,9 +259,25 @@ export function WorkspaceSelector() {
                   const schoolWorkspaces = workspaces.filter((ws) => ws.schoolId === school.id);
                   if (schoolWorkspaces.length === 0) return null;
                   return (
-                    <div key={school.id}>
-                      <div className="px-2 py-1 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] truncate">
-                        {school.name}
+                    <div key={school.id} className="group/school">
+                      <div className="flex items-center justify-between px-2 py-1">
+                        <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px] truncate">
+                          {school.name}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 opacity-0 group-hover/school:opacity-100 transition-opacity text-muted-foreground hover:text-foreground shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDropdownOpen(false);
+                            openRenameSchool(school);
+                          }}
+                          title={t('workspace.renameSchool', 'Перейменувати заклад освіти')}
+                          aria-label={t('workspace.renameSchool', 'Перейменувати заклад освіти')}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
                       </div>
                       <div className="space-y-1">
                         {schoolWorkspaces.map((ws) => {
@@ -574,6 +621,50 @@ export function WorkspaceSelector() {
                 {t('common.cancel', 'Скасувати')}
               </Button>
               <Button type="submit">{t('common.create', 'Створити')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename School Dialog */}
+      <Dialog open={renameSchoolDialogOpen} onOpenChange={setRenameSchoolDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleRenameSchool}>
+            <DialogHeader>
+              <DialogTitle>{t('workspace.renameSchoolTitle', 'Перейменувати заклад освіти')}</DialogTitle>
+              <DialogDescription>
+                {t('workspace.renameSchoolDesc', 'Вкажіть нову назву для цього закладу освіти')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-4">
+              <div className="space-y-1">
+                <Label htmlFor="renameSchoolNameInput">{t('workspace.schoolName', 'Назва закладу')}</Label>
+                <Input
+                  id="renameSchoolNameInput"
+                  value={newSchoolName}
+                  onChange={(e) => setNewSchoolName(e.target.value)}
+                  placeholder="напр., Ліцей №15 м. Києва"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="renameSchoolShortNameInput">
+                  {t('workspace.schoolShortName', 'Скорочена назва (необовʼязково)')}
+                </Label>
+                <Input
+                  id="renameSchoolShortNameInput"
+                  value={newSchoolShortName}
+                  onChange={(e) => setNewSchoolShortName(e.target.value)}
+                  placeholder="напр., Ліцей 15"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRenameSchoolDialogOpen(false)}>
+                {t('common.cancel', 'Скасувати')}
+              </Button>
+              <Button type="submit">{t('common.save', 'Зберегти')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -34,6 +34,8 @@ import { RozImportDialog } from '@/components/RozImportDialog';
 import { AccountSettingsCard } from '@/components/AccountSettingsCard';
 import { VersionManager } from '@/components/VersionManager';
 import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
+import { renameSchoolAction } from '@/store/slices/workspaceSlice';
+import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -74,6 +76,7 @@ export function Settings() {
   const dispatch = useAppDispatch();
   const rules = useAppSelector((state) => state.rules.current);
   const modified = useAppSelector((state) => state.rules.modified);
+  const activeSchool = useAppSelector((state) => state.workspace.activeSchool);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rozFileInputRef = useRef<HTMLInputElement>(null);
   const [rozDialogOpen, setRozDialogOpen] = useState(false);
@@ -162,14 +165,16 @@ export function Settings() {
         }
       : undefined;
 
-    dispatch(updateInstitutionName(institutionName));
+    const trimmedInstitutionName = institutionName.trim();
+
+    dispatch(updateInstitutionName(trimmedInstitutionName));
     dispatch(updateDays(days));
     dispatch(updateHours(hours));
     dispatch(updateShifts(shiftsPayload));
 
     await db.rules.put({
       ...rules,
-      institutionName,
+      institutionName: trimmedInstitutionName,
       daysOfTheWeek: days,
       hoursOfTheDay: hours,
       nDaysPerWeek: days.length,
@@ -177,6 +182,17 @@ export function Settings() {
       shifts: shiftsPayload,
       updatedAt: new Date().toISOString(),
     });
+
+    const currentContext = await workspaceManager.getActiveContext();
+    const targetSchoolId = activeSchool?.id || currentContext.school?.id;
+    if (targetSchoolId && trimmedInstitutionName) {
+      await dispatch(
+        renameSchoolAction({
+          schoolId: targetSchoolId,
+          name: trimmedInstitutionName,
+        })
+      ).unwrap();
+    }
     
     dispatch(markAsSaved());
   };
@@ -288,6 +304,18 @@ export function Settings() {
         groups: data.studentsGroups,
         subgroups: data.studentsSubgroups,
       }));
+
+      if (data.institutionName?.trim()) {
+        const currentContext = await workspaceManager.getActiveContext();
+        if (currentContext.school) {
+          await dispatch(
+            renameSchoolAction({
+              schoolId: currentContext.school.id,
+              name: data.institutionName.trim(),
+            })
+          ).unwrap();
+        }
+      }
       
       setImportSuccess(t('settings.importSuccessDetail', {
         teachers: data.teachers.length,
