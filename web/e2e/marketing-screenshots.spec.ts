@@ -93,8 +93,8 @@ async function openMatrix(page: Page, label: RegExp) {
 test.describe.serial('Generate dense fictional marketing screenshots', () => {
   test('dashboard overview', async ({ page }) => {
     await importMarketingSchool(page);
-    await expect(page.getByText('33', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('540', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('31', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('659', { exact: true }).first()).toBeVisible();
     await captureScreenshot(page, '01-dashboard-overview');
   });
 
@@ -102,7 +102,7 @@ test.describe.serial('Generate dense fictional marketing screenshots', () => {
     await importMarketingSchool(page);
     await page.goto('/#/teachers');
     await expect(page.getByRole('heading', { name: 'Вчителі' })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/33 усього/i)).toBeVisible();
+    await expect(page.getByText(/31 усього/i)).toBeVisible();
     await expect.poll(() => page.getByRole('button', { name: 'Навантаження' }).count()).toBeGreaterThan(8);
     await captureScreenshot(page, '02-teachers-workload');
   });
@@ -111,7 +111,7 @@ test.describe.serial('Generate dense fictional marketing screenshots', () => {
     await importMarketingSchool(page);
     await page.goto('/#/activities');
     await expect(page.getByRole('heading', { name: 'Уроки' })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/540 усього, 540 активних/i)).toBeVisible();
+    await expect(page.getByText(/659 усього, 659 активних/i)).toBeVisible();
 
     const tagHeading = page.getByText('Типи заняття', { exact: true });
     await tagHeading.click();

@@ -4,6 +4,13 @@ These images are generated from a deterministic, fictional school dataset.
 The school name and every teacher identity are synthetic and are not sourced
 from a real school, staff directory, or imported user file.
 
+The data shape is calibrated from anonymized aggregate statistics of reference
+`.roz` files: 25 classes, 31 teachers, 20 subjects, and 659 placed hours. The
+fictional team contains 24 women and 7 men; every teacher has 15–28 weekly
+hours, lessons extend through period nine, and 59 timetable cells contain
+paired first/second-group lessons. No school name, teacher identity, or exact
+source timetable is copied from the reference files.
+
 Regenerate all screenshots from `web/`:
 
 ```sh
