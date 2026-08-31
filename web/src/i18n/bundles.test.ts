@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it, afterAll } from 'vitest';
-import i18n from './index';
+import i18n, { ukCollegeBundle } from './index';
 import uk from './uk.json';
 import ukUniversity from './uk-university.json';
-import ukCollege from './uk-college.json';
+import ukCollegeDiffs from './uk-college.json';
 
 /**
  * The term-dependent keys the university bundle must speak differently.
@@ -184,7 +184,7 @@ describe('preset resource bundles', () => {
 
   it('every override path exists in the base bundle (catches typos that would fall back silently)', () => {
     for (const bundleName of ['uk-university', 'uk-college']) {
-      const bundle = bundleName === 'uk-university' ? ukUniversity : ukCollege;
+      const bundle = bundleName === 'uk-university' ? ukUniversity : ukCollegeDiffs;
       const unknown = leaves(bundle).filter((key) => lookup(uk, key) === undefined);
       expect(unknown, `${bundleName} overrides keys missing from uk.json`).toEqual([]);
     }
@@ -215,10 +215,22 @@ describe('preset resource bundles', () => {
     // College-specific diffs land on top of the university vocabulary.
     expect(i18n.t('print.approvalRole', { name: 'Коледж' })).toContain('Директор');
     expect(i18n.t('common.cancel')).toBe('Скасувати');
+    // A college diff must not knock out its namespace's other university keys:
+    // these live in `print` alongside the three keys college overrides.
+    expect(i18n.t('print.classTitle', { name: 'КН-21' })).toBe(
+      i18n.t('print.classTitle', { name: 'КН-21', lng: 'uk-university' }),
+    );
+    expect(i18n.t('print.dailyTeachersTitle')).toContain('ВИКЛАДАЧІ');
     void i18n.changeLanguage('uk-university');
     expect(i18n.t('print.approvalRole', { name: 'Університет' })).toContain('Ректор');
     void i18n.changeLanguage('uk');
     expect(i18n.t('timetable.lessonLabelFull', { count: 2 })).toBe('2 урок');
+  });
+
+  it('college inherits every university override it does not itself redefine', () => {
+    const universityKeys = leaves(ukUniversity);
+    const missing = universityKeys.filter((key) => lookup(ukCollegeBundle, key) === undefined);
+    expect(missing, 'college bundle dropped university keys (shallow merge?)').toEqual([]);
   });
 
   afterAll(() => {
