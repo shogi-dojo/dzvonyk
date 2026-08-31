@@ -954,7 +954,9 @@
     "activitiesMeta_one": "{{count}} урок • {{when}}",
     "activitiesMeta_few": "{{count}} уроки • {{when}}",
     "activitiesMeta_many": "{{count}} уроків • {{when}}",
-    "activitiesMeta_other": "{{count}} уроків • {{when}}"
+    "activitiesMeta_other": "{{count}} уроків • {{when}}",
+    "lessonLabelFull": "{{count}} урок",
+    "lessonLabelCompact": "{{count}} ур."
   },
   "settings": {
     "title": "Налаштування",
