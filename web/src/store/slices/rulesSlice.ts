@@ -6,6 +6,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Day, Hour } from '../../types';
 import { OFFICIAL_MODE } from '../../types';
+import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 
 // Interface with string dates for Redux compatibility
 export interface TimetableRulesState {
@@ -40,8 +41,8 @@ const createDefaultRules = (id: string): TimetableRulesState => ({
   mode: OFFICIAL_MODE,
   institutionName: 'Default Institution',
   comments: '',
-  nDaysPerWeek: 5,
-  nHoursPerDay: 8,
+  nDaysPerWeek: INSTITUTION_PRESETS.school.defaults.nDaysPerWeek,
+  nHoursPerDay: INSTITUTION_PRESETS.school.defaults.nHoursPerDay,
   daysOfTheWeek: [
     { name: 'Monday', longName: 'Monday' },
     { name: 'Tuesday', longName: 'Tuesday' },
@@ -49,18 +50,9 @@ const createDefaultRules = (id: string): TimetableRulesState => ({
     { name: 'Thursday', longName: 'Thursday' },
     { name: 'Friday', longName: 'Friday' },
   ],
-  // `name` is the period's label, `longName` its bell range. Seeding the label
-  // with a time made the «Назва» column look like a broken copy of «Початок».
-  hoursOfTheDay: [
-    { name: '1 урок', longName: '08:00 - 09:00' },
-    { name: '2 урок', longName: '09:00 - 10:00' },
-    { name: '3 урок', longName: '10:00 - 11:00' },
-    { name: '4 урок', longName: '11:00 - 12:00' },
-    { name: '5 урок', longName: '12:00 - 13:00' },
-    { name: '6 урок', longName: '13:00 - 14:00' },
-    { name: '7 урок', longName: '14:00 - 15:00' },
-    { name: '8 урок', longName: '15:00 - 16:00' },
-  ],
+  // `name` is the period's label, `longName` its bell range. The preset's
+  // builder owns both columns so every seeding path stays identical.
+  hoursOfTheDay: buildDefaultHours(INSTITUTION_PRESETS.school),
   modified: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

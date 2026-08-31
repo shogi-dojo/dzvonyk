@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db, GUEST_SCHOOL_ID, GUEST_WORKSPACE_ID } from '@/db';
 import { workspaceManager } from './workspaceManager';
+import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 import type { TimetableRules, Teacher } from '@/types';
 
 const mockRules: TimetableRules = {
@@ -92,6 +93,24 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
     const versions = await workspaceManager.listVersions(GUEST_WORKSPACE_ID);
     const autoVersions = versions.filter((v) => v.type === 'auto');
     expect(autoVersions.length).toBeLessThanOrEqual(20);
+  });
+
+  it('seeds an empty workspace with the school preset bell schedule', async () => {
+    await workspaceManager.init();
+
+    const newSchool = await workspaceManager.createSchool('Колегіум');
+    const workspaces = await workspaceManager.listWorkspaces(newSchool.id);
+    await workspaceManager.switchWorkspace(workspaces[0].id);
+
+    const seeded = await db.rules.toArray();
+    expect(seeded).toHaveLength(1);
+    const rules = seeded[0] as TimetableRules;
+    expect(rules.institutionName).toBe('Колегіум');
+    expect(rules.nDaysPerWeek).toBe(INSTITUTION_PRESETS.school.defaults.nDaysPerWeek);
+    expect(rules.nHoursPerDay).toBe(INSTITUTION_PRESETS.school.defaults.nHoursPerDay);
+    expect(rules.hoursOfTheDay).toEqual(buildDefaultHours(INSTITUTION_PRESETS.school));
+    // Period labels follow the «N урок» convention, not bare times.
+    expect(rules.hoursOfTheDay[0].name).toBe('1 урок');
   });
 
   it('creates recovery snapshot before restoring a saved version', async () => {

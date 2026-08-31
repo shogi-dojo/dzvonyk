@@ -12,6 +12,7 @@ import {
   createSnapshotEnvelope,
   restoreSnapshotEnvelopeToDatabase,
 } from './snapshotCodec';
+import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 
 export const MAX_AUTO_VERSIONS = 20;
 
@@ -199,8 +200,8 @@ export class WorkspaceManager {
           id: rulesId,
           mode: 0,
           institutionName: targetSchool.name,
-          nDaysPerWeek: 5,
-          nHoursPerDay: 7,
+          nDaysPerWeek: INSTITUTION_PRESETS.school.defaults.nDaysPerWeek,
+          nHoursPerDay: INSTITUTION_PRESETS.school.defaults.nHoursPerDay,
           daysOfTheWeek: [
             { name: 'Monday', longName: 'Monday' },
             { name: 'Tuesday', longName: 'Tuesday' },
@@ -208,15 +209,7 @@ export class WorkspaceManager {
             { name: 'Thursday', longName: 'Thursday' },
             { name: 'Friday', longName: 'Friday' },
           ],
-          hoursOfTheDay: [
-            { name: '08:30', longName: '08:30 - 09:15' },
-            { name: '09:25', longName: '09:25 - 10:10' },
-            { name: '10:20', longName: '10:20 - 11:05' },
-            { name: '11:20', longName: '11:20 - 12:05' },
-            { name: '12:20', longName: '12:20 - 13:05' },
-            { name: '13:15', longName: '13:15 - 14:00' },
-            { name: '14:10', longName: '14:10 - 14:55' },
-          ],
+          hoursOfTheDay: buildDefaultHours(INSTITUTION_PRESETS.school),
           modified: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

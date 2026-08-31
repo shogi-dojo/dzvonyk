@@ -36,6 +36,7 @@ import { VersionManager } from '@/components/VersionManager';
 import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
 import { renameSchoolAction } from '@/store/slices/workspaceSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -46,16 +47,7 @@ const DEFAULT_DAYS: Day[] = [
   { name: 'Friday', longName: 'Friday' },
 ];
 
-const DEFAULT_HOURS: Hour[] = [
-  { name: '08:00', longName: '08:00 - 09:00' },
-  { name: '09:00', longName: '09:00 - 10:00' },
-  { name: '10:00', longName: '10:00 - 11:00' },
-  { name: '11:00', longName: '11:00 - 12:00' },
-  { name: '12:00', longName: '12:00 - 13:00' },
-  { name: '13:00', longName: '13:00 - 14:00' },
-  { name: '14:00', longName: '14:00 - 15:00' },
-  { name: '15:00', longName: '15:00 - 16:00' },
-];
+const DEFAULT_HOURS: Hour[] = buildDefaultHours(INSTITUTION_PRESETS.school);
 
 function serializeDates<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
