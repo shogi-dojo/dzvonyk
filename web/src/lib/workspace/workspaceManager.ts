@@ -14,6 +14,7 @@ import {
 } from './snapshotCodec';
 import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 import { resolveInstitutionType } from '@/lib/institution/resolveInstitutionType';
+import { canChangeInstitutionType } from '@/lib/institution/canChangeInstitutionType';
 import type { InstitutionPresetId } from '@/lib/institution/presets';
 
 export const MAX_AUTO_VERSIONS = 20;
@@ -266,6 +267,65 @@ export class WorkspaceManager {
     await this.createWorkspace(school.id, '2025-2026');
 
     return school;
+  }
+
+  /**
+   * Renames a school and syncs the active timetable rules institution name if active
+   */
+  /**
+   * The single legal write path for the institution type: allowed only while
+   * the workspace holds zero entities (see canChangeInstitutionType). Re-seeds
+   * the bell schedule from the new preset unless the bells were customized.
+   */
+  async changeSchoolInstitutionType(
+    schoolId: string,
+    institutionType: InstitutionPresetId
+  ): Promise<School> {
+    const school = await this.database.schools.get(schoolId);
+    if (!school) throw new Error(`School ${schoolId} not found`);
+
+    const counts = {
+      teachers: await this.database.teachers.count(),
+      subjects: await this.database.subjects.count(),
+      activityTags: await this.database.activityTags.count(),
+      studentsYears: await this.database.studentsYears.count(),
+      studentsGroups: await this.database.studentsGroups.count(),
+      studentsSubgroups: await this.database.studentsSubgroups.count(),
+      activities: await this.database.activities.count(),
+      buildings: await this.database.buildings.count(),
+      rooms: await this.database.rooms.count(),
+      timeConstraints: await this.database.timeConstraints.count(),
+      spaceConstraints: await this.database.spaceConstraints.count(),
+      solutions: await this.database.solutions.count(),
+    };
+    if (!canChangeInstitutionType(counts)) {
+      throw new Error('Institution type can only be changed while the workspace has no entities.');
+    }
+
+    const now = new Date().toISOString();
+    const updated: School = { ...school, institutionType, updatedAt: now };
+    await this.database.schools.put(updated);
+
+    const rulesList = await this.database.rules.toArray();
+    const rules = rulesList[0] as TimetableRules | undefined;
+    if (rules) {
+      const preset = INSTITUTION_PRESETS[institutionType];
+      const previousPreset = INSTITUTION_PRESETS[resolveInstitutionType(school, rules)];
+      const bellsUntouched =
+        JSON.stringify(rules.hoursOfTheDay) === JSON.stringify(buildDefaultHours(previousPreset));
+      await this.database.rules.update(rules.id, {
+        institutionType,
+        ...(bellsUntouched
+          ? {
+              nHoursPerDay: preset.defaults.nHoursPerDay,
+              hoursOfTheDay: buildDefaultHours(preset),
+            }
+          : {}),
+        updatedAt: now,
+      });
+    }
+
+    return updated;
   }
 
   /**

@@ -22,8 +22,11 @@ import { db } from '@/db';
 import { parseFETFile, exportToFETXml } from '@/lib/fetParser';
 import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
-import { renameSchoolAction } from '@/store/slices/workspaceSlice';
+import { renameSchoolAction, changeInstitutionTypeAction } from '@/store/slices/workspaceSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { INSTITUTION_PRESETS, type InstitutionPresetId } from '@/lib/institution/presets';
+import { resolveInstitutionType } from '@/lib/institution/resolveInstitutionType';
+import { canChangeInstitutionType } from '@/lib/institution/canChangeInstitutionType';
 import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
@@ -36,6 +39,8 @@ export function Dashboard() {
   const { rooms, buildings } = useAppSelector((state) => state.rooms);
   const { years, groups, subgroups } = useAppSelector((state) => state.students);
   const { timeConstraints, spaceConstraints } = useAppSelector((state) => state.constraints);
+  const activityTags = useAppSelector((state) => state.activityTags?.items || []);
+  const { activeSchool } = useAppSelector((state) => state.workspace);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rozFileInputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +59,41 @@ export function Dashboard() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [lastSolution, setLastSolution] = useState<TimetableSolution | null>(null);
+  const [institutionChoice, setInstitutionChoice] = useState<InstitutionPresetId | null>(null);
+  const [changingInstitutionType, setChangingInstitutionType] = useState(false);
+
+  const currentPresetId = resolveInstitutionType(activeSchool ?? undefined, rules ?? undefined);
+
+  // The institution type is permanent once data exists — the card below is the
+  // only place it can still be changed, gated by the same rule the manager
+  // enforces on write.
+  const canChangeType = canChangeInstitutionType({
+    teachers: teachers.length,
+    subjects: subjects.length,
+    activityTags: activityTags.length,
+    studentsYears: years.length,
+    studentsGroups: groups.length,
+    studentsSubgroups: subgroups.length,
+    activities: activities.length,
+    buildings: buildings.length,
+    rooms: rooms.length,
+    timeConstraints: timeConstraints.length,
+    spaceConstraints: spaceConstraints.length,
+    solutions: 0,
+  });
+
+  const handleChangeInstitutionType = async () => {
+    if (!activeSchool || !institutionChoice || institutionChoice === currentPresetId) return;
+    setChangingInstitutionType(true);
+    try {
+      await dispatch(
+        changeInstitutionTypeAction({ schoolId: activeSchool.id, institutionType: institutionChoice })
+      ).unwrap();
+      setInstitutionChoice(null);
+    } finally {
+      setChangingInstitutionType(false);
+    }
+  };
 
   useEffect(() => {
     const loadLastSolution = async () => {
@@ -255,6 +295,69 @@ export function Dashboard() {
         description={t('dashboard.description')}
         icon={<LayoutDashboard className="h-6 w-6" />}
       />
+
+      {/* Institution type choice — only while the workspace is still empty */}
+      {canChangeType && activeSchool && (
+        <Card className="border-amber-300/70 bg-amber-50/50 dark:border-amber-500/30 dark:bg-amber-950/20 animate-slide-up">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <GraduationCap className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              {t('institution.changeCard.title')}
+            </CardTitle>
+            <CardDescription>{t('institution.changeCard.description')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div
+              className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+              role="radiogroup"
+              aria-label={t('institution.selector.legend')}
+            >
+              {Object.values(INSTITUTION_PRESETS).map((preset) => {
+                const selected = institutionChoice ?? currentPresetId;
+                const isActive = selected === preset.id;
+                const isCurrent = currentPresetId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    onClick={() => setInstitutionChoice(preset.id)}
+                    className={
+                      'rounded-lg border p-2.5 text-left transition-colors ' +
+                      (isActive
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-muted/60')
+                    }
+                  >
+                    <span className="block text-xs font-semibold text-foreground">
+                      {t(preset.labelKey)}
+                      {isCurrent && (
+                        <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                          ({t('institution.changeCard.current')})
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                      {t(preset.descriptionKey)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {institutionChoice && institutionChoice !== currentPresetId && (
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleChangeInstitutionType} disabled={changingInstitutionType}>
+                  {t('institution.changeCard.apply')}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setInstitutionChoice(null)}>
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Status Messages */}
       {(importError || rozError) && (

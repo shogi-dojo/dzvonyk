@@ -10,6 +10,8 @@ import { historyManager } from '@/lib/history';
 import { trackEvent } from '@/lib/analytics';
 import { syncService } from '@/lib/firebase/syncService';
 import { updateInstitutionName } from '@/store/slices/rulesSlice';
+import { setRules } from '@/store/slices/rulesSlice';
+import { db } from '@/db';
 import type { InstitutionPresetId } from '@/lib/institution/presets';
 
 interface WorkspaceState {
@@ -97,6 +99,35 @@ export const createSchoolAction = createAsyncThunk(
     return { school, workspace: context.workspace, schools, workspaces, isGuest: context.isGuest };
   }
 );
+
+export const changeInstitutionTypeAction = createAsyncThunk(
+  'workspace/changeInstitutionType',
+  async (
+    { schoolId, institutionType }: { schoolId: string; institutionType: InstitutionPresetId },
+    { dispatch }
+  ) => {
+    const school = await workspaceManager.changeSchoolInstitutionType(schoolId, institutionType);
+    const schools = await workspaceManager.listSchools();
+
+    // Reload the materialised rules so the new preset's bell schedule is live.
+    const rulesList = await db.rules.toArray();
+    if (rulesList.length > 0) {
+      dispatch(setRules(serializeRules(rulesList[0])));
+    }
+
+    return { school, schools };
+  }
+);
+
+// Mirror of Settings' date serialization: rules carry Date | string timestamps.
+function serializeRules(rules: unknown): unknown {
+  const record = rules as Record<string, unknown>;
+  return {
+    ...record,
+    createdAt: record.createdAt instanceof Date ? record.createdAt.toISOString() : record.createdAt,
+    updatedAt: record.updatedAt instanceof Date ? record.updatedAt.toISOString() : record.updatedAt,
+  };
+}
 
 export const renameSchoolAction = createAsyncThunk(
   'workspace/renameSchool',
@@ -305,6 +336,13 @@ const workspaceSlice = createSlice({
         state.activeWorkspace = action.payload.workspace;
         state.isGuest = action.payload.isGuest;
         state.workspaces = action.payload.workspaces;
+      })
+      // Change institution type
+      .addCase(changeInstitutionTypeAction.fulfilled, (state, action) => {
+        state.schools = action.payload.schools;
+        if (state.activeSchool?.id === action.payload.school.id) {
+          state.activeSchool = action.payload.school;
+        }
       })
       // Rename school
       .addCase(renameSchoolAction.fulfilled, (state, action) => {

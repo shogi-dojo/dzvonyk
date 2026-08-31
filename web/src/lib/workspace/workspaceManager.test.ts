@@ -134,6 +134,32 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
     expect(seeded.hoursOfTheDay[0].name).toBe('1 пара');
   });
 
+  it('re-seeds untouched bells when the type changes on an empty workspace', async () => {
+    await workspaceManager.init();
+
+    const school = await workspaceManager.createSchool('Ще невизначились');
+    const workspaces = await workspaceManager.listWorkspaces(school.id);
+    await workspaceManager.switchWorkspace(workspaces[0].id);
+    expect(((await db.rules.toArray())[0] as TimetableRules).institutionType).toBe('school');
+
+    const updated = await workspaceManager.changeSchoolInstitutionType(school.id, 'university');
+    expect(updated.institutionType).toBe('university');
+
+    const rules = (await db.rules.toArray())[0] as TimetableRules;
+    expect(rules.institutionType).toBe('university');
+    expect(rules.hoursOfTheDay).toEqual(buildDefaultHours(INSTITUTION_PRESETS.university));
+  });
+
+  it('refuses to change the institution type once entities exist', async () => {
+    await workspaceManager.init();
+    await db.teachers.put(mockTeacher);
+
+    const school = await workspaceManager.createSchool('Школа №1');
+    await expect(
+      workspaceManager.changeSchoolInstitutionType(school.id, 'college')
+    ).rejects.toThrow(/no entities/);
+  });
+
   it('creates recovery snapshot before restoring a saved version', async () => {
     await workspaceManager.init();
     await db.teachers.put(mockTeacher);
