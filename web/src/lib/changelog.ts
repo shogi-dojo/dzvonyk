@@ -12,6 +12,8 @@ export interface ReleaseMilestone {
   badgeVariant?: 'default' | 'secondary' | 'outline';
   date: string;
   items: ChangelogItem[];
+  /** Optional screenshot under public/whats-new/{screenshotId}.{png,webp}. */
+  screenshotId?: string;
 }
 
 export const CHANGELOG_RELEASES: ReleaseMilestone[] = [
