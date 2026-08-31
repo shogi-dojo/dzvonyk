@@ -163,9 +163,20 @@ export class FETDatabase extends Dexie {
       });
     });
 
+    // Version 3 (institution types): backfill the school preset on already
+    // materialised rows. Snapshot bodies are NOT rewritten here — legacy
+    // envelopes are migrated on read in validateSnapshotEnvelope instead.
+    this.version(3).upgrade(async (tx) => {
+      await tx.table('rules').toCollection().modify((rules: Record<string, unknown>) => {
+        if (!rules.institutionType) rules.institutionType = 'school';
+      });
+      await tx.table('schools').toCollection().modify((school: Record<string, unknown>) => {
+        if (!school.institutionType) school.institutionType = 'school';
+      });
+    });
+
     this.installTimetableMutationHooks();
   }
-
   private installTimetableMutationHooks(): void {
     for (const tableName of TIMETABLE_TABLE_NAMES) {
       const table = this.table<Record<string, unknown>, string>(tableName);

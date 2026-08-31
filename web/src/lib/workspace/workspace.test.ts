@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '@/db';
 import {
+  CURRENT_SCHEMA_VERSION,
   serializeSnapshotEnvelope,
   deserializeSnapshotEnvelope,
   validateSnapshotEnvelope,
@@ -83,7 +84,7 @@ describe('Centralized Workspace Persistence & Snapshot Codec', () => {
     });
 
     expect(envelope.version).toBe(1);
-    expect(envelope.schemaVersion).toBe(1);
+    expect(envelope.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(envelope.workspaceId).toBe('ws-test-1');
     expect(envelope.metadata?.institutionName).toBe('Тестова гімназія');
     expect(envelope.data.teachers).toHaveLength(1);
@@ -143,9 +144,46 @@ describe('Centralized Workspace Persistence & Snapshot Codec', () => {
 
     const validated = validateSnapshotEnvelope(legacyPayload);
     expect(validated.version).toBe(1);
+    expect(validated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(validated.data.teachers).toHaveLength(1);
     expect(validated.data.subjects).toEqual([]);
     expect(validated.data.rooms).toEqual([]);
     expect(validated.data.solutions).toEqual([]);
+  });
+
+  it('migrates a v1 envelope without institutionType back to school on read', () => {
+    const v1Envelope = {
+      version: 1,
+      schemaVersion: 1,
+      workspaceId: 'ws-legacy',
+      timestamp: '2026-01-01T00:00:00.000Z',
+      data: {
+        rules: { ...mockRules },
+        teachers: [mockTeacher],
+      },
+    };
+
+    const migrated = validateSnapshotEnvelope(v1Envelope);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.data.rules?.institutionType).toBe('school');
+    // Migration must not touch anything else.
+    expect(migrated.data.rules?.institutionName).toBe(mockRules.institutionName);
+    expect(migrated.data.teachers).toHaveLength(1);
+  });
+
+  it('keeps a v2 envelope unchanged through a serialize/deserialize round trip', async () => {
+    await db.clearAllData();
+    await db.rules.put({ ...mockRules, institutionType: 'university' });
+
+    const envelope = await workspaceRepository.createSnapshot({
+      workspaceId: 'ws-v2',
+      description: 'University backup',
+    });
+    expect(envelope.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+
+    const roundTripped = deserializeSnapshotEnvelope(serializeSnapshotEnvelope(envelope));
+    expect(roundTripped.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(roundTripped.data.rules?.institutionType).toBe('university');
+    expect(roundTripped.data.rules?.institutionName).toBe(mockRules.institutionName);
   });
 });

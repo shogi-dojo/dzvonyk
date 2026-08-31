@@ -6,7 +6,9 @@ import type {
 } from '@/types';
 import { APP_VERSION } from '@/lib/version';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+// v1: original layout. v2 (institution types): rules.institutionType backfilled
+// to 'school' on read so legacy snapshots resolve to the school terminology.
+export const CURRENT_SCHEMA_VERSION = 2;
 
 /**
  * Creates a raw snapshot data object from the active database tables
@@ -78,8 +80,7 @@ export async function createSnapshotEnvelope(
   return {
     version: 1,
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    workspaceId: options?.workspaceId,
-    schoolId: options?.schoolId,
+    workspaceId: options?.workspaceId,    schoolId: options?.schoolId,
     timestamp: new Date().toISOString(),
     data,
     metadata: {
@@ -155,7 +156,14 @@ export function serializeSnapshotEnvelope(envelope: WorkspaceSnapshotEnvelope): 
 }
 
 /**
- * Validates and normalizes any snapshot object
+ * Validates and normalizes any snapshot object, migrating it to
+ * CURRENT_SCHEMA_VERSION.
+ *
+ * This is the single migration chokepoint: both the local path
+ * (restoreSnapshotEnvelopeToDatabase) and the cloud path
+ * (deserializeSnapshotEnvelope) read through it, so an old snapshot can never
+ * be materialised un-migrated. v1 envelopes are backfilled to 'school'; v2+
+ * envelopes pass through unchanged.
  */
 export function validateSnapshotEnvelope(raw: unknown): WorkspaceSnapshotEnvelope {
   if (!raw || typeof raw !== 'object') {
@@ -168,8 +176,19 @@ export function validateSnapshotEnvelope(raw: unknown): WorkspaceSnapshotEnvelop
   const hasData = obj.data && typeof obj.data === 'object';
   const rawData = (hasData ? obj.data : obj) as Record<string, unknown>;
 
+  const rawSchemaVersion = typeof obj.schemaVersion === 'number' && obj.schemaVersion >= 1
+    ? obj.schemaVersion
+    : 1;
+
+  const normalizedRules = (rawData.rules as TimetableRules) || null;
+
+  if (rawSchemaVersion < 2 && normalizedRules && !normalizedRules.institutionType) {
+    // v1 → v2: snapshots predate institution types, and every workspace that
+    // existed then is a school.
+    normalizedRules.institutionType = 'school';
+  }
   const normalizedData: WorkspaceSnapshotData = {
-    rules: (rawData.rules as TimetableRules) || null,
+    rules: normalizedRules,
     teachers: Array.isArray(rawData.teachers) ? rawData.teachers : [],
     subjects: Array.isArray(rawData.subjects) ? rawData.subjects : [],
     activityTags: Array.isArray(rawData.activityTags) ? rawData.activityTags : [],
@@ -185,8 +204,10 @@ export function validateSnapshotEnvelope(raw: unknown): WorkspaceSnapshotEnvelop
   };
 
   return {
-    version: 1,
-    schemaVersion: 1,
+    version: typeof obj.version === 'number' ? obj.version : 1,
+    // Migrated envelopes are stamped as current; unknown future versions keep
+    // their own number so we never relabel a layout we do not understand.
+    schemaVersion: rawSchemaVersion < CURRENT_SCHEMA_VERSION ? CURRENT_SCHEMA_VERSION : rawSchemaVersion,
     workspaceId: typeof obj.workspaceId === 'string' ? obj.workspaceId : undefined,
     schoolId: typeof obj.schoolId === 'string' ? obj.schoolId : undefined,
     timestamp: typeof obj.timestamp === 'string' ? obj.timestamp : new Date().toISOString(),

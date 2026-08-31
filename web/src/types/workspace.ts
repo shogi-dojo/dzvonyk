@@ -61,8 +61,9 @@ export interface WorkspaceSnapshotData {
 }
 
 export interface WorkspaceSnapshotEnvelope {
-  version: 1;
-  schemaVersion: 1;
+  /** Envelope layout revision; bumped alongside data migrations. */
+  version: number;
+  schemaVersion: number;
   workspaceId?: string;
   schoolId?: string;
   timestamp: string;
