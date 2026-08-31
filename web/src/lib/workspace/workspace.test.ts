@@ -169,6 +169,11 @@ describe('Centralized Workspace Persistence & Snapshot Codec', () => {
     // Migration must not touch anything else.
     expect(migrated.data.rules?.institutionName).toBe(mockRules.institutionName);
     expect(migrated.data.teachers).toHaveLength(1);
+    // ...and must not rewrite the caller's own object: this is a validator, so
+    // a caller that inspects a snapshot before deciding whether to restore it
+    // must not have its input silently migrated underneath.
+    expect(v1Envelope.data.rules).not.toHaveProperty('institutionType');
+    expect(v1Envelope.schemaVersion).toBe(1);
   });
 
   it('keeps a v2 envelope unchanged through a serialize/deserialize round trip', async () => {

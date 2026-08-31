@@ -180,13 +180,16 @@ export function validateSnapshotEnvelope(raw: unknown): WorkspaceSnapshotEnvelop
     ? obj.schemaVersion
     : 1;
 
-  const normalizedRules = (rawData.rules as TimetableRules) || null;
+  const incomingRules = (rawData.rules as TimetableRules) || null;
 
-  if (rawSchemaVersion < 2 && normalizedRules && !normalizedRules.institutionType) {
-    // v1 → v2: snapshots predate institution types, and every workspace that
-    // existed then is a school.
-    normalizedRules.institutionType = 'school';
-  }
+  // v1 → v2: snapshots predate institution types, and every workspace that
+  // existed then is a school. Copy rather than assign in place — this function
+  // is a validator, and callers (including ones that validate before deciding
+  // whether to restore) must never see their own input silently rewritten.
+  const normalizedRules =
+    incomingRules && rawSchemaVersion < 2 && !incomingRules.institutionType
+      ? { ...incomingRules, institutionType: 'school' as const }
+      : incomingRules;
   const normalizedData: WorkspaceSnapshotData = {
     rules: normalizedRules,
     teachers: Array.isArray(rawData.teachers) ? rawData.teachers : [],
