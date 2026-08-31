@@ -338,6 +338,8 @@ export function TimetableMatrix({
                             <div className="h-full w-full flex flex-col justify-between rounded border border-border/80 divide-y divide-border overflow-hidden text-[11px]">
                               {/* Top Half: Numerator */}
                               <div
+                                data-testid="matrix-lesson-card"
+                                data-activity-id={numEntry.activityId}
                                 draggable={Boolean(onDragStateChange || onMove)}
                                 onDragStart={(e) => {
                                   e.dataTransfer.setData('text/plain', numEntry.activityId);
@@ -365,6 +367,8 @@ export function TimetableMatrix({
 
                               {/* Bottom Half: Denominator */}
                               <div
+                                data-testid="matrix-lesson-card"
+                                data-activity-id={denEntry.activityId}
                                 draggable={Boolean(onDragStateChange || onMove)}
                                 onDragStart={(e) => {
                                   e.dataTransfer.setData('text/plain', denEntry.activityId);
@@ -415,6 +419,8 @@ export function TimetableMatrix({
                               return (
                                 <div
                                   key={entry.activityId}
+                                  data-testid="matrix-lesson-card"
+                                  data-activity-id={entry.activityId}
                                   draggable={Boolean(onDragStateChange || onMove)}
                                   onDragStart={(e) => {
                                     e.dataTransfer.setData('text/plain', entry.activityId);

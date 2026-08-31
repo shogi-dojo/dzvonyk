@@ -33,6 +33,8 @@
     "printDesc": "Print schedules & reports",
     "settings": "Settings",
     "settingsDesc": "Configuration",
+    "faq": "Help & FAQ",
+    "faqDesc": "User guide & questions",
     "about": "About",
     "aboutDesc": "Info & updates"
   },
@@ -1216,6 +1218,18 @@
     "deleteAccountTitle": "Delete Account and All Cloud Data?",
     "deleteAccountWarning": "This action is permanent and cannot be undone. All your schools, academic years, saved versions, and history will be permanently deleted from cloud storage.",
     "confirmDelete": "Permanently Delete"
+  },
+  "faq": {
+    "title": "Help & FAQ",
+    "subtitle": "Comprehensive user guide for school administrators and schedule planners",
+    "searchPlaceholder": "Search help (e.g., numerator, roz import, gaps, printing, sanitary rules)...",
+    "allTopics": "All Topics",
+    "foundCount": "Questions found",
+    "emptyTitle": "Nothing found",
+    "emptyDesc": "No questions matched your search. Try different keywords or browse all topics.",
+    "resetFilters": "Reset filters",
+    "destructiveBadge": "Destructive Action",
+    "screenshotZoom": "Click to enlarge"
   },
   "print": {
     "dailyTeachers": "Daily (Teachers)",

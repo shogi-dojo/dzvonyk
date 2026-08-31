@@ -62,6 +62,7 @@ test.describe('Дзвоник smoke tests', () => {
       '/#/timetable',
       '/#/print',
       '/#/settings',
+      '/#/faq',
       '/#/about',
     ];
     for (const route of routes) {

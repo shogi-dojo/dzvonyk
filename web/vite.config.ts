@@ -72,7 +72,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,webp,svg,webmanifest}'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
@@ -85,6 +85,7 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {
         // Split vendor code into stable, separately-cacheable chunks.
@@ -100,6 +101,10 @@ export default defineConfig({
           for (const [chunk, pkgs] of Object.entries(VENDOR_CHUNKS)) {
             if (pkgs.some((pkg) => id.includes(`node_modules/${pkg}/`))) return chunk;
           }
+          if (id.includes('/src/lib/faq/') || id.includes('/src/pages/FAQ')) return 'faq';
+          if (id.includes('/src/lib/changelog') || id.includes('/src/pages/About')) return 'about';
+          if (id.includes('/src/lib/pdfExport') || id.includes('/src/pages/Print')) return 'print';
+          if (id.includes('/src/lib/fetParser') || id.includes('/src/lib/rozParser')) return 'parsers';
         },
       },
     },

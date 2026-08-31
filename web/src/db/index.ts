@@ -24,6 +24,7 @@ import type {
   HistoryEntry,
   EntityChange,
 } from '../types';
+import { APP_VERSION } from '@/lib/version';
 
 const TIMETABLE_TABLE_NAMES = [
   'rules',
@@ -329,7 +330,7 @@ export class FETDatabase extends Dexie {
     ]);
 
     return {
-      version: '1.0.0',
+      version: APP_VERSION,
       exportedAt: new Date().toISOString(),
       data: {
         rules,

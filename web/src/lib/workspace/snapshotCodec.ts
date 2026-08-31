@@ -4,6 +4,7 @@ import type {
   WorkspaceSnapshotEnvelope,
   TimetableRules,
 } from '@/types';
+import { APP_VERSION } from '@/lib/version';
 
 export const CURRENT_SCHEMA_VERSION = 1;
 
@@ -82,7 +83,7 @@ export async function createSnapshotEnvelope(
     timestamp: new Date().toISOString(),
     data,
     metadata: {
-      appVersion: '1.0.0',
+      appVersion: APP_VERSION,
       institutionName,
       description: options?.description,
     },

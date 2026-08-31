@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,9 +8,17 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { PageHeader } from '@/components/PageTransition';
 import { InstallPwaButton } from '@/components/InstallPwaButton';
 import { SOURCE_URL, FEEDBACK_URL, FEEDBACK_EMAIL, DONATE_URL } from '@/lib/links';
+import { APP_VERSION } from '@/lib/version';
+import { CHANGELOG_RELEASES } from '@/lib/changelog';
 
 const FET_URL = 'https://lalescu.ro/liviu/fet/';
 
@@ -18,7 +27,7 @@ export function About() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto" data-testid="about-page">
       <PageHeader
         title={t('about.title', { defaultValue: 'Про програму «Дзвоник»' })}
         description={t('about.subtitle', { defaultValue: 'Офлайн-планувальник шкільного розкладу для завуча' })}
@@ -36,7 +45,7 @@ export function About() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-2xl font-bold text-foreground">Дзвоник</h2>
-                  <Badge variant="secondary" className="font-mono text-xs">v1.0.0</Badge>
+                  <Badge variant="secondary" className="font-mono text-xs">v{APP_VERSION}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   Сучасний швидкий планувальник навчальних розкладів
@@ -86,7 +95,7 @@ export function About() {
               <div>
                 <h3 className="font-semibold text-sm text-foreground">Сумісність</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Підтримка імпорту й експорту популярних файлів aSc Розклад (<code className="text-xs font-mono">.roz</code>) та FET (<code className="text-xs font-mono">.fet</code>).
+                  Імпорт файлів aSc Розклад (<code className="text-xs font-mono">.roz</code>), а також імпорт і експорт відкритого формату FET (<code className="text-xs font-mono">.fet</code>).
                 </p>
               </div>
             </div>
@@ -103,51 +112,53 @@ export function About() {
             </div>
             <div>
               <CardTitle>Журнал оновлень (Changelog)</CardTitle>
-              <CardDescription>Історія змін та нові можливості програми</CardDescription>
+              <CardDescription>Історія змін та внутрішні етапи розвитку програми</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Release v1.0.0 */}
-          <div className="relative pl-6 border-l-2 border-primary/30 space-y-3">
-            <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary border-4 border-background" />
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-foreground">Версія 1.0.0</span>
-              <Badge className="bg-primary/20 text-primary border-primary/30">Реліз</Badge>
-              <span className="text-xs text-muted-foreground">• Серпень 2026</span>
-            </div>
+        <CardContent className="space-y-4">
+          <Accordion type="multiple" defaultValue={[APP_VERSION]} className="space-y-3">
+            {CHANGELOG_RELEASES.map((release) => {
+              const isCurrent = release.version === APP_VERSION;
 
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Імпорт aSc Розклад (.roz):</strong> пряме завантаження контейнерів aSc з автоматичним розбором класів, підгруп, предметів, кольорів та навантаження.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Інтерактивний розклад:</strong> перетягування уроків (Drag & Drop), перевірка колізій у реальному часі та фіксація уроків постійним замочком 🔒.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Зведений розклад («Усі класи»):</strong> єдина матриця розкладу всієї школи для швидкого контролю завучем.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Офіційний друк під А4:</strong> автономні бланки з грифом «ЗАТВЕРДЖУЮ» директора, пакетний друк усіх класів або вчителів (по 1 сторінці на клас/вчителя).</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Тарифікаційний звіт:</strong> формування тижневого навантаження викладачів за предметами та класами.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Графік доступності:</strong> зручна інтерактивна сітка для відзначення неробочих годин («Коли не може»).</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Світла та темна теми:</strong> швидке перемикання теми оформлення з адаптивною колірною гамою.</span>
-              </li>
-            </ul>
-          </div>
+              return (
+                <AccordionItem
+                  key={release.version}
+                  value={release.version}
+                  className="rounded-lg border border-border/80 bg-background/50 px-4 transition-colors"
+                >
+                  <AccordionTrigger className="hover:no-underline py-3 text-left">
+                    <div className="flex items-center gap-2.5 flex-wrap pr-2">
+                      <span className="font-bold text-foreground">Версія {release.version}</span>
+                      <Badge
+                        variant={release.badgeVariant || (isCurrent ? 'default' : 'secondary')}
+                        className={isCurrent ? 'bg-primary/20 text-primary border-primary/30' : 'text-xs'}
+                      >
+                        {release.badge}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground font-normal">• {release.date}</span>
+                      <span className="text-xs font-medium text-foreground/80 hidden sm:inline ml-1">
+                        — {release.title}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-4">
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      {release.items.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-foreground font-medium">{item.feature}</strong>{' '}
+                            {item.description}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
         </CardContent>
       </Card>
 
