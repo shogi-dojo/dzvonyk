@@ -37,6 +37,7 @@ import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
 import { renameSchoolAction } from '@/store/slices/workspaceSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
+import { useInstitutionPreset } from '@/hooks';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -66,6 +67,7 @@ function serializeDates<T>(obj: T): T {
 export function Settings() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const institutionPreset = useInstitutionPreset();
   const rules = useAppSelector((state) => state.rules.current);
   const modified = useAppSelector((state) => state.rules.modified);
   const activeSchool = useAppSelector((state) => state.workspace.activeSchool);
@@ -557,7 +559,8 @@ export function Settings() {
             </CardContent>
           </Card>
 
-          {/* Sanitary regulation preset */}
+          {/* Sanitary regulation preset — МОЗ №2205 covers schools only */}
+          {institutionPreset.features.sanitaryChecks && (
           <Card className="animate-slide-up" style={{ animationDelay: '75ms' }}>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -585,6 +588,7 @@ export function Settings() {
               </label>
             </CardContent>
           </Card>
+          )}
 
           {/* Shifts (двозмінне навчання) */}
           <Card className="animate-slide-up" style={{ animationDelay: '85ms' }}>

@@ -18,6 +18,7 @@ import {
 import type { WorkerInMessage, WorkerOutMessage } from '@/lib/engine/generator.worker';
 import type { GenerationResult } from '@/lib/engine/types';
 import { runPreflight, type PreflightResult } from '@/lib/validation/preflight';
+import { useInstitutionPreset } from '@/hooks';
 import { getSanitaryMode } from '@/lib/sanitaryMode';
 import { db } from '@/db';
 import type { TimetableSolution } from '@/types';
@@ -27,6 +28,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 
 export function Generate() {
   const { t } = useTranslation();
+  const institutionPreset = useInstitutionPreset();
   const dispatch = useAppDispatch();
   const generation = useAppSelector((state) => state.generation);
   const rules = useAppSelector((state) => state.rules.current);
@@ -147,7 +149,9 @@ export function Generate() {
       studentsGroups, studentsSubgroups: subgroups || [],
       studentsYears,
       timeConstraints, spaceConstraints,
-      sanitaryMode: getSanitaryMode(),
+      // Feature gate lives at the call site: МОЗ №2205 covers school
+      // education only, so academic presets never run the sanitary layer.
+      sanitaryMode: getSanitaryMode() && institutionPreset.features.sanitaryChecks,
     });
     setPreflight(pf);
     if (!pf.ok) return;
