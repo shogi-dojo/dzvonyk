@@ -1,9 +1,9 @@
 import React from 'react';
 import { Bell, FileText, Shield, Code2 } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
+import { SOURCE_URL } from '@/lib/links';
 
 // SPDX-License-Identifier: AGPL-3.0-or-later
-const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
 
 export function Footer() {
   const { t } = useTranslation();

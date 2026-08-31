@@ -1,3 +1,5 @@
+import { publicEnv } from '@/config/publicEnv';
+
 export interface FirebaseAppConfig {
   apiKey: string;
   authDomain: string;
@@ -5,15 +7,15 @@ export interface FirebaseAppConfig {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
-  measurementId?: string;
+  measurementId: string;
 }
 
 export const firebaseConfig: FirebaseAppConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'test-ci-placeholder-key',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'dzvonyk.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'dzvonyk',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'dzvonyk.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '395917789018',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:395917789018:web:0ef3b1a1a4b6c680d5d563',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-L9H6X6T3SZ',
+  apiKey: publicEnv.firebase.apiKey,
+  authDomain: publicEnv.firebase.authDomain,
+  projectId: publicEnv.firebase.projectId,
+  storageBucket: publicEnv.firebase.storageBucket,
+  messagingSenderId: publicEnv.firebase.messagingSenderId,
+  appId: publicEnv.firebase.appId,
+  measurementId: publicEnv.firebase.measurementId,
 };

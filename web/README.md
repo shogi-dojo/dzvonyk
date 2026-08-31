@@ -24,7 +24,7 @@ A modern web-based timetabling software built with React, TypeScript, and modern
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 
 ### Installation
@@ -41,6 +41,39 @@ npm run build
 
 # Preview production build
 npm run preview
+```
+
+### Environment configuration
+
+Copy `.env.example` to `.env` and provide the required development values.
+Both `.env` and all `*.local` variants are ignored by Git.
+
+Every variable prefixed with `VITE_` is embedded in the browser bundle and is
+therefore public. Firebase Web config, GA4 measurement IDs, reCAPTCHA site keys,
+support addresses, and public donation links may use `VITE_`; service-account
+JSON, private reCAPTCHA keys, OAuth secrets, and server credentials must not.
+
+The app fails fast when a required public setting is absent instead of silently
+connecting a development build to a production Firebase project.
+
+For a production build, use the authenticated Firebase CLI to inject the active
+project's public Web SDK config without writing it to tracked files:
+
+```bash
+npm run build:firebase
+```
+
+The command selects the only active Firebase Web App. If the project has
+multiple Web Apps, set `FIREBASE_WEB_APP_ID`; use `FIREBASE_DEPLOY_PROJECT` to
+override the active CLI project. Settings not returned by Firebase
+(`VITE_FIREBASE_FUNCTIONS_REGION`, `VITE_FEEDBACK_EMAIL`, and optional App Check
+or donation values) must be supplied through the shell or an ignored
+`.env.production.local` file.
+
+Deployment remains a separate, explicit command from the repository root:
+
+```bash
+firebase deploy --only hosting
 ```
 
 ## Project Structure
@@ -83,7 +116,7 @@ src/
   - Break times
   - Activity preferred times
   - Min/max days between activities
-  
+
 - **Space Constraints**: Rules about where activities can be scheduled
   - Room availability
   - Activity preferred rooms

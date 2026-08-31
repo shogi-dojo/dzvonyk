@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 shogi-dojo contributors
 
+import { publicEnv } from '@/config/publicEnv';
+
 /** Public source, linked from the UI to satisfy AGPL §13. Do not remove. */
 export const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
 
@@ -11,7 +13,7 @@ export const SOURCE_URL = 'https://github.com/shogi-dojo/dzvonyk';
  * developer, and requiring a GitHub account would silently drop most reports.
  * The subject line is prefilled so incoming mail is easy to filter.
  */
-export const FEEDBACK_EMAIL = 'admin@school131.kyiv.ua';
+export const FEEDBACK_EMAIL = publicEnv.feedbackEmail;
 export const FEEDBACK_URL =
   `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent('Дзвоник — відгук')}`;
 
@@ -25,4 +27,4 @@ export const FEEDBACK_URL =
  *
  * Empty string hides every donate affordance, so the UI never ships a dead link.
  */
-export const DONATE_URL = 'https://send.monobank.ua/jar/81mYjES3MG';
+export const DONATE_URL = publicEnv.donateUrl;
