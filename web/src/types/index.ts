@@ -109,6 +109,7 @@ export interface Room {
 
 export interface Activity {
   id: string;
+  fetId?: string;
   activityGroupId: number; // 0 for non-split, >0 for split activities
   teacherIds: string[];
   subjectId: string;

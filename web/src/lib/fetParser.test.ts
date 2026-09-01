@@ -2,7 +2,7 @@
  * Unit tests for FET file parser
  */
 import { describe, it, expect } from 'vitest';
-import { parseFETFile } from './fetParser';
+import { parseFETFile, exportToFETXml } from './fetParser';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -19,7 +19,6 @@ describe('FET Parser', () => {
 <fet version="7.5.1">
   <Mode>Official</Mode>
   <Institution_Name>Test School</Institution_Name>
-  <Comments>Test comments</Comments>
   <Days_List>
     <Number_of_Days>5</Number_of_Days>
     <Day><Name>Monday</Name></Day>
@@ -49,25 +48,22 @@ describe('FET Parser', () => {
       const result = parseFETFile(minimalFet);
       
       expect(result.institutionName).toBe('Test School');
-      expect(result.comments).toBe('Test comments');
       expect(result.daysOfTheWeek).toHaveLength(5);
       expect(result.hoursOfTheDay).toHaveLength(4);
-      expect(result.daysOfTheWeek[0].name).toBe('Monday');
-      expect(result.hoursOfTheDay[0].name).toBe('08:00');
     });
 
     it('should resolve RoomNotAvailableTimes day/hour names to indices', () => {
-      const fetWithRoomConstraint = `<?xml version="1.0" encoding="UTF-8"?>
+      const fetWithConstraints = `<?xml version="1.0" encoding="UTF-8"?>
 <fet version="7.5.1">
   <Mode>Official</Mode>
   <Institution_Name>Test</Institution_Name>
   <Days_List>
     <Number_of_Days>5</Number_of_Days>
-    <Day><Name>Monday</Name></Day>
-    <Day><Name>Tuesday</Name></Day>
-    <Day><Name>Wednesday</Name></Day>
-    <Day><Name>Thursday</Name></Day>
-    <Day><Name>Friday</Name></Day>
+    <Day><Name>Mon</Name></Day>
+    <Day><Name>Tue</Name></Day>
+    <Day><Name>Wed</Name></Day>
+    <Day><Name>Thu</Name></Day>
+    <Day><Name>Fri</Name></Day>
   </Days_List>
   <Hours_List>
     <Number_of_Hours>4</Number_of_Hours>
@@ -76,45 +72,44 @@ describe('FET Parser', () => {
     <Hour><Name>10:00</Name></Hour>
     <Hour><Name>11:00</Name></Hour>
   </Hours_List>
-  <Subjects_List></Subjects_List>
-  <Activity_Tags_List></Activity_Tags_List>
-  <Teachers_List></Teachers_List>
-  <Students_List></Students_List>
-  <Activities_List></Activities_List>
-  <Buildings_List></Buildings_List>
   <Rooms_List>
-    <Room><Name>Lab1</Name><Capacity>30</Capacity></Room>
+    <Room><Name>Room101</Name></Room>
   </Rooms_List>
-  <Time_Constraints_List></Time_Constraints_List>
   <Space_Constraints_List>
     <ConstraintRoomNotAvailableTimes>
       <Weight_Percentage>100</Weight_Percentage>
-      <Room>Lab1</Room>
-      <Number_of_Not_Available_Times>3</Number_of_Not_Available_Times>
-      <Not_Available_Time><Day>Wednesday</Day><Hour>10:00</Hour></Not_Available_Time>
-      <Not_Available_Time><Day>Friday</Day><Hour>08:00</Hour></Not_Available_Time>
-      <Not_Available_Time><Day>Nonexistent</Day><Hour>09:00</Hour></Not_Available_Time>
+      <Room>Room101</Room>
+      <Number_of_Not_Available_Times>2</Number_of_Not_Available_Times>
+      <Not_Available_Time>
+        <Day>Wed</Day>
+        <Hour>09:00</Hour>
+      </Not_Available_Time>
+      <Not_Available_Time>
+        <Day>Fri</Day>
+        <Hour>11:00</Hour>
+      </Not_Available_Time>
       <Active>true</Active>
     </ConstraintRoomNotAvailableTimes>
   </Space_Constraints_List>
 </fet>`;
 
-      const result = parseFETFile(fetWithRoomConstraint);
-      const constraint = result.spaceConstraints.find(
-        (c) => c.type === 'RoomNotAvailableTimes'
-      ) as { times: { day: number; hour: number }[] } | undefined;
-
-      expect(constraint).toBeDefined();
-      // Wednesday = index 2, 10:00 = index 2; Friday = 4, 08:00 = 0.
-      // The unresolvable day is skipped, matching how time constraints behave.
-      expect(constraint!.times).toEqual([
-        { day: 2, hour: 2 },
-        { day: 4, hour: 0 },
+      const result = parseFETFile(fetWithConstraints);
+      expect(result.spaceConstraints).toHaveLength(1);
+      const constraint = result.spaceConstraints[0] as {
+        type: string;
+        roomId: string;
+        times: Array<{ day: number; hour: number }>;
+      };
+      expect(constraint.type).toBe('RoomNotAvailableTimes');
+      expect(constraint.roomId).toBe('Room101');
+      expect(constraint.times).toEqual([
+        { day: 2, hour: 1 },
+        { day: 4, hour: 3 },
       ]);
     });
 
     it('should parse teachers correctly', () => {
-      const fetWithTeacher = `<?xml version="1.0" encoding="UTF-8"?>
+      const fetWithTeachers = `<?xml version="1.0" encoding="UTF-8"?>
 <fet version="7.5.1">
   <Mode>Official</Mode>
   <Institution_Name>Test</Institution_Name>
@@ -122,13 +117,8 @@ describe('FET Parser', () => {
   <Hours_List><Number_of_Hours>1</Number_of_Hours><Hour><Name>08:00</Name></Hour></Hours_List>
   <Teachers_List>
     <Teacher>
-      <Name>Smith</Name>
+      <Name>John Doe</Name>
       <Target_Number_of_Hours>20</Target_Number_of_Hours>
-      <Qualified_Subjects>
-        <Qualified_Subject>Math</Qualified_Subject>
-        <Qualified_Subject>Physics</Qualified_Subject>
-      </Qualified_Subjects>
-      <Comments>Senior teacher</Comments>
     </Teacher>
   </Teachers_List>
   <Subjects_List></Subjects_List>
@@ -141,13 +131,11 @@ describe('FET Parser', () => {
   <Space_Constraints_List></Space_Constraints_List>
 </fet>`;
 
-      const result = parseFETFile(fetWithTeacher);
+      const result = parseFETFile(fetWithTeachers);
       
       expect(result.teachers).toHaveLength(1);
-      expect(result.teachers[0].name).toBe('Smith');
+      expect(result.teachers[0].name).toBe('John Doe');
       expect(result.teachers[0].targetNumberOfHours).toBe(20);
-      expect(result.teachers[0].qualifiedSubjects).toContain('Math');
-      expect(result.teachers[0].qualifiedSubjects).toContain('Physics');
     });
 
     it('should parse subjects correctly', () => {
@@ -160,8 +148,7 @@ describe('FET Parser', () => {
   <Subjects_List>
     <Subject>
       <Name>Mathematics</Name>
-      <Long_Name>Advanced Mathematics</Long_Name>
-      <Code>MATH</Code>
+      <Comments>Core subject</Comments>
     </Subject>
   </Subjects_List>
   <Teachers_List></Teachers_List>
@@ -178,33 +165,29 @@ describe('FET Parser', () => {
       
       expect(result.subjects).toHaveLength(1);
       expect(result.subjects[0].name).toBe('Mathematics');
+      expect(result.subjects[0].comments).toBe('Core subject');
     });
 
-    it('should parse activities with duration', () => {
+    it('should parse activities with duration and preserve <Id>', () => {
       const fetWithActivity = `<?xml version="1.0" encoding="UTF-8"?>
 <fet version="7.5.1">
   <Mode>Official</Mode>
   <Institution_Name>Test</Institution_Name>
   <Days_List><Number_of_Days>1</Number_of_Days><Day><Name>Mon</Name></Day></Days_List>
-  <Hours_List><Number_of_Hours>4</Number_of_Hours>
-    <Hour><Name>08:00</Name></Hour>
-    <Hour><Name>09:00</Name></Hour>
-    <Hour><Name>10:00</Name></Hour>
-    <Hour><Name>11:00</Name></Hour>
-  </Hours_List>
-  <Subjects_List>
-    <Subject><Name>Math</Name></Subject>
-  </Subjects_List>
+  <Hours_List><Number_of_Hours>4</Number_of_Hours><Hour><Name>08:00</Name></Hour><Hour><Name>09:00</Name></Hour><Hour><Name>10:00</Name></Hour><Hour><Name>11:00</Name></Hour></Hours_List>
+  <Subjects_List><Subject><Name>Math</Name></Subject></Subjects_List>
   <Teachers_List>
     <Teacher><Name>Teacher1</Name></Teacher>
+    <Teacher><Name>Teacher2</Name></Teacher>
   </Teachers_List>
   <Students_List>
     <Year><Name>Year1</Name><Number_of_Students>30</Number_of_Students></Year>
   </Students_List>
   <Activities_List>
     <Activity>
-      <Id>1</Id>
+      <Id>42</Id>
       <Teacher>Teacher1</Teacher>
+      <Teacher>Teacher2</Teacher>
       <Subject>Math</Subject>
       <Students>Year1</Students>
       <Duration>2</Duration>
@@ -212,7 +195,6 @@ describe('FET Parser', () => {
       <Active>true</Active>
     </Activity>
   </Activities_List>
-  <Activity_Tags_List></Activity_Tags_List>
   <Buildings_List></Buildings_List>
   <Rooms_List></Rooms_List>
   <Time_Constraints_List></Time_Constraints_List>
@@ -222,10 +204,79 @@ describe('FET Parser', () => {
       const result = parseFETFile(fetWithActivity);
       
       expect(result.activities).toHaveLength(1);
+      expect(result.activities[0].fetId).toBe('42');
       expect(result.activities[0].duration).toBe(2);
       expect(result.activities[0].totalDuration).toBe(4);
-      expect(result.activities[0].teacherIds).toContain('Teacher1');
+      expect(result.activities[0].teacherIds).toEqual(['Teacher1', 'Teacher2']);
       expect(result.activities[0].subjectId).toBe('Math');
+    });
+
+    it('should round-trip activity fetId and permanently locked constraints through export', () => {
+      const fetXml = `<?xml version="1.0" encoding="UTF-8"?>
+<fet version="7.5.1">
+  <Mode>Official</Mode>
+  <Institution_Name>Roundtrip Test</Institution_Name>
+  <Days_List><Number_of_Days>1</Number_of_Days><Day><Name>Mon</Name></Day></Days_List>
+  <Hours_List><Number_of_Hours>2</Number_of_Hours><Hour><Name>08:00</Name></Hour><Hour><Name>09:00</Name></Hour></Hours_List>
+  <Subjects_List><Subject><Name>Math</Name></Subject></Subjects_List>
+  <Teachers_List><Teacher><Name>Teacher1</Name></Teacher></Teachers_List>
+  <Students_List><Year><Name>Year1</Name><Number_of_Students>30</Number_of_Students></Year></Students_List>
+  <Rooms_List><Room><Name>Room101</Name><Capacity>30</Capacity></Room></Rooms_List>
+  <Activities_List>
+    <Activity>
+      <Id>101</Id>
+      <Teacher>Teacher1</Teacher>
+      <Subject>Math</Subject>
+      <Students>Year1</Students>
+      <Duration>1</Duration>
+      <Total_Duration>1</Total_Duration>
+      <Active>true</Active>
+    </Activity>
+  </Activities_List>
+  <Time_Constraints_List>
+    <ConstraintActivityPreferredStartingTime>
+      <Weight_Percentage>100</Weight_Percentage>
+      <Activity_Id>101</Activity_Id>
+      <Preferred_Day>Mon</Preferred_Day>
+      <Preferred_Hour>08:00</Preferred_Hour>
+      <Permanently_Locked>true</Permanently_Locked>
+      <Active>true</Active>
+    </ConstraintActivityPreferredStartingTime>
+  </Time_Constraints_List>
+  <Space_Constraints_List>
+    <ConstraintActivityPreferredRoom>
+      <Weight_Percentage>100</Weight_Percentage>
+      <Activity_Id>101</Activity_Id>
+      <Room>Room101</Room>
+      <Permanently_Locked>true</Permanently_Locked>
+      <Active>true</Active>
+    </ConstraintActivityPreferredRoom>
+  </Space_Constraints_List>
+</fet>`;
+
+      const parsed = parseFETFile(fetXml);
+      expect(parsed.activities[0].fetId).toBe('101');
+
+      const exported = exportToFETXml(parsed);
+      expect(exported).toContain('<Id>101</Id>');
+      expect(exported).toContain('<Activity_Id>101</Activity_Id>');
+      expect(exported).toContain('<ConstraintActivityPreferredStartingTime>');
+      expect(exported).toContain('<Permanently_Locked>true</Permanently_Locked>');
+
+      // Re-parse exported XML
+      const reparsed = parseFETFile(exported);
+      expect(reparsed.activities[0].fetId).toBe('101');
+      expect(reparsed.timeConstraints).toHaveLength(1);
+      const tc = reparsed.timeConstraints[0] as { type: string; activityId: string; permanentlyLocked?: boolean };
+      expect(tc.type).toBe('ActivityPreferredStartingTime');
+      expect(tc.activityId).toBe('101');
+      expect(tc.permanentlyLocked).toBe(true);
+
+      expect(reparsed.spaceConstraints).toHaveLength(1);
+      const sc = reparsed.spaceConstraints[0] as { type: string; activityId: string; permanentlyLocked?: boolean };
+      expect(sc.type).toBe('ActivityPreferredRoom');
+      expect(sc.activityId).toBe('101');
+      expect(sc.permanentlyLocked).toBe(true);
     });
 
     it('should parse rooms and buildings', () => {

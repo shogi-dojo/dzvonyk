@@ -324,6 +324,7 @@ function parseActivities(doc: Document): Activity[] {
   
   const activityElements = activitiesList.querySelectorAll('Activity');
   activityElements.forEach((el) => {
+    const fetId = el.querySelector(':scope > Id')?.textContent?.trim() || el.querySelector('Id')?.textContent?.trim() || undefined;
     const subject = el.querySelector('Subject')?.textContent?.trim() || '';
     
     const teacherIds: string[] = [];
@@ -356,6 +357,7 @@ function parseActivities(doc: Document): Activity[] {
     
     activities.push({
       id: uuidv4(),
+      fetId,
       activityGroupId,
       teacherIds,
       subjectId: subject,
@@ -883,8 +885,16 @@ export function exportToFETXml(data: FETFile): string {
   
   // Activities
   xml += '<Activities_List>\n';
+  let fallbackIdSeq = 1;
+  const activityExportId = new Map<string, string>();
   for (const activity of data.activities) {
+    const actId = activity.fetId || String(fallbackIdSeq++);
+    activityExportId.set(activity.id, actId);
+    if (activity.fetId) {
+      activityExportId.set(activity.fetId, actId);
+    }
     xml += '<Activity>\n';
+    xml += `\t<Id>${escapeXml(actId)}</Id>\n`;
     for (const teacherId of activity.teacherIds) {
       xml += `\t<Teacher>${escapeXml(teacherId)}</Teacher>\n`;
     }
@@ -985,6 +995,18 @@ export function exportToFETXml(data: FETFile): string {
         if (constraint.comments) xml += `\t<Comments>${escapeXml(constraint.comments)}</Comments>\n`;
         xml += '</ConstraintTeacherMaxDaysPerWeek>\n';
         break;
+
+      case 'ActivityPreferredStartingTime':
+        xml += '<ConstraintActivityPreferredStartingTime>\n';
+        xml += `\t<Weight_Percentage>${constraint.weightPercentage}</Weight_Percentage>\n`;
+        xml += `\t<Activity_Id>${escapeXml((c.activityId && activityExportId.get(c.activityId)) || c.activityId || '')}</Activity_Id>\n`;
+        xml += `\t<Preferred_Day>${data.daysOfTheWeek[c.day ?? 0]?.name || ''}</Preferred_Day>\n`;
+        xml += `\t<Preferred_Hour>${data.hoursOfTheDay[c.hour ?? 0]?.name || ''}</Preferred_Hour>\n`;
+        xml += `\t<Permanently_Locked>${c.permanentlyLocked ? 'true' : 'false'}</Permanently_Locked>\n`;
+        xml += `\t<Active>${constraint.active ? 'true' : 'false'}</Active>\n`;
+        if (constraint.comments) xml += `\t<Comments>${escapeXml(constraint.comments)}</Comments>\n`;
+        xml += '</ConstraintActivityPreferredStartingTime>\n';
+        break;
     }
   }
   xml += '</Time_Constraints_List>\n\n';
@@ -1006,7 +1028,7 @@ export function exportToFETXml(data: FETFile): string {
       case 'ActivityPreferredRoom':
         xml += '<ConstraintActivityPreferredRoom>\n';
         xml += `\t<Weight_Percentage>${constraint.weightPercentage}</Weight_Percentage>\n`;
-        xml += `\t<Activity_Id>${escapeXml(c.activityId || '')}</Activity_Id>\n`;
+        xml += `\t<Activity_Id>${escapeXml((c.activityId && activityExportId.get(c.activityId)) || c.activityId || '')}</Activity_Id>\n`;
         xml += `\t<Room>${escapeXml(c.roomId || '')}</Room>\n`;
         xml += `\t<Permanently_Locked>${c.permanentlyLocked ? 'true' : 'false'}</Permanently_Locked>\n`;
         xml += `\t<Active>${constraint.active ? 'true' : 'false'}</Active>\n`;
