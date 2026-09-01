@@ -128,7 +128,7 @@ describe('runPreflight', () => {
     expect(issue!.message).toMatch(/10/);
   });
 
-  it('blocks when a room is over-subscribed by SubjectPreferredRoom', () => {
+  it('warns (does not block) when a room has high subject pressure via SubjectPreferredRoom', () => {
     // 45 physics lessons, only one physics room → 40 slots.
     const acts = Array.from({ length: 45 }, (_, i) =>
       activity(`a${i}`, { subjectId: 'phys' }),
@@ -145,9 +145,84 @@ describe('runPreflight', () => {
     const r = runPreflight(baseInput({
       teachers, activities: acts, studentsGroups: groups, spaceConstraints: [spc],
     }));
+    expect(r.ok).toBe(true);
+    expect(r.blocking).toHaveLength(0);
+    const warn = r.warnings.find((i) => i.code === 'ROOM_NEAR_CAPACITY');
+    expect(warn).toBeDefined();
+    expect(warn!.entity?.name).toBe('К-101');
+    expect(warn!.entity?.id).toBe('r1');
+    expect(warn!.message).toMatch(/45\/40/);
+  });
+
+  it('resolves room by name in SubjectPreferredRoom without blocking', () => {
+    // Name-form roomId ('К-101') instead of id ('r1')
+    const acts = Array.from({ length: 45 }, (_, i) =>
+      activity(`a${i}`, { subjectId: 'phys' }),
+    );
+    const groups = Array.from({ length: 3 }, (_, i) => baseGroup(`g${i}`, `клас-${i}`));
+    acts.forEach((a, i) => (a.studentSetIds = [`g${i % 3}`]));
+    const spc: SpaceConstraint = {
+      id: 'sc1', type: 'SubjectPreferredRoom', weightPercentage: 100, active: true,
+      // @ts-expect-error extended shape
+      subjectId: 'phys', roomId: 'К-101',
+    };
+    const teachers = Array.from({ length: 5 }, (_, i) => baseTeacher(`t${i}`, `Т${i}`));
+    acts.forEach((a, i) => (a.teacherIds = [`t${i % 5}`]));
+    const r = runPreflight(baseInput({
+      teachers, activities: acts, studentsGroups: groups, spaceConstraints: [spc],
+    }));
+    expect(r.ok).toBe(true);
+    expect(r.blocking).toHaveLength(0);
+    const warn = r.warnings.find((i) => i.code === 'ROOM_NEAR_CAPACITY');
+    expect(warn).toBeDefined();
+    expect(warn!.entity?.id).toBe('r1');
+    expect(warn!.entity?.name).toBe('К-101');
+  });
+
+  it('blocks when a room is hard over-subscribed by ActivityPreferredRoom', () => {
+    // 45 lessons pinned to r1 via ActivityPreferredRoom > 40 slots
+    const acts = Array.from({ length: 45 }, (_, i) => activity(`a${i}`));
+    const groups = Array.from({ length: 3 }, (_, i) => baseGroup(`g${i}`, `клас-${i}`));
+    acts.forEach((a, i) => (a.studentSetIds = [`g${i % 3}`]));
+    const spaceConstraints: SpaceConstraint[] = acts.map((a, i) => ({
+      id: `sc-${i}`, type: 'ActivityPreferredRoom', weightPercentage: 100, active: true,
+      // @ts-expect-error extended shape
+      activityId: a.id, roomId: 'К-101', // name-form
+    }));
+    const teachers = Array.from({ length: 5 }, (_, i) => baseTeacher(`t${i}`, `Т${i}`));
+    acts.forEach((a, i) => (a.teacherIds = [`t${i % 5}`]));
+    const r = runPreflight(baseInput({
+      teachers, activities: acts, studentsGroups: groups, spaceConstraints,
+    }));
+    expect(r.ok).toBe(false);
     const issue = r.blocking.find((i) => i.code === 'ROOM_OVERLOAD');
     expect(issue).toBeDefined();
     expect(issue!.entity?.name).toBe('К-101');
+    expect(issue!.entity?.id).toBe('r1');
+    expect(issue!.message).toMatch(/45.*40/);
+  });
+
+  it('counts ActivityPreferredRoom by activity duration', () => {
+    // 25 activities of duration 2 = 50 hours on 40 slots
+    const acts = Array.from({ length: 25 }, (_, i) =>
+      activity(`a${i}`, { duration: 2, totalDuration: 2 })
+    );
+    const groups = Array.from({ length: 3 }, (_, i) => baseGroup(`g${i}`, `клас-${i}`));
+    acts.forEach((a, i) => (a.studentSetIds = [`g${i % 3}`]));
+    const spaceConstraints: SpaceConstraint[] = acts.map((a, i) => ({
+      id: `sc-${i}`, type: 'ActivityPreferredRoom', weightPercentage: 100, active: true,
+      // @ts-expect-error extended shape
+      activityId: a.id, roomId: 'r1',
+    }));
+    const teachers = Array.from({ length: 5 }, (_, i) => baseTeacher(`t${i}`, `Т${i}`));
+    acts.forEach((a, i) => (a.teacherIds = [`t${i % 5}`]));
+    const r = runPreflight(baseInput({
+      teachers, activities: acts, studentsGroups: groups, spaceConstraints,
+    }));
+    expect(r.ok).toBe(false);
+    const issue = r.blocking.find((i) => i.code === 'ROOM_OVERLOAD');
+    expect(issue).toBeDefined();
+    expect(issue!.message).toMatch(/50.*40/);
   });
 
   it('warns on orphaned split-subject activity', () => {
