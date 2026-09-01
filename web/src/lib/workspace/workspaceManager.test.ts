@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db, GUEST_SCHOOL_ID, GUEST_WORKSPACE_ID } from '@/db';
 import { workspaceManager } from './workspaceManager';
 import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
+import { formatAcademicYear } from '@/lib/academicYear';
 import type { TimetableRules, Teacher } from '@/types';
 
 const mockRules: TimetableRules = {
@@ -271,5 +272,15 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
 
     const schools = await workspaceManager.listSchools();
     expect(schools[0].name).toBe('Гімназія 1');
+  });
+
+  it('labels the first workspace with the current academic year, not a fixed one', async () => {
+    const school = await workspaceManager.createSchool('Новий ліцей');
+    const workspaces = await workspaceManager.listWorkspaces(school.id);
+
+    expect(workspaces).toHaveLength(1);
+    // Derived from today rather than the literal '2025-2026' this used to ship.
+    expect(workspaces[0].label).toBe(formatAcademicYear());
+    expect(workspaces[0].label).toMatch(/^\d{4}-\d{4}$/);
   });
 });

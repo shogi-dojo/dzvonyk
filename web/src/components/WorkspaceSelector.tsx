@@ -39,11 +39,15 @@ import { GUEST_WORKSPACE_ID } from '@/db';
 import type { AcademicYearWorkspace, School } from '@/types';
 import { INSTITUTION_PRESETS, type InstitutionPresetId } from '@/lib/institution/presets';
 import { cn } from '@/lib/utils';
+import { formatAcademicYear } from '@/lib/academicYear';
 
 export function WorkspaceSelector() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const reloadState = useReloadTimetableState();
+  // Placeholders showed literal years that were already stale and drifted
+  // apart from each other; derive them from today instead.
+  const currentAcademicYear = formatAcademicYear();
   const { activeSchool, activeWorkspace, schools, workspaces, isGuest } = useAppSelector(
     (state) => state.workspace
   );
@@ -432,7 +436,7 @@ export function WorkspaceSelector() {
                   id="renameInput"
                   value={newWorkspaceLabel}
                   onChange={(e) => setNewWorkspaceLabel(e.target.value)}
-                  placeholder="напр., 2025-2026 (II семестр)"
+                  placeholder={`напр., ${currentAcademicYear} (II семестр)`}
                   required
                   autoFocus
                 />
@@ -465,7 +469,7 @@ export function WorkspaceSelector() {
                   id="dupLabel"
                   value={duplicateLabel}
                   onChange={(e) => setDuplicateLabel(e.target.value)}
-                  placeholder="напр., 2025-2026 (варіант 2)"
+                  placeholder={`напр., ${currentAcademicYear} (варіант 2)`}
                   required
                   autoFocus
                 />
@@ -626,7 +630,7 @@ export function WorkspaceSelector() {
                   id="yearLabel"
                   value={workspaceLabel}
                   onChange={(e) => setWorkspaceLabel(e.target.value)}
-                  placeholder="напр., 2026-2027 (I семестр)"
+                  placeholder={`напр., ${currentAcademicYear} (I семестр)`}
                   required
                 />
               </div>
