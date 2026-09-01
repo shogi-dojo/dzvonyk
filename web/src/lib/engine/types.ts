@@ -7,7 +7,6 @@ export interface InternalActivity {
   index: number;
   teacherIndices: number[];
   subjectIndex: number;
-  activityTagIndices: number[];
   subgroupIndices: number[];
   duration: number;
   active: boolean;

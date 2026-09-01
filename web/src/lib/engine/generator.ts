@@ -268,7 +268,6 @@ export class TimetableGenerator {
         index: i,
         teacherIndices,
         subjectIndex: 0,
-        activityTagIndices: [],
         subgroupIndices,
         duration: a.duration,
         active: a.active,
