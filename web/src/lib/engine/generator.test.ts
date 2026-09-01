@@ -383,6 +383,58 @@ describe('TimetableGenerator', () => {
       expect(result.timeAllocations[0].hour).toBe(4);
     });
 
+    it('binds to the activity owning the real id when another activity\'s fetId collides', async () => {
+      // An app-created activity whose uuid is "1", listed BEFORE an imported
+      // activity carrying fetId "1". Seeding both keys in one pass let the
+      // later fetId overwrite the earlier real id, silently locking the wrong
+      // lesson. Ids must win over imported aliases regardless of array order.
+      const rules = createTestRules(5, 7);
+      const base = {
+        activityGroupId: 0,
+        teacherIds: ['T1'],
+        subjectId: 'Informatics',
+        activityTagIds: [],
+        studentSetIds: ['S1'],
+        duration: 1,
+        totalDuration: 1,
+        active: true,
+        computeNTotalStudents: true,
+        nTotalStudents: 30,
+      };
+      const owner: Activity = { ...base, id: '1' };
+      const impostor: Activity = { ...base, id: 'uuid-other', fetId: '1', teacherIds: ['T2'] };
+
+      const timeConstraints = [
+        {
+          id: 'tc-lock-collide',
+          type: 'ActivityPreferredStartingTime' as const,
+          activityId: '1',
+          day: 2,
+          hour: 5,
+          permanentlyLocked: true,
+          weightPercentage: 100,
+          active: true,
+        },
+      ];
+
+      const generator = new TimetableGenerator(
+        rules,
+        [owner, impostor],
+        [createTestTeacher('T1'), createTestTeacher('T2')],
+        [createTestSubgroup('S1')],
+        [],
+        timeConstraints,
+        []
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      // Index 0 is the activity that actually owns id "1".
+      const locked = result.timeAllocations.find((a) => a.activityIndex === 0);
+      expect(locked?.day).toBe(2);
+      expect(locked?.hour).toBe(5);
+    });
+
     it('honours ActivityPreferredRoom referencing fetId', async () => {
       const rules = createTestRules(5, 7);
       const teacher = createTestTeacher('T1');

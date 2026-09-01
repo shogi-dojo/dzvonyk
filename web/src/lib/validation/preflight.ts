@@ -382,13 +382,22 @@ export function runPreflight(input: PreflightInput): PreflightResult {
         entity: { kind: 'room', id, name },
         message: `Аудиторія ${name}: жорстко закріплено ${hard} уроків, а вміщує лише ${supply}. Розширте перелік аудиторій для цього предмета або приберіть частину прив'язок.`,
       });
-    } else if (hard / supply >= WARN_LOAD_RATIO || total / supply >= WARN_LOAD_RATIO) {
-      const demand = hard > 0 && hard / supply >= WARN_LOAD_RATIO ? hard : total;
+    } else if (total / supply >= WARN_LOAD_RATIO) {
+      // Report the combined figure: hard pins and subject preferences compete
+      // for the same slots, so showing only the hard share would understate
+      // how full the room actually is.
+      const demand = total;
+      // Soft preferences can exceed supply outright, which "заповнення 183 %"
+      // renders as nonsense. Say plainly that the solver will spill the excess
+      // into other rooms instead.
+      const message = demand > supply
+        ? `Аудиторія ${name}: за предметом на неї орієнтовано ${demand} уроків, а вміщує ${supply}. Частину буде проведено в інших аудиторіях.`
+        : `Аудиторія ${name}: заповнення ${demand}/${supply} (${Math.round((demand / supply) * 100)} %).`;
       warnings.push({
         code: 'ROOM_NEAR_CAPACITY',
         severity: 'warning',
         entity: { kind: 'room', id, name },
-        message: `Аудиторія ${name}: заповнення ${demand}/${supply} (${Math.round((demand / supply) * 100)} %).`,
+        message,
       });
     }
   }

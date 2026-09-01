@@ -151,7 +151,11 @@ describe('runPreflight', () => {
     expect(warn).toBeDefined();
     expect(warn!.entity?.name).toBe('К-101');
     expect(warn!.entity?.id).toBe('r1');
-    expect(warn!.message).toMatch(/45\/40/);
+    // Over-subscribed by a soft preference: the message states both figures and
+    // that the overflow goes to other rooms, rather than a "112 %" fill ratio.
+    expect(warn!.message).toMatch(/45/);
+    expect(warn!.message).toMatch(/40/);
+    expect(warn!.message).toMatch(/інших аудиторіях/);
   });
 
   it('resolves room by name in SubjectPreferredRoom without blocking', () => {
