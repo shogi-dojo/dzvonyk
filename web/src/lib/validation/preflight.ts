@@ -131,8 +131,8 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     return { blocking, warnings, ok: false };
   }
 
-  const nDays = rules.nDaysPerWeek;
-  const nHours = rules.nHoursPerDay;
+  const nDays = rules.nDaysPerWeek || rules.daysOfTheWeek?.length || 5;
+  const nHours = rules.nHoursPerDay || rules.hoursOfTheDay?.length || 8;
   const weeklySlots = nDays * nHours;
 
   if (weeklySlots <= 0) {
@@ -173,12 +173,21 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   }
 
   // Room-not-available (from RoomNotAvailableTimes) — reduces per-room capacity.
+  const roomById = new Map(rooms.map((r) => [r.id, r]));
+  const roomByName = new Map(rooms.map((r) => [r.name, r]));
+  const resolveRoom = (idOrName?: string): Room | undefined => {
+    if (!idOrName) return undefined;
+    return roomById.get(idOrName) ?? roomByName.get(idOrName);
+  };
+
   const roomUnavail = new Map<string, number>();
   for (const c of spaceConstraints) {
     if (!c.active) continue;
     const raw = c as unknown as { type: string; roomId?: string; times?: unknown[] };
     if (raw.type === 'RoomNotAvailableTimes' && raw.roomId && Array.isArray(raw.times)) {
-      roomUnavail.set(raw.roomId, (roomUnavail.get(raw.roomId) ?? 0) + raw.times.length);
+      const r = resolveRoom(raw.roomId);
+      const rid = r ? r.id : raw.roomId;
+      roomUnavail.set(rid, (roomUnavail.get(rid) ?? 0) + raw.times.length);
     }
   }
 
@@ -287,59 +296,108 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     }
   }
 
-  // ---- Per-room supply vs demand (hard preferences only) ----
-  // For each room referenced by a hard ActivityPreferredRoom / SubjectPreferredRoom
-  // constraint, count how many activities depend on it, and compare to its
-  // capacity (weeklySlots minus roomUnavail).
-  const roomById = new Map(rooms.map((r) => [r.id, r]));
+  // ---- Per-room supply vs demand ----
+  // Hard pins (ActivityPreferredRoom) vs soft preferences (SubjectPreferredRoom).
+  // ActivityPreferredRoom deterministically requires slots in a specific room,
+  // so exceeding supply is a blocker (ROOM_OVERLOAD).
+  // SubjectPreferredRoom is a soft preference (FET allows multiple classes to prefer
+  // the same room and solver will use other rooms if overloaded), so it is a warning.
+  const activityByIdOrFetId = new Map<string, Activity>();
+  for (const a of active) {
+    if (a.fetId) activityByIdOrFetId.set(a.fetId, a);
+    activityByIdOrFetId.set(a.id, a);
+  }
+
   const activityBySubject = new Map<string, Activity[]>();
   for (const a of active) {
     const list = activityBySubject.get(a.subjectId) ?? [];
     list.push(a);
     activityBySubject.set(a.subjectId, list);
   }
-  const roomDemand = new Map<string, number>();
-  const addDemand = (roomId: string, n: number) => {
-    roomDemand.set(roomId, (roomDemand.get(roomId) ?? 0) + n);
+
+  const hardRoomDemand = new Map<string, number>();
+  const subjectRoomDemand = new Map<string, number>();
+  const addHardDemand = (roomId: string, n: number) => {
+    hardRoomDemand.set(roomId, (hardRoomDemand.get(roomId) ?? 0) + n);
   };
+  const addSubjectDemand = (roomId: string, n: number) => {
+    subjectRoomDemand.set(roomId, (subjectRoomDemand.get(roomId) ?? 0) + n);
+  };
+
   for (const c of spaceConstraints) {
     if (!c.active) continue;
     const raw = c as unknown as { type: string; roomId?: string; subjectId?: string; activityId?: string };
     if (raw.type === 'ActivityPreferredRoom' && raw.roomId) {
-      addDemand(raw.roomId, 1);
+      const r = resolveRoom(raw.roomId);
+      const rid = r ? r.id : raw.roomId;
+      const act = raw.activityId ? activityByIdOrFetId.get(raw.activityId) : undefined;
+      const duration = act ? act.duration : 1;
+      addHardDemand(rid, duration);
     } else if (raw.type === 'SubjectPreferredRoom' && raw.roomId && raw.subjectId) {
+      const r = resolveRoom(raw.roomId);
+      const rid = r ? r.id : raw.roomId;
       const acts = activityBySubject.get(raw.subjectId) ?? [];
-      addDemand(raw.roomId, acts.reduce((s, a) => s + a.duration, 0));
+      const totalDuration = acts.reduce((s, a) => s + a.duration, 0);
+      addSubjectDemand(rid, totalDuration);
     }
-    // ActivityPreferredRooms / SubjectPreferredRooms are soft (multi-room),
-    // skip — they cannot deterministically overload a single room.
   }
-  for (const [rid, demand] of roomDemand) {
-    const r = roomById.get(rid);
+
+  const allDemandedRooms = new Set<string>([
+    ...hardRoomDemand.keys(),
+    ...subjectRoomDemand.keys(),
+  ]);
+
+  for (const rid of allDemandedRooms) {
+    const r = resolveRoom(rid);
     const name = r?.name ?? rid;
-    const supply = weeklySlots - (roomUnavail.get(rid) ?? 0);
+    const id = r?.id ?? rid;
+    const supply = weeklySlots - (roomUnavail.get(id) ?? 0);
+    const hard = hardRoomDemand.get(id) ?? 0;
+    const soft = subjectRoomDemand.get(id) ?? 0;
+    const total = hard + soft;
+
     if (supply <= 0) {
-      blocking.push({
-        code: 'ROOM_NO_SLOTS',
-        severity: 'blocking',
-        entity: { kind: 'room', id: rid, name },
-        message: `Аудиторія ${name}: усі слоти позначено як недоступні, але на неї є жорсткі прив'язки уроків.`,
-      });
+      if (hard > 0) {
+        blocking.push({
+          code: 'ROOM_NO_SLOTS',
+          severity: 'blocking',
+          entity: { kind: 'room', id, name },
+          message: `Аудиторія ${name}: усі слоти позначено як недоступні, але на неї є жорсткі прив'язки уроків.`,
+        });
+      } else if (soft > 0) {
+        warnings.push({
+          code: 'ROOM_NO_SLOTS',
+          severity: 'warning',
+          entity: { kind: 'room', id, name },
+          message: `Аудиторія ${name}: усі слоти позначено як недоступні, але для неї є побажання за предметом.`,
+        });
+      }
       continue;
     }
-    if (demand > supply) {
+
+    if (hard > supply) {
       blocking.push({
         code: 'ROOM_OVERLOAD',
         severity: 'blocking',
-        entity: { kind: 'room', id: rid, name },
-        message: `Аудиторія ${name}: жорстко закріплено ${demand} уроків, а вміщує лише ${supply}. Розширте перелік аудиторій для цього предмета або приберіть частину прив'язок.`,
+        entity: { kind: 'room', id, name },
+        message: `Аудиторія ${name}: жорстко закріплено ${hard} уроків, а вміщує лише ${supply}. Розширте перелік аудиторій для цього предмета або приберіть частину прив'язок.`,
       });
-    } else if (demand / supply >= WARN_LOAD_RATIO) {
+    } else if (total / supply >= WARN_LOAD_RATIO) {
+      // Report the combined figure: hard pins and subject preferences compete
+      // for the same slots, so showing only the hard share would understate
+      // how full the room actually is.
+      const demand = total;
+      // Soft preferences can exceed supply outright, which "заповнення 183 %"
+      // renders as nonsense. Say plainly that the solver will spill the excess
+      // into other rooms instead.
+      const message = demand > supply
+        ? `Аудиторія ${name}: за предметом на неї орієнтовано ${demand} уроків, а вміщує ${supply}. Частину буде проведено в інших аудиторіях.`
+        : `Аудиторія ${name}: заповнення ${demand}/${supply} (${Math.round((demand / supply) * 100)} %).`;
       warnings.push({
         code: 'ROOM_NEAR_CAPACITY',
         severity: 'warning',
-        entity: { kind: 'room', id: rid, name },
-        message: `Аудиторія ${name}: заповнення ${demand}/${supply} (${Math.round((demand / supply) * 100)} %).`,
+        entity: { kind: 'room', id, name },
+        message,
       });
     }
   }
