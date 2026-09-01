@@ -331,4 +331,107 @@ describe('TimetableGenerator', () => {
       expect(internal.countTeacherGapsOnDay(0, 0)).toBe(0);
     });
   });
+
+  describe('fetId constraint binding', () => {
+    it('honours locked ActivityPreferredStartingTime referencing fetId', async () => {
+      const rules = createTestRules(5, 7);
+      const teacher = createTestTeacher('T1');
+      const subgroup = createTestSubgroup('S1');
+      const activity: Activity = {
+        id: 'uuid-activity-1',
+        fetId: '389',
+        activityGroupId: 0,
+        teacherIds: ['T1'],
+        subjectId: 'Informatics',
+        activityTagIds: [],
+        studentSetIds: ['S1'],
+        duration: 1,
+        totalDuration: 1,
+        active: true,
+        computeNTotalStudents: true,
+        nTotalStudents: 30,
+      };
+
+      const timeConstraints = [
+        {
+          id: 'tc-lock-1',
+          type: 'ActivityPreferredStartingTime' as const,
+          activityId: '389', // References fetId instead of uuid
+          day: 3,
+          hour: 4,
+          permanentlyLocked: true,
+          weightPercentage: 100,
+          active: true,
+        },
+      ];
+
+      const generator = new TimetableGenerator(
+        rules,
+        [activity],
+        [teacher],
+        [subgroup],
+        [],
+        timeConstraints,
+        []
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      expect(result.timeAllocations).toHaveLength(1);
+      expect(result.timeAllocations[0].activityIndex).toBe(0);
+      expect(result.timeAllocations[0].day).toBe(3);
+      expect(result.timeAllocations[0].hour).toBe(4);
+    });
+
+    it('honours ActivityPreferredRoom referencing fetId', async () => {
+      const rules = createTestRules(5, 7);
+      const teacher = createTestTeacher('T1');
+      const subgroup = createTestSubgroup('S1');
+      const room: Room = { id: 'room-uuid-1', name: 'Lab-1', capacity: 30, isVirtual: false };
+      const otherRoom: Room = { id: 'room-uuid-2', name: 'Lab-2', capacity: 30, isVirtual: false };
+
+      const activity: Activity = {
+        id: 'uuid-activity-2',
+        fetId: '390',
+        activityGroupId: 0,
+        teacherIds: ['T1'],
+        subjectId: 'Physics',
+        activityTagIds: [],
+        studentSetIds: ['S1'],
+        duration: 1,
+        totalDuration: 1,
+        active: true,
+        computeNTotalStudents: true,
+        nTotalStudents: 30,
+      };
+
+      const spaceConstraints = [
+        {
+          id: 'sc-pref-1',
+          type: 'ActivityPreferredRoom' as const,
+          activityId: '390', // References fetId
+          roomId: 'room-uuid-1',
+          permanentlyLocked: true,
+          weightPercentage: 100,
+          active: true,
+        },
+      ];
+
+      const generator = new TimetableGenerator(
+        rules,
+        [activity],
+        [teacher],
+        [subgroup],
+        [room, otherRoom],
+        [],
+        spaceConstraints
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      expect(result.roomAllocations).toHaveLength(1);
+      expect(result.roomAllocations[0].activityIndex).toBe(0);
+      expect(result.roomAllocations[0].roomIndex).toBe(0); // room-uuid-1 is index 0
+    });
+  });
 });

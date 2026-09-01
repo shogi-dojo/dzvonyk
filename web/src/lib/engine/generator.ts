@@ -242,6 +242,9 @@ export class TimetableGenerator {
     
     // Convert activities to internal format
     this.internalActivities = this.activities.map((a, i) => {
+      if (a.fetId) {
+        this.activityIdToIndex.set(a.fetId, i);
+      }
       this.activityIdToIndex.set(a.id, i);
       this.activityToSubject.set(i, a.subjectId);
       
