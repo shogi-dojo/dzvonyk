@@ -240,9 +240,23 @@ export class TimetableGenerator {
       this.roomNameToIndex.set(r.name, i);
     });
     
+    // Index activities by their FET <Id> first, then by their own id, so that
+    // an app-generated id always wins over another activity's imported fetId.
+    // Two passes, not one: setting fetId before id inside a single loop only
+    // orders the two keys of the *same* activity, and a later activity's fetId
+    // would still clobber an earlier activity's real id. Same ids-win-over-
+    // aliases rule as createIdOrNameIndex in studentSetLookup.ts.
+    this.activities.forEach((a, i) => {
+      if (a.fetId && !this.activityIdToIndex.has(a.fetId)) {
+        this.activityIdToIndex.set(a.fetId, i);
+      }
+    });
+    this.activities.forEach((a, i) => {
+      this.activityIdToIndex.set(a.id, i);
+    });
+
     // Convert activities to internal format
     this.internalActivities = this.activities.map((a, i) => {
-      this.activityIdToIndex.set(a.id, i);
       this.activityToSubject.set(i, a.subjectId);
       
       const teacherIndices = a.teacherIds

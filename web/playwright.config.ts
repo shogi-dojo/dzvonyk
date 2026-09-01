@@ -14,7 +14,21 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec\.ts$/ },
+    {
+      name: 'iphone-se',
+      // iPhone SE (1st gen): 320×568 CSS px. Run in chromium (CI only installs
+      // chromium) with touch + mobile flags to emulate the small-screen path
+      // real users hit on Android/iOS browsers.
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 320, height: 568 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+      },
+      testMatch: /mobile\.spec\.ts$/,
+    },
   ],
   webServer: {
     command: 'npm run preview -- --port 4173 --strictPort',

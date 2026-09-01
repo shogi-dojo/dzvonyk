@@ -275,7 +275,7 @@ export function WorkspaceSelector() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-5 w-5 opacity-0 group-hover/school:opacity-100 transition-opacity text-muted-foreground hover:text-foreground shrink-0"
+                          className="h-5 w-5 opacity-100 sm:opacity-0 sm:group-hover/school:opacity-100 transition-opacity text-muted-foreground hover:text-foreground shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             setDropdownOpen(false);
@@ -309,8 +309,8 @@ export function WorkspaceSelector() {
                                 {isActive && <Check className="h-3.5 w-3.5 text-primary shrink-0 ml-1" />}
                               </button>
 
-                              {/* Workspace Action Buttons on Hover */}
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0">
+                              {/* Workspace Action Buttons */}
+                              <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity shrink-0">
                                 <Button
                                   variant="ghost"
                                   size="icon"

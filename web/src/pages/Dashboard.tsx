@@ -532,20 +532,20 @@ export function Dashboard() {
       </Card>
 
       {/* Getting Started */}
-      <Card className="animate-slide-up" style={{ animationDelay: '300ms' }}>
-        <CardHeader>
+      <Card className="animate-slide-up shadow-sm border-border/80" style={{ animationDelay: '300ms' }}>
+        <CardHeader className="pb-3 sm:pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 shrink-0">
               <FileText className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <CardTitle>{t('dashboard.gettingStarted.title')}</CardTitle>
-              <CardDescription>{t('dashboard.gettingStarted.description')}</CardDescription>
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg">{t('dashboard.gettingStarted.title')}</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">{t('dashboard.gettingStarted.description')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="divide-y divide-border/60 border border-border/70 rounded-xl overflow-hidden bg-card/60">
+          <div className="divide-y divide-border/60 border border-border/80 rounded-xl overflow-hidden bg-card shadow-xs">
             {[
               { step: 1, text: t('dashboard.gettingStarted.steps.1'), href: '/settings' },
               { step: 2, text: t('dashboard.gettingStarted.steps.2'), href: '/teachers' },
@@ -560,15 +560,15 @@ export function Dashboard() {
               <Link
                 key={item.step}
                 to={item.href}
-                className="flex items-center gap-3.5 px-4 py-3 hover:bg-primary/5 transition-colors group text-sm"
+                className="flex items-start sm:items-center gap-3 sm:gap-3.5 px-3.5 py-3 sm:px-4 sm:py-3.5 hover:bg-muted/50 active:bg-muted/80 transition-colors group text-sm"
               >
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/15 text-primary border border-primary/30 font-bold text-xs sm:text-sm shrink-0 mt-0.5 sm:mt-0 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all shadow-xs">
                   {item.step}
                 </div>
-                <span className="text-foreground group-hover:text-primary font-medium transition-colors flex-1">
+                <span className="text-foreground group-hover:text-primary font-medium transition-colors flex-1 min-w-0 text-xs sm:text-sm leading-snug sm:leading-normal">
                   {item.text}
                 </span>
-                <span className="text-xs text-muted-foreground group-hover:text-primary flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-all shrink-0">
+                <span className="text-xs text-muted-foreground group-hover:text-primary flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-all shrink-0 mt-0.5 sm:mt-0">
                   <span className="hidden sm:inline">{t('common.navigate', { defaultValue: 'Перейти' })}</span>
                   <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </span>

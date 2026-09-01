@@ -1,8 +1,8 @@
-/**
- * Unit tests for the Timetable Generator
- */
 import { describe, it, expect } from 'vitest';
 import { TimetableGenerator } from './generator';
+import { parseFETFile } from '../fetParser';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { Activity, Teacher, Room, TimetableRules, StudentsSubgroup } from '../../types';
 import { STUDENTS_SUBGROUP } from '../../types';
 
@@ -329,6 +329,190 @@ describe('TimetableGenerator', () => {
 
       internal.teachersTimetable[0] = [-1, 0, 1, -1, -1];
       expect(internal.countTeacherGapsOnDay(0, 0)).toBe(0);
+    });
+  });
+
+  describe('fetId constraint binding', () => {
+    it('honours locked ActivityPreferredStartingTime referencing fetId', async () => {
+      const rules = createTestRules(5, 7);
+      const teacher = createTestTeacher('T1');
+      const subgroup = createTestSubgroup('S1');
+      const activity: Activity = {
+        id: 'uuid-activity-1',
+        fetId: '389',
+        activityGroupId: 0,
+        teacherIds: ['T1'],
+        subjectId: 'Informatics',
+        activityTagIds: [],
+        studentSetIds: ['S1'],
+        duration: 1,
+        totalDuration: 1,
+        active: true,
+        computeNTotalStudents: true,
+        nTotalStudents: 30,
+      };
+
+      const timeConstraints = [
+        {
+          id: 'tc-lock-1',
+          type: 'ActivityPreferredStartingTime' as const,
+          activityId: '389', // References fetId instead of uuid
+          day: 3,
+          hour: 4,
+          permanentlyLocked: true,
+          weightPercentage: 100,
+          active: true,
+        },
+      ];
+
+      const generator = new TimetableGenerator(
+        rules,
+        [activity],
+        [teacher],
+        [subgroup],
+        [],
+        timeConstraints,
+        []
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      expect(result.timeAllocations).toHaveLength(1);
+      expect(result.timeAllocations[0].activityIndex).toBe(0);
+      expect(result.timeAllocations[0].day).toBe(3);
+      expect(result.timeAllocations[0].hour).toBe(4);
+    });
+
+    it('binds to the activity owning the real id when another activity\'s fetId collides', async () => {
+      // An app-created activity whose uuid is "1", listed BEFORE an imported
+      // activity carrying fetId "1". Seeding both keys in one pass let the
+      // later fetId overwrite the earlier real id, silently locking the wrong
+      // lesson. Ids must win over imported aliases regardless of array order.
+      const rules = createTestRules(5, 7);
+      const base = {
+        activityGroupId: 0,
+        teacherIds: ['T1'],
+        subjectId: 'Informatics',
+        activityTagIds: [],
+        studentSetIds: ['S1'],
+        duration: 1,
+        totalDuration: 1,
+        active: true,
+        computeNTotalStudents: true,
+        nTotalStudents: 30,
+      };
+      const owner: Activity = { ...base, id: '1' };
+      const impostor: Activity = { ...base, id: 'uuid-other', fetId: '1', teacherIds: ['T2'] };
+
+      const timeConstraints = [
+        {
+          id: 'tc-lock-collide',
+          type: 'ActivityPreferredStartingTime' as const,
+          activityId: '1',
+          day: 2,
+          hour: 5,
+          permanentlyLocked: true,
+          weightPercentage: 100,
+          active: true,
+        },
+      ];
+
+      const generator = new TimetableGenerator(
+        rules,
+        [owner, impostor],
+        [createTestTeacher('T1'), createTestTeacher('T2')],
+        [createTestSubgroup('S1')],
+        [],
+        timeConstraints,
+        []
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      // Index 0 is the activity that actually owns id "1".
+      const locked = result.timeAllocations.find((a) => a.activityIndex === 0);
+      expect(locked?.day).toBe(2);
+      expect(locked?.hour).toBe(5);
+    });
+
+    it('honours ActivityPreferredRoom referencing fetId', async () => {
+      const rules = createTestRules(5, 7);
+      const teacher = createTestTeacher('T1');
+      const subgroup = createTestSubgroup('S1');
+      const room: Room = { id: 'room-uuid-1', name: 'Lab-1', capacity: 30, isVirtual: false };
+      const otherRoom: Room = { id: 'room-uuid-2', name: 'Lab-2', capacity: 30, isVirtual: false };
+
+      const activity: Activity = {
+        id: 'uuid-activity-2',
+        fetId: '390',
+        activityGroupId: 0,
+        teacherIds: ['T1'],
+        subjectId: 'Physics',
+        activityTagIds: [],
+        studentSetIds: ['S1'],
+        duration: 1,
+        totalDuration: 1,
+        active: true,
+        computeNTotalStudents: true,
+        nTotalStudents: 30,
+      };
+
+      const spaceConstraints = [
+        {
+          id: 'sc-pref-1',
+          type: 'ActivityPreferredRoom' as const,
+          activityId: '390', // References fetId
+          roomId: 'room-uuid-1',
+          permanentlyLocked: true,
+          weightPercentage: 100,
+          active: true,
+        },
+      ];
+
+      const generator = new TimetableGenerator(
+        rules,
+        [activity],
+        [teacher],
+        [subgroup],
+        [room, otherRoom],
+        [],
+        spaceConstraints
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      expect(result.roomAllocations).toHaveLength(1);
+      expect(result.roomAllocations[0].activityIndex).toBe(0);
+      expect(result.roomAllocations[0].roomIndex).toBe(0); // room-uuid-1 is index 0
+    });
+
+    it('generates timetable for locked-single-room.fet respecting the locked activity slot', async () => {
+      const fixturePath = path.join(__dirname, '..', '__fixtures__', 'locked-single-room.fet');
+      const content = fs.readFileSync(fixturePath, 'utf-8');
+      const parsed = parseFETFile(content);
+
+      const generator = new TimetableGenerator(
+        parsed,
+        parsed.activities,
+        parsed.teachers,
+        parsed.studentsSubgroups,
+        parsed.rooms,
+        parsed.timeConstraints,
+        parsed.spaceConstraints,
+        { maxSeconds: 15 },
+        parsed.studentsGroups,
+        parsed.studentsYears
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      // Activity with fetId '1' was locked to day 0 (Понеділок), hour 0 (1)
+      const lockedActIdx = parsed.activities.findIndex(a => a.fetId === '1');
+      expect(lockedActIdx).toBe(0);
+      const lockedAlloc = result.timeAllocations.find(ta => ta.activityIndex === lockedActIdx);
+      expect(lockedAlloc).toBeDefined();
+      expect(lockedAlloc!.day).toBe(0);
+      expect(lockedAlloc!.hour).toBe(0);
     });
   });
 });
