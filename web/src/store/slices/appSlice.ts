@@ -34,7 +34,7 @@ const initialState: AppState = {
   currentRulesId: null,
   isDarkMode: getInitialDarkMode(),
   language: 'uk',
-  sidebarOpen: true,
+  sidebarOpen: false,
   desktopSidebarCollapsed: getInitialSidebarCollapsed(),
   isLoading: false,
   error: null,

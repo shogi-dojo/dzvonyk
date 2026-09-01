@@ -24,7 +24,7 @@ test.describe('iPhone SE 1 (320×568)', () => {
   test('no horizontal overflow on any route', async ({ page }) => {
     for (const route of ROUTES) {
       await page.goto(route);
-      await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
       const overflow = await page.evaluate(() => {
         const doc = document.documentElement;
         // Allow 1px for sub-pixel rounding.
@@ -56,7 +56,7 @@ test.describe('iPhone SE 1 (320×568)', () => {
     await expect(banner).toBeHidden();
 
     await page.reload();
-    await expect(page.getByRole('contentinfo')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('mobile-beta-banner')).toHaveCount(0);
   });
 });
