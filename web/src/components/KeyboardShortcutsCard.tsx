@@ -28,17 +28,17 @@ export function KeyboardShortcutsCard() {
           return (
             <div
               key={item.id}
-              className="flex items-center justify-between p-2.5 rounded-lg border border-border/70 bg-background/50 hover:bg-muted/40 transition-colors gap-3 text-sm"
+              className="flex flex-wrap items-center justify-between p-2.5 rounded-lg border border-border/70 bg-background/50 hover:bg-muted/40 transition-colors gap-x-3 gap-y-2 text-sm"
             >
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-foreground text-xs sm:text-sm truncate">
+              <div className="min-w-0 flex-1 basis-full sm:basis-0">
+                <p className="font-medium text-foreground text-xs sm:text-sm break-words">
                   {item.label}
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">
+                <p className="text-[11px] text-muted-foreground break-words">
                   {item.description}
                 </p>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex flex-wrap items-center gap-1 shrink-0">
                 {keys.map((k, idx) => (
                   <React.Fragment key={idx}>
                     {idx > 0 && <span className="text-muted-foreground text-xs">+</span>}
@@ -59,10 +59,10 @@ export function KeyboardShortcutsCard() {
     <Card className="animate-slide-up" style={{ animationDelay: '150ms' }}>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
             <Keyboard className="h-5 w-5 text-primary" aria-hidden="true" />
           </div>
-          <div>
+          <div className="min-w-0">
             <CardTitle>{t('shortcuts.title', 'Гарячі клавіші')}</CardTitle>
             <CardDescription>
               {t(

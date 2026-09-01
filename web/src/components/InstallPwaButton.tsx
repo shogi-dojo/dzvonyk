@@ -55,7 +55,7 @@ export function InstallPwaButton({
       >
         <Download className="h-4 w-4 text-primary animate-bounce shrink-0" />
         {showText && (
-          <span className="font-medium">
+          <span className="font-medium truncate">
             {t('pwa.install', { defaultValue: 'Встановити додаток' })}
           </span>
         )}
