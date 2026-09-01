@@ -37,7 +37,7 @@ test.describe('iPhone SE 1 (320×568)', () => {
     }
   });
 
-  test('theme application and persistence on mobile', async ({ page, context }) => {
+  test('theme application and persistence on mobile via header menu', async ({ page, context }) => {
     await context.clearCookies();
     await page.goto('/');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
@@ -45,10 +45,15 @@ test.describe('iPhone SE 1 (320×568)', () => {
     const html = page.locator('html');
     await expect(html).not.toHaveClass(/dark/);
 
-    // Toggle to dark mode using header button
-    const headerThemeBtn = page.getByRole('banner').getByRole('button', { name: /темн|світл/i });
-    await expect(headerThemeBtn).toBeVisible();
-    await headerThemeBtn.click();
+    // Open toast / overflow menu in mobile header
+    const menuBtn = page.getByTestId('mobile-header-menu-btn');
+    await expect(menuBtn).toBeVisible();
+    await menuBtn.click();
+
+    // Toggle to dark mode using dropdown menu
+    const darkThemeItem = page.getByRole('menuitem', { name: /темна тема/i });
+    await expect(darkThemeItem).toBeVisible();
+    await darkThemeItem.click();
 
     await expect(html).toHaveClass(/dark/);
     const darkThemeMeta = await page.locator('meta[name="theme-color"]').getAttribute('content');
@@ -59,13 +64,15 @@ test.describe('iPhone SE 1 (320×568)', () => {
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
     await expect(html).toHaveClass(/dark/);
 
-    // Switch back to light theme
-    const headerThemeBtnAfterReload = page.getByRole('banner').getByRole('button', { name: /темн|світл/i });
-    await headerThemeBtnAfterReload.click();
+    // Switch back to light theme via header menu
+    const menuBtnAfterReload = page.getByTestId('mobile-header-menu-btn');
+    await menuBtnAfterReload.click();
+    const lightThemeItem = page.getByRole('menuitem', { name: /світла тема/i });
+    await lightThemeItem.click();
     await expect(html).not.toHaveClass(/dark/);
   });
 
-  test('side panel: opens, renders all elements cleanly, and closes', async ({ page }) => {
+  test('side panel: full screen on mobile, renders all elements, and closes', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
 
@@ -79,7 +86,6 @@ test.describe('iPhone SE 1 (320×568)', () => {
     // Assert all major sections are visible inside the sidebar
     await expect(sidebar.getByRole('link', { name: /на головну/i })).toBeVisible();
     await expect(sidebar.getByText('Дзвоник')).toBeVisible();
-    await expect(sidebar.getByTestId('sidebar-account-toolbar')).toBeVisible();
     await expect(sidebar.getByRole('button', { name: /вибір навчального року/i })).toBeVisible();
     await expect(sidebar.locator('nav[aria-label="Primary"]')).toBeVisible();
     await expect(sidebar.getByRole('button', { name: /встановити додаток/i })).toBeVisible();
@@ -91,12 +97,12 @@ test.describe('iPhone SE 1 (320×568)', () => {
       return Math.round(el.getBoundingClientRect().left) >= 0;
     });
 
-    // Verify sidebar bounding box does not exceed viewport width
+    // Verify sidebar is full screen on mobile (takes 320px width)
     const sidebarBox = await sidebar.boundingBox();
     expect(sidebarBox).not.toBeNull();
     if (sidebarBox) {
-      expect(Math.round(sidebarBox.x)).toBeGreaterThanOrEqual(0);
-      expect(sidebarBox.width).toBeLessThanOrEqual(320);
+      expect(Math.abs(sidebarBox.x)).toBeLessThan(1);
+      expect(Math.round(sidebarBox.width)).toBe(320);
     }
 
     // Verify no document horizontal overflow while sidebar is open
@@ -108,13 +114,6 @@ test.describe('iPhone SE 1 (320×568)', () => {
     // Close via close button
     const closeBtn = sidebar.getByRole('button', { name: /закрити меню/i });
     await closeBtn.click();
-    await expect(sidebar).toHaveClass(/-translate-x-full/);
-
-    // Re-open and close via overlay backdrop
-    await openMenuBtn.click();
-    await expect(sidebar).toHaveClass(/translate-x-0/);
-    const backdrop = page.locator('div[aria-hidden="true"].fixed.inset-0');
-    await backdrop.click({ position: { x: 305, y: 200 } });
     await expect(sidebar).toHaveClass(/-translate-x-full/);
   });
 

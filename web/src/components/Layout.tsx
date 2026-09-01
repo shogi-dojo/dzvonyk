@@ -20,6 +20,7 @@ import { HistoryControls } from './HistoryDrawer';
 import { UserProfileButton } from './UserProfileButton';
 import { GuestMigrationModal } from './GuestMigrationModal';
 import { WorkspaceSelector } from './WorkspaceSelector';
+import { MobileHeaderMenu } from './MobileHeaderMenu';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { DONATE_URL } from '@/lib/links';
@@ -86,67 +87,74 @@ export function Layout({ children }: LayoutProps) {
 
       <MobileBetaBanner />
 
-      {/* Mobile header */}
+      {/* Mobile header with toast / overflow menu */}
       <header 
-        className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-border px-4 shadow-sm lg:hidden glass no-print"
+        className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-border px-3.5 sm:px-4 shadow-sm lg:hidden glass no-print"
         role="banner"
       >
-        <div className="flex items-center gap-x-3">
+        <div className="flex items-center gap-x-3 min-w-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => dispatch(toggleSidebar())}
-            className="hover-glow"
+            className="hover-glow shrink-0"
             aria-label={sidebarOpen ? t('app.closeMenu') : t('app.openMenu')}
             aria-expanded={sidebarOpen}
           >
             {sidebarOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
           </Button>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg gradient-primary shadow-sm">
-              <Bell className="h-5 w-5 text-primary-foreground fill-current" aria-hidden="true" />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-1.5 sm:p-2 rounded-lg gradient-primary shadow-sm shrink-0">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground fill-current" aria-hidden="true" />
             </div>
-            <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
+            <span className="text-lg sm:text-xl font-bold text-foreground tracking-tight truncate">{t('app.name')}</span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <HistoryControls />
-          <UserProfileButton compact />
-          <InstallPwaButton variant="ghost" size="icon" showText={false} className="h-9 w-9" />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => dispatch(toggleDarkMode())}
-            aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
-            title={isDarkMode ? 'Світла тема' : 'Темна тема'}
-          >
-            {isDarkMode ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
-          </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <MobileHeaderMenu />
         </div>
       </header>
 
-      {/* Sidebar */}
+      {/* Sidebar - Full screen on mobile, left pinned rail on desktop */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 ease-out lg:translate-x-0 no-print",
-          "bg-card border-r border-border max-w-[calc(100vw-2.5rem)] lg:max-w-none",
-          desktopSidebarCollapsed ? "w-72 lg:w-20" : "w-72 lg:w-72",
+          "fixed inset-0 z-50 flex flex-col transform transition-all duration-300 ease-out lg:inset-y-0 lg:left-0 lg:translate-x-0 no-print",
+          "bg-card border-r border-border",
+          desktopSidebarCollapsed ? "w-full lg:w-20" : "w-full lg:w-72",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
         role="navigation"
         aria-label={t('app.name')}
       >
-        {/* Logo & Desktop Collapse Toggle */}
-        <div className={cn("flex h-16 shrink-0 items-center justify-between border-b border-border", desktopSidebarCollapsed ? "px-3" : "px-5")}>
-          <Link to="/" className="flex items-center gap-3 group min-w-0" aria-label={t('app.home')}>
-            <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110 shadow-sm shrink-0">
-              <Bell className="h-5 w-5 text-primary-foreground fill-current" aria-hidden="true" />
+        {/* Logo & Desktop Collapse / Mobile Close Toggle */}
+        <div className={cn("flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-border", desktopSidebarCollapsed ? "px-3" : "px-4 sm:px-5")}>
+          <Link
+            to="/"
+            className="flex items-center gap-3 group min-w-0"
+            aria-label={t('app.home')}
+            onClick={() => {
+              if (window.innerWidth < 1024) dispatch(toggleSidebar());
+            }}
+          >
+            <div className="p-1.5 sm:p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110 shadow-sm shrink-0">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground fill-current" aria-hidden="true" />
             </div>
             {!desktopSidebarCollapsed && (
-              <span className="text-xl font-bold text-foreground tracking-tight truncate">{t('app.name')}</span>
+              <span className="text-lg sm:text-xl font-bold text-foreground tracking-tight truncate">{t('app.name')}</span>
             )}
           </Link>
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Mobile Dark Mode Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => dispatch(toggleDarkMode())}
+              aria-label={isDarkMode ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
+              title={isDarkMode ? 'Світла тема' : 'Темна тема'}
+            >
+              {isDarkMode ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+            </Button>
             {/* Desktop Collapse Toggle Button */}
             <Button
               variant="ghost"
@@ -171,8 +179,8 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
         
-        {/* User Account & History Toolbar (Between header and school selector) */}
-        <div className={cn("pt-3", desktopSidebarCollapsed ? "px-2" : "px-4")}>
+        {/* Desktop User Account & History Toolbar */}
+        <div className={cn("hidden lg:block pt-3", desktopSidebarCollapsed ? "px-2" : "px-4")}>
           <div
             className={cn("flex min-w-0 items-center justify-between gap-1 p-1.5 rounded-lg border border-border/80 bg-background/50", desktopSidebarCollapsed && "flex-col")}
             data-testid="sidebar-account-toolbar"
@@ -205,76 +213,111 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
-        {/* Workspace Selector (Year / School) */}
+        {/* Desktop Workspace Selector */}
         {!desktopSidebarCollapsed && (
-          <div className="px-4 pt-2.5">
+          <div className="hidden lg:block px-4 pt-2.5">
             <WorkspaceSelector />
           </div>
         )}
 
+        {/* Scrollable Navigation - Takes maximum available space */}
         <ScrollArea className="flex-1 min-h-0">
-          <nav className={cn("flex flex-col gap-1", desktopSidebarCollapsed ? "p-2 items-center" : "p-4")} aria-label="Primary">
-            <TooltipProvider delayDuration={150}>
-              {navigation.map((item, index) => {
-                const isActive = location.pathname === item.href;
-                const linkElement = (
-                  <Link
-                    key={item.key}
-                    to={item.href}
-                    className={cn(
-                      "group flex items-center rounded-lg text-sm font-medium transition-all duration-200",
-                      desktopSidebarCollapsed ? "p-3 justify-center w-12 h-12" : "gap-3 px-4 py-3",
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-lg gradient-glow"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                    style={{ animationDelay: `${index * 30}ms` }}
-                    onClick={() => {
-                      if (window.innerWidth < 1024) {
-                        dispatch(toggleSidebar());
-                      }
-                    }}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <item.icon className={cn(
-                      "h-5 w-5 transition-transform duration-200 shrink-0",
-                      isActive ? "" : "group-hover:scale-110"
-                    )} aria-hidden="true" />
-                    {!desktopSidebarCollapsed && (
-                      <>
-                        <div className="flex-1 min-w-0">
-                          <div className="truncate">{t(`nav.${item.key}`)}</div>
-                          <div className="text-xs opacity-60 mt-0.5 truncate">{t(`nav.${item.key}Desc`)}</div>
-                        </div>
-                        {isActive && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse shrink-0" aria-hidden="true" />
-                        )}
-                      </>
-                    )}
-                  </Link>
-                );
+          <div className="flex flex-col gap-1 p-3 sm:p-4">
+            {/* Mobile Workspace Selector (in scrollable view so it never crowds height) */}
+            <div className="lg:hidden pb-2">
+              <WorkspaceSelector />
+            </div>
 
-                if (desktopSidebarCollapsed) {
-                  return (
-                    <Tooltip key={item.key}>
-                      <TooltipTrigger asChild>
-                        {linkElement}
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="font-medium">
-                        {t(`nav.${item.key}`)}
-                      </TooltipContent>
-                    </Tooltip>
+            <nav className={cn("flex flex-col gap-1", desktopSidebarCollapsed && "items-center")} aria-label="Primary">
+              <TooltipProvider delayDuration={150}>
+                {navigation.map((item, index) => {
+                  const isActive = location.pathname === item.href;
+                  const linkElement = (
+                    <Link
+                      key={item.key}
+                      to={item.href}
+                      className={cn(
+                        "group flex items-center rounded-lg text-sm font-medium transition-all duration-200",
+                        desktopSidebarCollapsed ? "p-3 justify-center w-12 h-12" : "gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-lg gradient-glow"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                      style={{ animationDelay: `${index * 30}ms` }}
+                      onClick={() => {
+                        if (window.innerWidth < 1024) {
+                          dispatch(toggleSidebar());
+                        }
+                      }}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      <item.icon className={cn(
+                        "h-5 w-5 transition-transform duration-200 shrink-0",
+                        isActive ? "" : "group-hover:scale-110"
+                      )} aria-hidden="true" />
+                      {!desktopSidebarCollapsed && (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate text-sm">{t(`nav.${item.key}`)}</div>
+                            <div className="text-xs opacity-60 mt-0.5 truncate">{t(`nav.${item.key}Desc`)}</div>
+                          </div>
+                          {isActive && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse shrink-0" aria-hidden="true" />
+                          )}
+                        </>
+                      )}
+                    </Link>
                   );
-                }
 
-                return linkElement;
-              })}
-            </TooltipProvider>
-          </nav>
+                  if (desktopSidebarCollapsed) {
+                    return (
+                      <Tooltip key={item.key}>
+                        <TooltipTrigger asChild>
+                          {linkElement}
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium">
+                          {t(`nav.${item.key}`)}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+
+                  return linkElement;
+                })}
+              </TooltipProvider>
+            </nav>
+
+            {/* Mobile Bottom Actions inside scrollable area */}
+            <div className="lg:hidden flex flex-col gap-2 pt-3 mt-2 border-t border-border/70">
+              <InstallPwaButton
+                showText={true}
+                variant="default"
+                className="w-full justify-start text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20"
+              />
+              {DONATE_URL && (
+                <a
+                  href={DONATE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground"
+                  title={t('support.donate')}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      dispatch(toggleSidebar());
+                    }
+                  }}
+                >
+                  <Heart className="h-4 w-4 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+                  <span className="flex-1 truncate">{t('support.donate')}</span>
+                  <ExternalLink className="h-3.5 w-3.5 opacity-50 shrink-0" aria-hidden="true" />
+                </a>
+              )}
+            </div>
+          </div>
         </ScrollArea>
 
-        {/* Pinned below the scroll area */}
-        <div className={cn("shrink-0 border-t border-border flex flex-col gap-2 bg-card", desktopSidebarCollapsed ? "p-2 items-center" : "p-3.5")}>
+        {/* Desktop Pinned Footer */}
+        <div className={cn("hidden lg:flex shrink-0 border-t border-border flex-col gap-2 bg-card", desktopSidebarCollapsed ? "p-2 items-center" : "p-3.5")}>
           <InstallPwaButton
             showText={!desktopSidebarCollapsed}
             variant={desktopSidebarCollapsed ? "ghost" : "default"}
