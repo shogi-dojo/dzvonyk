@@ -15,6 +15,7 @@ import { toggleSidebar, toggleDarkMode, toggleDesktopSidebar } from '@/store/sli
 import { PageTransition } from './PageTransition';
 import { InstallPwaButton } from './InstallPwaButton';
 import { ConsentBanner } from './ConsentBanner';
+import { MobileBetaBanner } from './MobileBetaBanner';
 import { HistoryControls } from './HistoryDrawer';
 import { UserProfileButton } from './UserProfileButton';
 import { GuestMigrationModal } from './GuestMigrationModal';
@@ -79,6 +80,8 @@ export function Layout({ children }: LayoutProps) {
       >
         {t('app.skipToContent')}
       </a>
+
+      <MobileBetaBanner />
 
       {/* Mobile header */}
       <header 
@@ -316,18 +319,18 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content area */}
       <div
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 ease-out",
+          "flex-1 flex flex-col min-w-0 overflow-x-hidden transition-all duration-300 ease-out",
           desktopSidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
         )}
         data-app-content-shell
       >
-        <main 
-          id="main-content" 
-          className="flex-1"
+        <main
+          id="main-content"
+          className="flex-1 min-w-0"
           role="main"
           tabIndex={-1}
         >
-          <div className="container mx-auto p-6 lg:p-8 max-w-7xl" data-app-page-container>
+          <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl min-w-0" data-app-page-container>
             <PageTransition>
               {children}
             </PageTransition>

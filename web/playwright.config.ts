@@ -14,7 +14,13 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec\.ts$/ },
+    {
+      name: 'iphone-se',
+      // iPhone SE (1st gen): 320×568 CSS px.
+      use: { ...devices['iPhone SE'], viewport: { width: 320, height: 568 } },
+      testMatch: /mobile\.spec\.ts$/,
+    },
   ],
   webServer: {
     command: 'npm run preview -- --port 4173 --strictPort',
