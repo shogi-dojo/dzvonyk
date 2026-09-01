@@ -14,6 +14,7 @@ import { setStudents } from '../store/slices/studentsSlice';
 import { parseROZFile, type RozImportResult } from '../lib/rozParser';
 import { renameSchoolAction } from '../store/slices/workspaceSlice';
 import { workspaceManager } from '../lib/workspace/workspaceManager';
+import { preserveInstitutionType } from '../lib/institution/preserveInstitutionType';
 
 function serializeDates<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
@@ -32,6 +33,8 @@ function serializeDates<T>(obj: T): T {
 export function useRozImport() {
   const dispatch = useAppDispatch();
   const configuredHours = useAppSelector((state) => state.rules.current?.hoursOfTheDay || []);
+  const activeSchool = useAppSelector((state) => state.workspace.activeSchool);
+  const previousRules = useAppSelector((state) => state.rules.current);
   const [preview, setPreview] = useState<RozImportResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +63,8 @@ export function useRozImport() {
 
     try {
       const { file: data, placements, shifts, report } = preview;
+      // Capture before clearAllData(): the type is immutable and .roz cannot carry it.
+      const institutionType = preserveInstitutionType(activeSchool, previousRules);
       await db.clearAllData();
 
       const rulesId = uuidv4();
@@ -67,6 +72,7 @@ export function useRozImport() {
         id: rulesId,
         mode: data.mode,
         institutionName: data.institutionName,
+        institutionType,
         comments: data.comments,
         nDaysPerWeek: data.daysOfTheWeek.length,
         nHoursPerDay: data.hoursOfTheDay.length,
@@ -162,7 +168,7 @@ export function useRozImport() {
     } finally {
       setImporting(false);
     }
-  }, [preview, dispatch]);
+  }, [preview, dispatch, activeSchool, previousRules]);
 
   const cancel = useCallback(() => {
     setPreview(null);

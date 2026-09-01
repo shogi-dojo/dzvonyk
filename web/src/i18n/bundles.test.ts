@@ -175,7 +175,72 @@ function lookup(root: unknown, dotted: string): unknown {
   );
 }
 
+/**
+ * Keys whose school wording is correct even in an academic bundle.
+ *
+ * `institution.presets.school.*` describes the school preset itself; the
+ * shifts keys belong to a feature academic presets switch off; `rozImport.*`
+ * describes what an aSc school file contains, not what this workspace holds.
+ * Everything else that mentions a school term MUST be overridden — see the
+ * derived test below, which is what catches keys nobody remembered to list.
+ */
+const SCHOOL_WORDING_IS_CORRECT = [
+  'institution.presets.school.description',
+  'settings.shifts.enableHelp',
+  'settings.shifts.firstHour',
+  'settings.shifts.lastHour',
+  'timetable.conflict.outsideShift',
+  'rozImport.classes',
+  'rozImport.lessons',
+  'rozImport.unplacedHours',
+  'rozImport.sampleLessonsTitle',
+  'rozImport.skippedLessons_one',
+  'rozImport.skippedLessons_few',
+  'rozImport.skippedLessons_many',
+  'rozImport.skippedLessons_other',
+] as const;
+
+/** Roots of the nouns an academic institution does not use. */
+const SCHOOL_TERMS = /вчител|учн[ія]|урок|уроч|клас(?!ифік)|кабінет/i;
+
 describe('preset resource bundles', () => {
+  it('overrides every base string that uses a school-only noun', () => {
+    // Derived from uk.json rather than hand-listed: a new school-worded key
+    // added to the base bundle fails here until it is either overridden or
+    // deliberately allow-listed above. The hand-maintained list below cannot
+    // do this — it only ever asserts what someone remembered to add to it.
+    const overridden = new Set(leaves(ukUniversity));
+    const allowed = new Set<string>(SCHOOL_WORDING_IS_CORRECT);
+
+    const missing = leaves(uk).filter((key) => {
+      if (overridden.has(key) || allowed.has(key)) return false;
+      const value = lookup(uk, key);
+      return typeof value === 'string' && SCHOOL_TERMS.test(value);
+    });
+
+    expect(missing, 'school-worded keys with no university override').toEqual([]);
+  });
+
+  it('never leaves a school noun inside the university bundle', () => {
+    const leaked = leaves(ukUniversity).filter((key) => {
+      const value = lookup(ukUniversity, key);
+      return typeof value === 'string' && /вчител|учн[ія]|\bурок/i.test(value);
+    });
+
+    expect(leaked, 'university overrides still using school terminology').toEqual([]);
+  });
+
+  it('keeps the allowlist honest: every entry still exists and still reads as school', () => {
+    for (const key of SCHOOL_WORDING_IS_CORRECT) {
+      const value = lookup(uk, key);
+      expect(value, `${key} no longer exists in uk.json`).toBeDefined();
+      expect(
+        typeof value === 'string' && SCHOOL_TERMS.test(value),
+        `${key} no longer uses a school term — drop it from the allowlist`,
+      ).toBe(true);
+    }
+  });
+
   it('university bundle covers every term-dependent key of the base bundle', () => {
     const overridden = new Set(leaves(ukUniversity));
     const missing = UNIVERSITY_TERM_KEYS.filter((key) => !overridden.has(key));

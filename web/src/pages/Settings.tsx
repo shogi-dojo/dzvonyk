@@ -36,6 +36,7 @@ import { VersionManager } from '@/components/VersionManager';
 import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
 import { renameSchoolAction } from '@/store/slices/workspaceSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { preserveInstitutionType } from '@/lib/institution/preserveInstitutionType';
 import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 import { useInstitutionPreset } from '@/hooks';
 import type { Day, Hour } from '@/types';
@@ -235,7 +236,10 @@ export function Settings() {
     try {
       const content = await file.text();
       const data = parseFETFile(content);
-      
+
+      // Capture before clearAllData(): the type is immutable and .fet has no field for it.
+      const institutionType = preserveInstitutionType(activeSchool, rules);
+
       await db.clearAllData();
       
       const rulesId = uuidv4();
@@ -243,6 +247,7 @@ export function Settings() {
         id: rulesId,
         mode: data.mode,
         institutionName: data.institutionName,
+        institutionType,
         comments: data.comments,
         nDaysPerWeek: data.daysOfTheWeek.length,
         nHoursPerDay: data.hoursOfTheDay.length,

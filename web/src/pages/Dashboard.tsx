@@ -26,6 +26,7 @@ import { renameSchoolAction, changeInstitutionTypeAction } from '@/store/slices/
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { INSTITUTION_PRESETS, type InstitutionPresetId } from '@/lib/institution/presets';
 import { resolveInstitutionType } from '@/lib/institution/resolveInstitutionType';
+import { preserveInstitutionType } from '@/lib/institution/preserveInstitutionType';
 import { canChangeInstitutionType } from '@/lib/institution/canChangeInstitutionType';
 import type { FETFile, TimetableSolution } from '@/types';
 
@@ -133,7 +134,10 @@ export function Dashboard() {
     try {
       const content = await file.text();
       const data = parseFETFile(content);
-      
+
+      // Capture before clearAllData(): the type is immutable and .fet has no field for it.
+      const institutionType = preserveInstitutionType(activeSchool, rules);
+
       await db.clearAllData();
       
       const rulesId = uuidv4();
@@ -141,6 +145,7 @@ export function Dashboard() {
         id: rulesId,
         mode: data.mode,
         institutionName: data.institutionName,
+        institutionType,
         comments: data.comments,
         nDaysPerWeek: data.daysOfTheWeek.length,
         nHoursPerDay: data.hoursOfTheDay.length,

@@ -3,7 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['**/faq-screenshots.spec.ts'],
+  // Screenshot suites run serially from their own configs
+  // (npm run e2e:faq-screenshots / e2e:university).
+  testIgnore: ['**/faq-screenshots.spec.ts', '**/university-flow.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -14,7 +16,13 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec\.ts$/ },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      // A project-level testIgnore replaces the top-level one, so the
+      // serial screenshot suites must be repeated here.
+      testIgnore: [/mobile\.spec\.ts$/, /university-flow\.spec\.ts$/],
+    },
     {
       name: 'iphone-se',
       // iPhone SE (1st gen): 320×568 CSS px. Run in chromium (CI only installs

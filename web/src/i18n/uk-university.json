@@ -4,7 +4,8 @@
     "students": "Студенти",
     "studentsDesc": "Курси, групи та підгрупи",
     "activities": "Пари",
-    "rooms": "Аудиторії"
+    "rooms": "Аудиторії",
+    "teachersDesc": "Керування викладачами"
   },
   "footer": {
     "aboutLead": "Офлайн-планувальник розкладу занять для диспетчера."
@@ -12,7 +13,8 @@
   "dashboard": {
     "stats": {
       "activities": "Пари",
-      "rooms": "Аудиторії"
+      "rooms": "Аудиторії",
+      "teachers": "Викладачі"
     },
     "institution": {
       "solutionMeta_one": "{{count}} пара • {{when}}",
@@ -22,13 +24,15 @@
     },
     "quickActions": {
       "addStudents": "Додати студентів",
-      "addActivities": "Додати пари"
+      "addActivities": "Додати пари",
+      "addTeachers": "Додати викладачів"
     },
     "gettingStarted": {
       "steps": {
         "4": "Визначте курси, групи та підгрупи студентів",
         "5": "Створіть пари, пов'язавши викладачів, предмети та студентів",
-        "6": "Додайте аудиторії та корпуси"
+        "6": "Додайте аудиторії та корпуси",
+        "2": "Додайте викладачів"
       }
     },
     "import": {
@@ -55,7 +59,25 @@
       "advancedEditHint": "Ця складена пара редагується на сторінці «Пари»",
       "scheduleTitle": "Скільки пар проводиться",
       "averagePerClass": "Середнє навантаження на групу",
-      "lowLevelHint": "Окремі пари й додаткові параметри залишаються доступними на сторінці «Пари»."
+      "lowLevelHint": "Окремі пари й додаткові параметри залишаються доступними на сторінці «Пари».",
+      "title": "Навантаження викладача",
+      "selectTeacher": "Оберіть викладача",
+      "summaryTitle": "Усе навантаження цього викладача"
+    },
+    "title": "Викладачі",
+    "description": "Керування викладачами розкладу ({{count}} усього)",
+    "addTeacher": "Додати викладача",
+    "editTeacher": "Редагувати викладача",
+    "searchPlaceholder": "Пошук викладачів…",
+    "emptyTitle": "Викладачів ще немає",
+    "emptyTitleSearch": "Викладачів не знайдено",
+    "emptyDescription": "Почніть з додавання першого викладача.",
+    "confirmDelete": "Видалити цього викладача?",
+    "dialog": {
+      "addTitle": "Додати викладача",
+      "editTitle": "Редагувати викладача",
+      "addDescription": "Введіть дані нового викладача.",
+      "editDescription": "Оновіть дані викладача нижче."
     }
   },
   "students": {
@@ -77,7 +99,16 @@
     "groupsCount_one": "{{count}} група",
     "groupsCount_few": "{{count}} групи",
     "groupsCount_many": "{{count}} груп",
-    "groupsCount_other": "{{count}} груп"
+    "groupsCount_other": "{{count}} груп",
+    "dialog": {
+      "yearDescription": "Курс — це рік навчання (напр., «1 курс», «3 курс»)",
+      "groupAddTitle": "Додати групу",
+      "groupEditTitle": "Редагувати групу",
+      "groupDescription": "Група — це підрозділ курсу (напр., «КН-11», «ІПЗ-21»)",
+      "subgroupDescription": "Підгрупа — для поділу групи (напр., «Підгрупа 1»)",
+      "namePlaceholderYear": "напр., 1 курс",
+      "numberOfStudents": "Кількість студентів"
+    }
   },
   "activities": {
     "title": "Пари",
@@ -104,7 +135,8 @@
       "students": "Студенти",
       "selectStudents": "Оберіть студентів",
       "totalStudents": "Всього студентів",
-      "shiftOverrideNone": "Як у групи"
+      "shiftOverrideNone": "Як у групи",
+      "selectTeacher": "Оберіть викладача"
     },
     "studentLabelGroup": "{{name}} (Група)"
   },
@@ -144,7 +176,8 @@
   "constraints": {
     "categories": {
       "students": "Групи",
-      "activity": "Пари"
+      "activity": "Пари",
+      "teacher": "Викладачі"
     },
     "dialog": {
       "teacher": "Викладач",
@@ -155,7 +188,8 @@
       "room": "Аудиторія",
       "selectRoom": "Оберіть аудиторію",
       "activities": "Пари ({{count}} обрано)",
-      "hour": "Пара"
+      "hour": "Пара",
+      "selectTeacher": "Оберіть викладача"
     },
     "descriptions": {
       "activityAt": "Пара у день {{day}}, година {{hour}}",
@@ -195,13 +229,15 @@
       "ActivityPreferredRoom": "Аудиторія для пари.",
       "SubjectPreferredRoom": "Аудиторія для предмета.",
       "TeacherHomeRoom": "Домашня аудиторія викладача."
-    }
+    },
+    "noTeacher": "Без викладача"
   },
   "timeConstraints": {
     "description": "Визначте, коли пари можна ставити, а коли ні ({{count}} усього)",
     "categories": {
       "students": "Обмеження для студентів",
-      "activity": "Обмеження для пари"
+      "activity": "Обмеження для пари",
+      "teacher": "Обмеження для викладача"
     },
     "dialog": {
       "teacher": "Викладач",
@@ -211,7 +247,9 @@
       "selectActivity": "Оберіть пару",
       "hour": "Пара",
       "activities": "Пари ({{count}} обрано)",
-      "noActivities": "Немає доступних пар"
+      "noActivities": "Немає доступних пар",
+      "selectTeacher": "Оберіть викладача",
+      "consecutiveIfSameDay": "Якщо в один день — пари мають бути поспіль"
     },
     "types": {
       "BasicCompulsoryTime": {
@@ -225,7 +263,8 @@
         "description": "Час, коли конкретний викладач не може проводити заняття."
       },
       "TeacherMaxDaysPerWeek": {
-        "label": "Викладач: макс. днів/тиж."
+        "label": "Викладач: макс. днів/тиж.",
+        "description": "Обмежити максимальну кількість робочих днів викладача на тиждень."
       },
       "TeacherMaxHoursDaily": {
         "label": "Викладач: макс. год/день"
@@ -264,6 +303,10 @@
       "ActivityPreferredStartingTime": {
         "label": "Пара: бажаний час початку",
         "description": "Задати бажаний чи зафіксований час початку пари."
+      },
+      "TeachersMaxHoursDaily": {
+        "label": "Усі викладачі: макс. год/день",
+        "description": "Обмежити максимальну кількість годин на день для всіх викладачів."
       }
     },
     "descriptions": {
@@ -280,15 +323,18 @@
       "notOverlapping_one": "{{count}} пара не має перетинатись",
       "notOverlapping_few": "{{count}} пари не мають перетинатись",
       "notOverlapping_many": "{{count}} пар не мають перетинатись",
-      "notOverlapping_other": "{{count}} пар не мають перетинатись"
-    }
+      "notOverlapping_other": "{{count}} пар не мають перетинатись",
+      "allTeachersMaxHours": "Усі викладачі: макс. {{count}} год/день"
+    },
+    "noTeacher": "Без викладача"
   },
   "spaceConstraints": {
     "description": "Визначте, де пари можна ставити, а де ні ({{count}} усього)",
     "categories": {
       "room": "Обмеження для аудиторії",
       "activity": "Обмеження для пари",
-      "students": "Обмеження для студентів"
+      "students": "Обмеження для студентів",
+      "teacher": "Обмеження для викладача"
     },
     "dialog": {
       "room": "Аудиторія",
@@ -299,7 +345,8 @@
       "selectActivity": "Оберіть пару",
       "teacher": "Викладач",
       "studentsSet": "Група/курс",
-      "selectStudentsSet": "Оберіть групу/курс"
+      "selectStudentsSet": "Оберіть групу/курс",
+      "selectTeacher": "Оберіть викладача"
     },
     "types": {
       "BasicCompulsorySpace": {
@@ -409,14 +456,21 @@
       "classNotStudying": "Група не навчається в цей час",
       "teacherBusy": "Викладач {{teachers}} вже має пару в цей час",
       "classBusy": "Група або підгрупа вже має іншу пару в цей час",
-      "roomBusy": "Аудиторія {{name}} вже зайнята в цей час"
+      "roomBusy": "Аудиторія {{name}} вже зайнята в цей час",
+      "teacherOverlap": "Накладка викладача ({{teachers}})"
     },
     "activitiesMeta_one": "{{count}} пара • {{when}}",
     "activitiesMeta_few": "{{count}} пари • {{when}}",
     "activitiesMeta_many": "{{count}} пар • {{when}}",
     "activitiesMeta_other": "{{count}} пар • {{when}}",
     "lessonLabelFull": "{{number}} пара",
-    "lessonLabelCompact": "{{number}} пар."
+    "lessonLabelCompact": "{{number}} пар.",
+    "byTeacher": "За викладачем",
+    "byTeacherMatrix": "Загальна матриця (викладачі)",
+    "teacherMatrixTitle": "Загальна матриця розкладу (викладачі)",
+    "pairConfirmBody": "Пари «{{a}}» і «{{b}}» стануть в один слот: перша у чисельнику, друга у знаменнику. Так вони не будуть накладкою.",
+    "step2Teacher": "викладача",
+    "scheduleTeacher": "Розклад викладача"
   },
   "settings": {
     "importSuccessDetail": "Успішно імпортовано: {{teachers}} викладачів, {{subjects}} предметів, {{activities}} пар, {{rooms}} аудиторій",
@@ -447,7 +501,8 @@
       "lessonsCount_other": "{{count}} пар"
     },
     "precheck": {
-      "activities": "Пари"
+      "activities": "Пари",
+      "teachers": "Викладачі"
     },
     "stats": {
       "placed": "Розміщено пар"
@@ -505,7 +560,9 @@
     "reportClassesWorkload": "Навантаження груп (Тижні)",
     "classSelector": "Група:",
     "teacherSelector": "Викладач:",
-    "printAllClasses": "Друк усіх груп"
+    "printAllClasses": "Друк усіх груп",
+    "dailyTeachers": "По днях (Викладачі)",
+    "reportSummaryTeachers": "Зведений (Викладачі)"
   },
   "preflight": {
     "noActivities": "Немає жодної активної пари. Додайте пари перед генерацією розкладу.",
@@ -519,5 +576,15 @@
     "splitOrphan": "Знайдено «розщеплену» пару (activityGroupId={{group}}) без пари для другої підгрупи. Перевірте, чи створено обидві підгрупи для цього предмета.",
     "roomNoSlotsSoft": "Аудиторія {{name}}: усі слоти позначено як недоступні, але для неї є побажання за дисципліною.",
     "roomOversubscribed": "Аудиторія {{name}}: за дисципліною на неї орієнтовано {{demand}} пар, а вміщує {{supply}}. Частину буде проведено в інших аудиторіях."
+  },
+  "analytics": {
+    "bannerText": "Ми збираємо лише узагальнену технічну статистику (перегляди сторінок, швидкість генерації). Назви закладів, розклади та імена викладачів ніколи не передаються.",
+    "privacyGuarantee": "Збираються лише технічні показники (відкриття сторінок, швидкість генерації, формат експорту). Жодні назви закладів, розклади, предмети або імена викладачів ніколи не передаються в аналітику."
+  },
+  "rozImport": {
+    "teachers": "Викладачі",
+    "constraintsNotImported": "Обмеження викладачів та простору не імпортовано — перевірте доступність",
+    "roomsNotImported": "Аудиторії відсутні у файлі aSc",
+    "successDetail": "Успішно імпортовано: {{classes}} груп, {{teachers}} викладачів, {{subjects}} предметів, {{hours}} год навантаження"
   }
 }
