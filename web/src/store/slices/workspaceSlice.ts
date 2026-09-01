@@ -168,13 +168,32 @@ export const createWorkspaceAction = createAsyncThunk(
     label: string;
     cloneFromWorkspaceId?: string;
     cloneStructureOnly?: boolean;
-  }) => {
+  }, { getState }) => {
+    const state = getState() as { auth: { user: { uid: string } | null } };
     const workspace = await workspaceManager.createWorkspace(schoolId, label, {
       cloneFromWorkspaceId,
       cloneStructureOnly,
     });
+    // Switch to what was just created, as duplicating and creating a school
+    // already do. Without this the dialog closes and the user is still looking
+    // at the previous timetable, with nothing to say the new one exists.
+    // switchWorkspace auto-saves the outgoing workspace first, so nothing is lost.
+    const context = await workspaceManager.switchWorkspace(workspace.id);
+    await historyManager.init(context.workspace.id);
+    if (state.auth.user) {
+      await syncService.syncActiveWorkspace(state.auth.user.uid);
+    }
     const workspaces = await workspaceManager.listWorkspaces();
-    return { workspace, workspaces };
+    const versions = await workspaceManager.listVersions(context.workspace.id);
+
+    return {
+      workspace,
+      workspaces,
+      versions,
+      activeSchool: context.school,
+      activeWorkspace: context.workspace,
+      isGuest: context.isGuest,
+    };
   }
 );
 
@@ -354,6 +373,10 @@ const workspaceSlice = createSlice({
       // Create workspace
       .addCase(createWorkspaceAction.fulfilled, (state, action) => {
         state.workspaces = action.payload.workspaces;
+        state.activeSchool = action.payload.activeSchool;
+        state.activeWorkspace = action.payload.activeWorkspace;
+        state.isGuest = action.payload.isGuest;
+        state.versions = action.payload.versions;
       })
       // Rename workspace
       .addCase(renameWorkspaceAction.fulfilled, (state, action) => {
