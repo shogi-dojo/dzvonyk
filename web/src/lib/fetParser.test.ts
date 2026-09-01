@@ -314,6 +314,105 @@ describe('FET Parser', () => {
       expect(result.rooms[0].capacity).toBe(30);
     });
 
+    it('should drop ConstraintActivityPreferredStartingTime with invalid day or hour', () => {
+      const fetWithInvalidTime = `<?xml version="1.0" encoding="UTF-8"?>
+<fet version="7.5.1">
+  <Mode>Official</Mode>
+  <Institution_Name>Test</Institution_Name>
+  <Days_List><Number_of_Days>1</Number_of_Days><Day><Name>Mon</Name></Day></Days_List>
+  <Hours_List><Number_of_Hours>1</Number_of_Hours><Hour><Name>08:00</Name></Hour></Hours_List>
+  <Subjects_List></Subjects_List>
+  <Teachers_List></Teachers_List>
+  <Students_List></Students_List>
+  <Activities_List><Activity><Id>1</Id><Subject>S</Subject><Duration>1</Duration><Total_Duration>1</Total_Duration></Activity></Activities_List>
+  <Buildings_List></Buildings_List>
+  <Rooms_List></Rooms_List>
+  <Time_Constraints_List>
+    <ConstraintActivityPreferredStartingTime>
+      <Weight_Percentage>100</Weight_Percentage>
+      <Activity_Id>1</Activity_Id>
+      <Preferred_Day>NonexistentDay</Preferred_Day>
+      <Preferred_Hour>08:00</Preferred_Hour>
+      <Active>true</Active>
+    </ConstraintActivityPreferredStartingTime>
+    <ConstraintActivityPreferredStartingTime>
+      <Weight_Percentage>100</Weight_Percentage>
+      <Activity_Id>1</Activity_Id>
+      <Preferred_Day>Mon</Preferred_Day>
+      <Preferred_Hour>NonexistentHour</Preferred_Hour>
+      <Active>true</Active>
+    </ConstraintActivityPreferredStartingTime>
+  </Time_Constraints_List>
+  <Space_Constraints_List></Space_Constraints_List>
+</fet>`;
+
+      const result = parseFETFile(fetWithInvalidTime);
+      expect(result.timeConstraints).toHaveLength(0);
+    });
+
+    it('should parse ConstraintActivityPreferredStartingTimes (plural)', () => {
+      const fetWithMultipleTimes = `<?xml version="1.0" encoding="UTF-8"?>
+<fet version="7.5.1">
+  <Mode>Official</Mode>
+  <Institution_Name>Test</Institution_Name>
+  <Days_List>
+    <Number_of_Days>5</Number_of_Days>
+    <Day><Name>Mon</Name></Day>
+    <Day><Name>Tue</Name></Day>
+    <Day><Name>Wed</Name></Day>
+    <Day><Name>Thu</Name></Day>
+    <Day><Name>Fri</Name></Day>
+  </Days_List>
+  <Hours_List>
+    <Number_of_Hours>4</Number_of_Hours>
+    <Hour><Name>08:00</Name></Hour>
+    <Hour><Name>09:00</Name></Hour>
+    <Hour><Name>10:00</Name></Hour>
+    <Hour><Name>11:00</Name></Hour>
+  </Hours_List>
+  <Subjects_List></Subjects_List>
+  <Teachers_List></Teachers_List>
+  <Students_List></Students_List>
+  <Activities_List><Activity><Id>55</Id><Subject>S</Subject><Duration>1</Duration><Total_Duration>1</Total_Duration></Activity></Activities_List>
+  <Buildings_List></Buildings_List>
+  <Rooms_List></Rooms_List>
+  <Time_Constraints_List>
+    <ConstraintActivityPreferredStartingTimes>
+      <Weight_Percentage>100</Weight_Percentage>
+      <Activity_Id>55</Activity_Id>
+      <Number_of_Preferred_Starting_Times>2</Number_of_Preferred_Starting_Times>
+      <Preferred_Starting_Time>
+        <Preferred_Starting_Day>Mon</Preferred_Starting_Day>
+        <Preferred_Starting_Hour>08:00</Preferred_Starting_Hour>
+      </Preferred_Starting_Time>
+      <Preferred_Starting_Time>
+        <Preferred_Starting_Day>Wed</Preferred_Starting_Day>
+        <Preferred_Starting_Hour>10:00</Preferred_Starting_Hour>
+      </Preferred_Starting_Time>
+      <Permanently_Locked>true</Permanently_Locked>
+      <Active>true</Active>
+    </ConstraintActivityPreferredStartingTimes>
+  </Time_Constraints_List>
+  <Space_Constraints_List></Space_Constraints_List>
+</fet>`;
+
+      const result = parseFETFile(fetWithMultipleTimes);
+      expect(result.timeConstraints).toHaveLength(1);
+      const c = result.timeConstraints[0] as {
+        type: string;
+        activityId: string;
+        times: Array<{ day: number; hour: number }>;
+        permanentlyLocked: boolean;
+      };
+      expect(c.type).toBe('ActivityPreferredStartingTimes');
+      expect(c.activityId).toBe('55');
+      expect(c.permanentlyLocked).toBe(true);
+      expect(c.times).toEqual([
+        { day: 0, hour: 0 },
+        { day: 2, hour: 2 },
+      ]);
+    });
+
     it('should handle FET file without BOM', () => {
       const fetNoBom = `<?xml version="1.0" encoding="UTF-8"?>
 <fet version="7.5.1">
@@ -339,30 +438,20 @@ describe('FET Parser', () => {
 
   describe('Integration with real test files', () => {
     it('should parse test-1.fet from examples/tests', () => {
-      try {
-        const content = readTestFile('examples/tests/2025-09-29-activities-begin-or-end-day/test-1.fet');
-        const result = parseFETFile(content);
-        
-        expect(result.daysOfTheWeek.length).toBeGreaterThan(0);
-        expect(result.hoursOfTheDay.length).toBeGreaterThan(0);
-        expect(result.activities.length).toBeGreaterThan(0);
-      } catch {
-        // File might not exist in test environment
-        console.log('Skipping real file test - file not accessible');
-      }
+      const content = readTestFile('examples/tests/2025-09-29-activities-begin-or-end-day/test-1.fet');
+      const result = parseFETFile(content);
+      
+      expect(result.daysOfTheWeek.length).toBeGreaterThan(0);
+      expect(result.hoursOfTheDay.length).toBeGreaterThan(0);
+      expect(result.activities.length).toBeGreaterThan(0);
     });
 
     it('should parse small-test.fet from examples/tests', () => {
-      try {
-        const content = readTestFile('examples/tests/2025-10-18-activities-max-number-of-students/small-test.fet');
-        const result = parseFETFile(content);
-        
-        expect(result.daysOfTheWeek.length).toBeGreaterThan(0);
-        expect(result.hoursOfTheDay.length).toBeGreaterThan(0);
-      } catch {
-        // File might not exist in test environment
-        console.log('Skipping real file test - file not accessible');
-      }
+      const content = readTestFile('examples/tests/2025-10-18-activities-max-number-of-students/small-test.fet');
+      const result = parseFETFile(content);
+      
+      expect(result.daysOfTheWeek.length).toBeGreaterThan(0);
+      expect(result.hoursOfTheDay.length).toBeGreaterThan(0);
     });
   });
 });

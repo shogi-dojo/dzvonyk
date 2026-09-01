@@ -4,7 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import type { FETFile, Teacher, Subject, ActivityTag, Activity, StudentsYear, StudentsGroup, StudentsSubgroup, Room, Building, Day, Hour, TimeConstraint, SpaceConstraint, ConstraintFields } from '../types';
+import type { FETFile, Teacher, Subject, ActivityTag, Activity, StudentsYear, StudentsGroup, StudentsSubgroup, Room, Building, Day, Hour, TimeSlot, TimeConstraint, SpaceConstraint, ConstraintFields } from '../types';
 
 /**
  * Parse a FET XML file content into structured data
@@ -604,14 +604,40 @@ function parseTimeConstraints(doc: Document, days: Day[], hours: Hour[]): TimeCo
     const hourName = el.querySelector('Preferred_Hour')?.textContent?.trim() || '';
     const dayIdx = findDayIndex(dayName);
     const hourIdx = findHourIndex(hourName);
+    if (dayIdx >= 0 && hourIdx >= 0) {
+      constraints.push({
+        id: uuidv4(),
+        type: 'ActivityPreferredStartingTime',
+        weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
+        active: el.querySelector('Active')?.textContent?.trim() !== 'false',
+        activityId: el.querySelector('Activity_Id')?.textContent?.trim() || '',
+        day: dayIdx,
+        hour: hourIdx,
+        permanentlyLocked: el.querySelector('Permanently_Locked')?.textContent?.trim() === 'true',
+        comments: el.querySelector('Comments')?.textContent?.trim() || '',
+      } as TimeConstraint);
+    }
+  });
+
+  // Activity Preferred Starting Times (multiple preferred starting times)
+  constraintsList.querySelectorAll('ConstraintActivityPreferredStartingTimes').forEach((el) => {
+    const times: TimeSlot[] = [];
+    el.querySelectorAll('Preferred_Starting_Time').forEach((st) => {
+      const dayName = st.querySelector('Preferred_Starting_Day')?.textContent?.trim() || '';
+      const hourName = st.querySelector('Preferred_Starting_Hour')?.textContent?.trim() || '';
+      const dayIdx = findDayIndex(dayName);
+      const hourIdx = findHourIndex(hourName);
+      if (dayIdx >= 0 && hourIdx >= 0) {
+        times.push({ day: dayIdx, hour: hourIdx });
+      }
+    });
     constraints.push({
       id: uuidv4(),
-      type: 'ActivityPreferredStartingTime',
+      type: 'ActivityPreferredStartingTimes',
       weightPercentage: parseFloat(el.querySelector('Weight_Percentage')?.textContent || '100'),
       active: el.querySelector('Active')?.textContent?.trim() !== 'false',
       activityId: el.querySelector('Activity_Id')?.textContent?.trim() || '',
-      day: dayIdx >= 0 ? dayIdx : 0,
-      hour: hourIdx >= 0 ? hourIdx : 0,
+      times,
       permanentlyLocked: el.querySelector('Permanently_Locked')?.textContent?.trim() === 'true',
       comments: el.querySelector('Comments')?.textContent?.trim() || '',
     } as TimeConstraint);

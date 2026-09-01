@@ -273,6 +273,13 @@ export interface ActivityPreferredStartingTimeConstraint extends BaseConstraint 
   permanentlyLocked: boolean;
 }
 
+export interface ActivityPreferredStartingTimesConstraint extends BaseConstraint {
+  type: 'ActivityPreferredStartingTimes';
+  activityId: string;
+  times: TimeSlot[];
+  permanentlyLocked?: boolean;
+}
+
 export interface MinDaysBetweenActivitiesConstraint extends BaseConstraint {
   type: 'MinDaysBetweenActivities';
   activityIds: string[];
@@ -315,6 +322,7 @@ export type TimeConstraint =
   | StudentsSetMaxGapsPerDayConstraint
   | StudentsSetNotAvailableTimesConstraint
   | ActivityPreferredStartingTimeConstraint
+  | ActivityPreferredStartingTimesConstraint
   | MinDaysBetweenActivitiesConstraint;
 
 export type SpaceConstraint = 
