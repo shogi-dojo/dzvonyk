@@ -62,17 +62,20 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { t } = useTranslation();
 
-  // Sync dark class on html root based on Redux state (defaults to light)
+  // Sync dark class and theme-color on html root based on Redux state
   useEffect(() => {
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      if (metaTheme) metaTheme.setAttribute('content', '#1a1510');
     } else {
       document.documentElement.classList.remove('dark');
+      if (metaTheme) metaTheme.setAttribute('content', '#faf8f5');
     }
   }, [isDarkMode]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col" data-app-layout>
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden" data-app-layout>
       {/* Skip to main content link for accessibility */}
       <a
         href="#main-content"
@@ -126,7 +129,7 @@ export function Layout({ children }: LayoutProps) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 ease-out lg:translate-x-0 no-print",
-          "bg-card border-r border-border",
+          "bg-card border-r border-border max-w-[calc(100vw-2.5rem)] lg:max-w-none",
           desktopSidebarCollapsed ? "w-72 lg:w-20" : "w-72 lg:w-72",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
@@ -135,15 +138,15 @@ export function Layout({ children }: LayoutProps) {
       >
         {/* Logo & Desktop Collapse Toggle */}
         <div className={cn("flex h-16 shrink-0 items-center justify-between border-b border-border", desktopSidebarCollapsed ? "px-3" : "px-5")}>
-          <Link to="/" className="flex items-center gap-3 group" aria-label={t('app.home')}>
-            <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110 shadow-sm">
+          <Link to="/" className="flex items-center gap-3 group min-w-0" aria-label={t('app.home')}>
+            <div className="p-2 rounded-lg gradient-primary transition-transform duration-300 group-hover:scale-110 shadow-sm shrink-0">
               <Bell className="h-5 w-5 text-primary-foreground fill-current" aria-hidden="true" />
             </div>
             {!desktopSidebarCollapsed && (
-              <span className="text-xl font-bold text-foreground tracking-tight">{t('app.name')}</span>
+              <span className="text-xl font-bold text-foreground tracking-tight truncate">{t('app.name')}</span>
             )}
           </Link>
-          <div className="flex items-center">
+          <div className="flex items-center shrink-0">
             {/* Desktop Collapse Toggle Button */}
             <Button
               variant="ghost"
@@ -239,12 +242,12 @@ export function Layout({ children }: LayoutProps) {
                     )} aria-hidden="true" />
                     {!desktopSidebarCollapsed && (
                       <>
-                        <div className="flex-1">
-                          <div>{t(`nav.${item.key}`)}</div>
-                          <div className="text-xs opacity-60 mt-0.5">{t(`nav.${item.key}Desc`)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate">{t(`nav.${item.key}`)}</div>
+                          <div className="text-xs opacity-60 mt-0.5 truncate">{t(`nav.${item.key}Desc`)}</div>
                         </div>
                         {isActive && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" aria-hidden="true" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse shrink-0" aria-hidden="true" />
                         )}
                       </>
                     )}
@@ -298,7 +301,7 @@ export function Layout({ children }: LayoutProps) {
               <Heart className="h-4 w-4 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
               {!desktopSidebarCollapsed && (
                 <>
-                  <span className="flex-1">{t('support.donate')}</span>
+                  <span className="flex-1 truncate">{t('support.donate')}</span>
                   <ExternalLink className="h-3.5 w-3.5 opacity-50 shrink-0" aria-hidden="true" />
                 </>
               )}

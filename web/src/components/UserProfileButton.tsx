@@ -69,7 +69,7 @@ export function UserProfileButton({ compact = false }: { compact?: boolean }) {
           className="gap-2 h-9 shrink-0 text-xs font-medium border-border/80 hover:bg-primary/5 hover:border-primary/40"
         >
           <GoogleIcon />
-          <span className={compact ? 'sr-only' : 'hidden sm:inline'}>
+          <span className={compact ? 'sr-only' : 'inline truncate'}>
             {loading ? 'Вхід...' : t('auth.signIn', 'Увійти')}
           </span>
         </Button>
