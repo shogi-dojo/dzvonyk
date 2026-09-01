@@ -17,8 +17,16 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec\.ts$/ },
     {
       name: 'iphone-se',
-      // iPhone SE (1st gen): 320×568 CSS px.
-      use: { ...devices['iPhone SE'], viewport: { width: 320, height: 568 } },
+      // iPhone SE (1st gen): 320×568 CSS px. Run in chromium (CI only installs
+      // chromium) with touch + mobile flags to emulate the small-screen path
+      // real users hit on Android/iOS browsers.
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 320, height: 568 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+      },
       testMatch: /mobile\.spec\.ts$/,
     },
   ],
