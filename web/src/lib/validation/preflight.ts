@@ -131,8 +131,8 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     return { blocking, warnings, ok: false };
   }
 
-  const nDays = rules.nDaysPerWeek;
-  const nHours = rules.nHoursPerDay;
+  const nDays = rules.nDaysPerWeek || rules.daysOfTheWeek?.length || 5;
+  const nHours = rules.nHoursPerDay || rules.hoursOfTheDay?.length || 8;
   const weeklySlots = nDays * nHours;
 
   if (weeklySlots <= 0) {

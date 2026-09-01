@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { parseFETFile, exportToFETXml } from './fetParser';
+import { runPreflight } from './validation/preflight';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -452,6 +453,34 @@ describe('FET Parser', () => {
       
       expect(result.daysOfTheWeek.length).toBeGreaterThan(0);
       expect(result.hoursOfTheDay.length).toBeGreaterThan(0);
+    });
+
+    it('should parse locked-single-room.fet fixture and pass preflight without blocking', () => {
+      const fixturePath = path.join(__dirname, '__fixtures__', 'locked-single-room.fet');
+      const content = fs.readFileSync(fixturePath, 'utf-8');
+      const result = parseFETFile(content);
+
+      expect(result.activities).toHaveLength(64);
+      expect(result.rooms).toHaveLength(1);
+      expect(result.rooms[0].name).toBe('Інф');
+      expect(result.activities[0].fetId).toBe('1');
+      expect(result.activities[0].teacherIds).toEqual(['Вчитель1', 'Вчитель2']);
+
+      const preflight = runPreflight({
+        rules: result,
+        activities: result.activities,
+        teachers: result.teachers,
+        rooms: result.rooms,
+        studentsGroups: result.studentsGroups,
+        studentsSubgroups: result.studentsSubgroups,
+        studentsYears: result.studentsYears,
+        timeConstraints: result.timeConstraints,
+        spaceConstraints: result.spaceConstraints,
+      });
+
+      expect(preflight.ok).toBe(true);
+      expect(preflight.blocking).toHaveLength(0);
+      expect(preflight.warnings.some(w => w.code === 'ROOM_NEAR_CAPACITY')).toBe(true);
     });
   });
 });

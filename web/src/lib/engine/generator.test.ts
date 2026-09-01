@@ -1,8 +1,8 @@
-/**
- * Unit tests for the Timetable Generator
- */
 import { describe, it, expect } from 'vitest';
 import { TimetableGenerator } from './generator';
+import { parseFETFile } from '../fetParser';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { Activity, Teacher, Room, TimetableRules, StudentsSubgroup } from '../../types';
 import { STUDENTS_SUBGROUP } from '../../types';
 
@@ -432,6 +432,35 @@ describe('TimetableGenerator', () => {
       expect(result.roomAllocations).toHaveLength(1);
       expect(result.roomAllocations[0].activityIndex).toBe(0);
       expect(result.roomAllocations[0].roomIndex).toBe(0); // room-uuid-1 is index 0
+    });
+
+    it('generates timetable for locked-single-room.fet respecting the locked activity slot', async () => {
+      const fixturePath = path.join(__dirname, '..', '__fixtures__', 'locked-single-room.fet');
+      const content = fs.readFileSync(fixturePath, 'utf-8');
+      const parsed = parseFETFile(content);
+
+      const generator = new TimetableGenerator(
+        parsed,
+        parsed.activities,
+        parsed.teachers,
+        parsed.studentsSubgroups,
+        parsed.rooms,
+        parsed.timeConstraints,
+        parsed.spaceConstraints,
+        { maxSeconds: 15 },
+        parsed.studentsGroups,
+        parsed.studentsYears
+      );
+
+      const result = await generator.generate();
+      expect(result.success).toBe(true);
+      // Activity with fetId '1' was locked to day 0 (Понеділок), hour 0 (1)
+      const lockedActIdx = parsed.activities.findIndex(a => a.fetId === '1');
+      expect(lockedActIdx).toBe(0);
+      const lockedAlloc = result.timeAllocations.find(ta => ta.activityIndex === lockedActIdx);
+      expect(lockedAlloc).toBeDefined();
+      expect(lockedAlloc!.day).toBe(0);
+      expect(lockedAlloc!.hour).toBe(0);
     });
   });
 });
