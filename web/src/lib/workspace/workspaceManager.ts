@@ -12,6 +12,7 @@ import {
   createSnapshotEnvelope,
   restoreSnapshotEnvelopeToDatabase,
 } from './snapshotCodec';
+import { formatAcademicYear } from '../academicYear';
 
 export const MAX_AUTO_VERSIONS = 20;
 
@@ -257,7 +258,7 @@ export class WorkspaceManager {
     await this.database.schools.put(school);
 
     // Create a default first academic year workspace for this school
-    await this.createWorkspace(school.id, '2025-2026');
+    await this.createWorkspace(school.id, formatAcademicYear());
 
     return school;
   }
