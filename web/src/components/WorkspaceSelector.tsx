@@ -13,39 +13,25 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Button } from './ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import {
-  InstitutionDetailsFields,
-  EMPTY_INSTITUTION_DETAILS,
-  type InstitutionDetailsValue,
-} from './InstitutionDetailsFields';
+import { CreateSchoolDialog } from './workspace/CreateSchoolDialog';
+import { CreateWorkspaceDialog } from './workspace/CreateWorkspaceDialog';
+import { DeleteWorkspaceDialog } from './workspace/DeleteWorkspaceDialog';
+import { DuplicateWorkspaceDialog } from './workspace/DuplicateWorkspaceDialog';
+import { RenameSchoolDialog } from './workspace/RenameSchoolDialog';
+import { RenameWorkspaceDialog } from './workspace/RenameWorkspaceDialog';
 import { useAppDispatch, useAppSelector } from '@/hooks';
-import {
-  switchWorkspaceAction,
-  createSchoolAction,
-  renameSchoolAction,
-  createWorkspaceAction,
-  renameWorkspaceAction,
-  duplicateWorkspaceAction,
-  forceSaveWorkspaceAction,
-  deleteWorkspaceAction,
-} from '@/store/slices/workspaceSlice';
+import { switchWorkspaceAction, forceSaveWorkspaceAction } from '@/store/slices/workspaceSlice';
 import { useReloadTimetableState } from '@/hooks/useReloadTimetableState';
 import { GUEST_WORKSPACE_ID } from '@/db';
 import type { AcademicYearWorkspace, School } from '@/types';
-import { formatAcademicYear } from '@/lib/academicYear';
-import { isPlaceholderInstitutionName } from '@/lib/institution/placeholderName';
 import { cn } from '@/lib/utils';
 
+/**
+ * The sidebar institution/year switcher: a trigger, a dropdown listing every
+ * school's workspaces, and the six dialogs its actions open. Each dialog owns
+ * its own form state and dispatch (see ./workspace); this component only
+ * decides which one is open.
+ */
 export function WorkspaceSelector() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
@@ -57,44 +43,14 @@ export function WorkspaceSelector() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSchoolDialogOpen, setIsSchoolDialogOpen] = useState(false);
   const [isWorkspaceDialogOpen, setIsWorkspaceDialogOpen] = useState(false);
-
-  // Rename Workspace Dialog
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [workspaceToRename, setWorkspaceToRename] = useState<AcademicYearWorkspace | null>(null);
-  const [newWorkspaceLabel, setNewWorkspaceLabel] = useState('');
-
-  // Rename School Dialog
-  const [renameSchoolDialogOpen, setRenameSchoolDialogOpen] = useState(false);
-  const [schoolToRename, setSchoolToRename] = useState<School | null>(null);
-  const [renameDetails, setRenameDetails] = useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
-
-  // Duplicate Dialog
-  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [workspaceToDuplicate, setWorkspaceToDuplicate] = useState<AcademicYearWorkspace | null>(null);
-  const [duplicateLabel, setDuplicateLabel] = useState('');
-  const [duplicateStructureOnly, setDuplicateStructureOnly] = useState(false);
-
-  // Delete Dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<AcademicYearWorkspace | null>(null);
+  const [schoolToRename, setSchoolToRename] = useState<School | null>(null);
 
   // Force Save status
   const [forceSaving, setForceSaving] = useState(false);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
-
-  // New School Form
-  const [schoolDetails, setSchoolDetails] = useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
-
-  // New Workspace Form
-  const [workspaceLabel, setWorkspaceLabel] = useState('');
-  const [cloneStructureOnly, setCloneStructureOnly] = useState(true);
-  const [cloneFromCurrent, setCloneFromCurrent] = useState(true);
-  // A new schedule is the moment users are most likely to notice their
-  // institution is still called «Нова школа», so offer the fix right here
-  // rather than sending them to Settings.
-  const institutionNameIsPlaceholder = isPlaceholderInstitutionName(activeSchool?.name);
-  const [newScheduleInstitution, setNewScheduleInstitution] =
-    useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
 
   const handleSwitch = async (workspaceId: string) => {
     setDropdownOpen(false);
@@ -102,140 +58,20 @@ export function WorkspaceSelector() {
     await reloadState();
   };
 
-  const handleCreateSchool = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!schoolDetails.name.trim()) return;
-
-    await dispatch(
-      createSchoolAction({
-        name: schoolDetails.name.trim(),
-        shortName: schoolDetails.shortName,
-        address: schoolDetails.address,
-        director: schoolDetails.director,
-      })
-    ).unwrap();
-
-    setSchoolDetails(EMPTY_INSTITUTION_DETAILS);
-    setIsSchoolDialogOpen(false);
-    await reloadState();
-  };
-
-  const handleCreateWorkspace = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!workspaceLabel.trim() || !activeSchool) return;
-
-    // Rename first: creating a workspace seeds its rules from the school's
-    // current name, so a later rename would leave the new schedule holding
-    // the placeholder.
-    const chosenName = newScheduleInstitution.name.trim();
-    if (institutionNameIsPlaceholder && chosenName) {
-      await dispatch(
-        renameSchoolAction({ schoolId: activeSchool.id, name: chosenName })
-      ).unwrap();
-    }
-
-    await dispatch(
-      createWorkspaceAction({
-        schoolId: activeSchool.id,
-        label: workspaceLabel.trim(),
-        cloneFromWorkspaceId: cloneFromCurrent ? activeWorkspace?.id : undefined,
-        cloneStructureOnly,
-      })
-    ).unwrap();
-
-    setWorkspaceLabel('');
-    setNewScheduleInstitution(EMPTY_INSTITUTION_DETAILS);
-    setIsWorkspaceDialogOpen(false);
-    await reloadState();
-  };
-
   const openRenameSchool = (school: School) => {
     setSchoolToRename(school);
-    setRenameDetails({
-      name: school.name,
-      shortName: school.shortName || '',
-      address: school.address || '',
-      director: school.director || '',
-    });
-    setRenameSchoolDialogOpen(true);
-  };
-
-  const handleRenameSchool = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!schoolToRename || !renameDetails.name.trim()) return;
-
-    await dispatch(
-      renameSchoolAction({
-        schoolId: schoolToRename.id,
-        name: renameDetails.name,
-        shortName: renameDetails.shortName,
-        address: renameDetails.address,
-        director: renameDetails.director,
-      })
-    ).unwrap();
-
-    setRenameSchoolDialogOpen(false);
-    setSchoolToRename(null);
-    await reloadState();
   };
 
   const openRename = (ws: AcademicYearWorkspace) => {
     setWorkspaceToRename(ws);
-    setNewWorkspaceLabel(ws.label);
-    setRenameDialogOpen(true);
-  };
-
-  const handleRename = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!workspaceToRename || !newWorkspaceLabel.trim()) return;
-
-    await dispatch(
-      renameWorkspaceAction({
-        workspaceId: workspaceToRename.id,
-        label: newWorkspaceLabel.trim(),
-      })
-    ).unwrap();
-
-    setRenameDialogOpen(false);
-    setWorkspaceToRename(null);
   };
 
   const openDuplicate = (ws: AcademicYearWorkspace) => {
     setWorkspaceToDuplicate(ws);
-    setDuplicateLabel(`${ws.label} (копія)`);
-    setDuplicateStructureOnly(false);
-    setDuplicateDialogOpen(true);
-  };
-
-  const handleDuplicate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!workspaceToDuplicate || !duplicateLabel.trim()) return;
-
-    await dispatch(
-      duplicateWorkspaceAction({
-        workspaceId: workspaceToDuplicate.id,
-        label: duplicateLabel.trim(),
-        cloneStructureOnly: duplicateStructureOnly,
-      })
-    ).unwrap();
-
-    setDuplicateDialogOpen(false);
-    setWorkspaceToDuplicate(null);
-    await reloadState();
   };
 
   const openDelete = (ws: AcademicYearWorkspace) => {
     setWorkspaceToDelete(ws);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!workspaceToDelete) return;
-
-    await dispatch(deleteWorkspaceAction(workspaceToDelete.id)).unwrap();
-    setDeleteDialogOpen(false);
-    setWorkspaceToDelete(null);
-    await reloadState();
   };
 
   const handleForceSave = async () => {
@@ -440,251 +276,24 @@ export function WorkspaceSelector() {
         )}
       </div>
 
-      {/* Rename Dialog */}
-      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleRename}>
-            <DialogHeader>
-              <DialogTitle>{t('workspace.renameTitle', 'Перейменувати розклад / рік')}</DialogTitle>
-              <DialogDescription>
-                {t('workspace.renameDesc', 'Вкажіть нову назву для цього навчального року чи розкладу')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3 py-4">
-              <div className="space-y-1">
-                <Label htmlFor="renameInput">{t('common.name', 'Назва')}</Label>
-                <Input
-                  id="renameInput"
-                  value={newWorkspaceLabel}
-                  onChange={(e) => setNewWorkspaceLabel(e.target.value)}
-                  placeholder={`напр., ${formatAcademicYear()} (II семестр)`}
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setRenameDialogOpen(false)}>
-                {t('common.cancel', 'Скасувати')}
-              </Button>
-              <Button type="submit">{t('common.save', 'Зберегти')}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Duplicate Dialog */}
-      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleDuplicate}>
-            <DialogHeader>
-              <DialogTitle>{t('workspace.duplicateTitle', 'Дублювати розклад')}</DialogTitle>
-              <DialogDescription>
-                {t('workspace.duplicateDesc', 'Створити незалежну копію поточного розкладу')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-1">
-                <Label htmlFor="dupLabel">{t('common.name', 'Назва копії')}</Label>
-                <Input
-                  id="dupLabel"
-                  value={duplicateLabel}
-                  onChange={(e) => setDuplicateLabel(e.target.value)}
-                  placeholder={`напр., ${formatAcademicYear()} (варіант 2)`}
-                  required
-                  autoFocus
-                />
-              </div>
-              <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/20">
-                <input
-                  type="checkbox"
-                  id="dupStructureOnly"
-                  checked={duplicateStructureOnly}
-                  onChange={(e) => setDuplicateStructureOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                />
-                <Label htmlFor="dupStructureOnly" className="text-xs cursor-pointer">
-                  {t('workspace.cloneStructureOnly', 'Копіювати лише структуру (без згенерованих годин розкладу)')}
-                </Label>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDuplicateDialogOpen(false)}>
-                {t('common.cancel', 'Скасувати')}
-              </Button>
-              <Button type="submit">{t('common.duplicate', 'Дублювати')}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-destructive">
-              {t('workspace.deleteTitle', 'Видалити навчальний рік')}
-            </DialogTitle>
-            <DialogDescription>
-              {t(
-                'workspace.deleteDesc',
-                'Ви впевнені, що хочете видалити цей розклад? Усі повʼязані дані та знімки версій буде остаточно видалено.'
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-3">
-            <p className="font-semibold text-foreground text-sm bg-muted/40 p-2.5 rounded-lg">
-              {workspaceToDelete?.label}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              {t('common.cancel', 'Скасувати')}
-            </Button>
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              {t('common.delete', 'Видалити')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* New School Dialog */}
-      <Dialog open={isSchoolDialogOpen} onOpenChange={setIsSchoolDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleCreateSchool}>
-            <DialogHeader>
-              <DialogTitle>{t('workspace.createSchoolTitle', 'Новий заклад освіти')}</DialogTitle>
-              <DialogDescription>
-                {t('workspace.createSchoolDesc', 'Введіть назву школи чи гімназії')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3 py-4">
-              <InstitutionDetailsFields
-                value={schoolDetails}
-                onChange={setSchoolDetails}
-                nameRequired
-                idPrefix="new-school"
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsSchoolDialogOpen(false)}>
-                {t('common.cancel', 'Скасувати')}
-              </Button>
-              <Button type="submit">{t('common.create', 'Створити')}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* New Academic Year Workspace Dialog */}
-      <Dialog open={isWorkspaceDialogOpen} onOpenChange={setIsWorkspaceDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleCreateWorkspace}>
-            <DialogHeader>
-              <DialogTitle>{t('workspace.createYearTitle', 'Новий розклад')}</DialogTitle>
-              <DialogDescription>
-                {t('workspace.createYearDesc', 'Створіть новий рік або семестр розкладу')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              {institutionNameIsPlaceholder && (
-                <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    {t(
-                      'workspace.fixInstitutionName',
-                      'Ваш заклад ще має типову назву. Вкажіть справжню — вона друкується на всіх розкладах.'
-                    )}
-                  </p>
-                  <InstitutionDetailsFields
-                    value={newScheduleInstitution}
-                    onChange={setNewScheduleInstitution}
-                    fields={['name']}
-                    idPrefix="new-schedule-institution"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <Label htmlFor="yearLabel">{t('workspace.yearLabel', 'Назва / Рік')}</Label>
-                <Input
-                  id="yearLabel"
-                  value={workspaceLabel}
-                  onChange={(e) => setWorkspaceLabel(e.target.value)}
-                  placeholder={`напр., ${formatAcademicYear()} (I семестр)`}
-                  required
-                />
-              </div>
-
-              {activeWorkspace && (
-                <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="cloneFromCurrent"
-                      checked={cloneFromCurrent}
-                      onChange={(e) => setCloneFromCurrent(e.target.checked)}
-                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                    />
-                    <Label htmlFor="cloneFromCurrent" className="text-xs font-medium cursor-pointer">
-                      {t('workspace.cloneFromCurrent', 'Копіювати з поточного розкладу')} ({activeWorkspace.label})
-                    </Label>
-                  </div>
-
-                  {cloneFromCurrent && (
-                    <div className="flex items-center gap-2 pl-6">
-                      <input
-                        type="checkbox"
-                        id="cloneStructureOnly"
-                        checked={cloneStructureOnly}
-                        onChange={(e) => setCloneStructureOnly(e.target.checked)}
-                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                      />
-                      <Label htmlFor="cloneStructureOnly" className="text-xs text-muted-foreground cursor-pointer">
-                        {t('workspace.cloneStructureOnly', 'Лише структуру (вчителі, предмети, класи, обмеження без розкладу)')}
-                      </Label>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsWorkspaceDialogOpen(false)}>
-                {t('common.cancel', 'Скасувати')}
-              </Button>
-              <Button type="submit">{t('common.create', 'Створити')}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Rename School Dialog */}
-      <Dialog open={renameSchoolDialogOpen} onOpenChange={setRenameSchoolDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleRenameSchool}>
-            <DialogHeader>
-              <DialogTitle>{t('workspace.renameSchoolTitle', 'Перейменувати заклад освіти')}</DialogTitle>
-              <DialogDescription>
-                {t('workspace.renameSchoolDesc', 'Вкажіть нову назву для цього закладу освіти')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3 py-4">
-              <InstitutionDetailsFields
-                value={renameDetails}
-                onChange={setRenameDetails}
-                nameRequired
-                autoFocusName
-                idPrefix="rename-school"
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setRenameSchoolDialogOpen(false)}>
-                {t('common.cancel', 'Скасувати')}
-              </Button>
-              <Button type="submit">{t('common.save', 'Зберегти')}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <RenameWorkspaceDialog
+        workspace={workspaceToRename}
+        onClose={() => setWorkspaceToRename(null)}
+      />
+      <DuplicateWorkspaceDialog
+        workspace={workspaceToDuplicate}
+        onClose={() => setWorkspaceToDuplicate(null)}
+      />
+      <DeleteWorkspaceDialog
+        workspace={workspaceToDelete}
+        onClose={() => setWorkspaceToDelete(null)}
+      />
+      <CreateSchoolDialog open={isSchoolDialogOpen} onOpenChange={setIsSchoolDialogOpen} />
+      <CreateWorkspaceDialog
+        open={isWorkspaceDialogOpen}
+        onOpenChange={setIsWorkspaceDialogOpen}
+      />
+      <RenameSchoolDialog school={schoolToRename} onClose={() => setSchoolToRename(null)} />
     </>
   );
 }
