@@ -3,6 +3,8 @@
  * Based on the original FET (Free Timetabling Software) C++ implementation
  */
 
+import type { InstitutionPresetId } from '@/lib/institution/presets';
+
 // ============ CONSTANTS ============
 
 export const OFFICIAL_MODE = 0;
@@ -69,7 +71,13 @@ export interface StudentsSubgroup extends StudentsSet {
 
 export interface StudentsGroup extends StudentsSet {
   type: typeof STUDENTS_GROUP;
-  subgroups: string[]; // subgroup IDs
+  /**
+   * Subgroup references — ids OR names. Despite the historical "IDs" label,
+   * names are what actually get written: the Students page appends
+   * `newSubgroup.name`, and both importers write names too. Resolve with
+   * `@/lib/studentSetLookup`, never by id alone.
+   */
+  subgroups: string[];
   // Ukrainian schools often run two shifts (зміни). If set, this class attends
   // only the hours in rules.shifts[shift].{firstHour, lastHour}. Individual
   // activities may override via Activity.shiftOverride.
@@ -78,7 +86,13 @@ export interface StudentsGroup extends StudentsSet {
 
 export interface StudentsYear extends StudentsSet {
   type: typeof STUDENTS_YEAR;
-  groups: string[]; // group IDs
+  /**
+   * Group references — ids OR names. See the note on
+   * `StudentsGroup.subgroups`: names dominate in practice, and code that
+   * matched ids only silently dropped every imported stream. Resolve with
+   * `@/lib/studentSetLookup`.
+   */
+  groups: string[];
   divisions: string[][];
   separator: string;
 }
@@ -107,6 +121,13 @@ export interface Room {
 
 // ============ ACTIVITY ============
 
+/**
+ * Display/reporting classification of an activity (lecture, seminar…).
+ * Purely informational in v1: the generator never reads it. Academic presets
+ * only — the UI is gated by features.activitySubtypes.
+ */
+export type ActivitySubtype = 'lecture' | 'seminar' | 'lab' | 'practical';
+
 export interface Activity {
   id: string;
   fetId?: string;
@@ -127,6 +148,8 @@ export interface Activity {
   // Biweekly rotation. Two activities with opposite parity may share a slot.
   // Undefined or 'both' = every week (default).
   weekParity?: 'both' | 'numerator' | 'denominator';
+  // See ActivitySubtype. Undefined = unclassified.
+  activitySubtype?: ActivitySubtype;
 }
 
 // ============ TIME STRUCTURE ============
@@ -370,6 +393,9 @@ export interface TimetableRules {
   mode: number;
   institutionName: string;
   comments?: string;
+  // Terminology preset chosen at institution creation. Optional for legacy
+  // rows; resolveInstitutionType defaults missing values to 'school'.
+  institutionType?: InstitutionPresetId;
   
   // Time structure
   nDaysPerWeek: number;
@@ -465,4 +491,3 @@ export interface FETFile {
 }
 
 export * from './workspace';
-

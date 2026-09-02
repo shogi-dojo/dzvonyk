@@ -1,3 +1,4 @@
+import type { InstitutionPresetId } from '@/lib/institution/presets';
 import type {
   TimetableRules,
   Teacher,
@@ -22,6 +23,9 @@ export interface School {
   shortName?: string;
   address?: string;
   director?: string;
+  // Source of truth for the institution preset. Optional for legacy schools;
+  // resolveInstitutionType defaults missing values to 'school'.
+  institutionType?: InstitutionPresetId;
   createdAt: string;
   updatedAt: string;
   ownerUid?: string;
@@ -58,8 +62,9 @@ export interface WorkspaceSnapshotData {
 }
 
 export interface WorkspaceSnapshotEnvelope {
-  version: 1;
-  schemaVersion: 1;
+  /** Envelope layout revision; bumped alongside data migrations. */
+  version: number;
+  schemaVersion: number;
   workspaceId?: string;
   schoolId?: string;
   timestamp: string;
