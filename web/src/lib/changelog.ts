@@ -22,7 +22,7 @@ export const CHANGELOG_RELEASES: ReleaseMilestone[] = [
     title: 'Типи закладів освіти та реквізити установи',
     badge: 'Поточний реліз',
     badgeVariant: 'default',
-    date: 'Серпень 2026',
+    date: 'Вересень 2026',
     screenshotId: '1.6.0',
     items: [
       {
