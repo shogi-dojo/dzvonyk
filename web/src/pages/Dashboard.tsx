@@ -62,13 +62,17 @@ export function Dashboard() {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [lastSolution, setLastSolution] = useState<TimetableSolution | null>(null);
 
-  const institutionNameIsPlaceholder = isPlaceholderInstitutionName(rules?.institutionName);
+  // The School record owns the institution name; rules only mirror it, and on
+  // a fresh install there is no rules row yet — keying off rules would leave
+  // the prompt up after a successful save.
+  const institutionName = activeSchool?.name || rules?.institutionName || '';
+  const institutionNameIsPlaceholder = isPlaceholderInstitutionName(institutionName);
   const [isEditingInstitution, setIsEditingInstitution] = useState(false);
   const [institutionDraft, setInstitutionDraft] = useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
   const [isSavingInstitution, setIsSavingInstitution] = useState(false);
 
   const openInstitutionEdit = () => {
-    setInstitutionDraft({ ...EMPTY_INSTITUTION_DETAILS, name: rules?.institutionName || '' });
+    setInstitutionDraft({ ...EMPTY_INSTITUTION_DETAILS, name: institutionName });
     setIsEditingInstitution(true);
   };
 
@@ -320,7 +324,7 @@ export function Dashboard() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <CardTitle className="truncate">
-                  {rules?.institutionName || t('dashboard.institution.empty')}
+                  {institutionName || t('dashboard.institution.empty')}
                 </CardTitle>
                 {rules && !institutionNameIsPlaceholder && (
                   <Button

@@ -646,12 +646,18 @@ export function Print() {
         {includeApproval && (
           <div className="flex justify-between items-start mb-6 text-xs text-black">
             <div>
-              <p className="font-bold text-sm">{rules.institutionName}</p>
+              <p className="font-bold text-sm">{institution.name?.trim() || rules.institutionName}</p>
+              {institution.address?.trim() && (
+                <p className="text-neutral-600 text-xs">{institution.address.trim()}</p>
+              )}
               {rules.comments && <p className="text-neutral-600 text-xs">{rules.comments}</p>}
             </div>
             <div className="text-left w-64 border-l-2 border-neutral-300 pl-3">
               <p className="font-bold uppercase tracking-wider text-[11px]">«ЗАТВЕРДЖУЮ»</p>
-              <p className="mt-1">Директор {rules.institutionName}</p>
+              {/* Mirrors renderHeader: never fall back to the institution name. */}
+              <p className="mt-1">
+                Директор{institution.director?.trim() ? ` ${institution.director.trim()}` : ''}
+              </p>
               <div className="mt-3 border-b border-black w-40"></div>
               <p className="text-[10px] text-neutral-500 mt-0.5">(підпис / ПІБ)</p>
               <p className="mt-1.5 text-[11px]">«_____» ________________ 202___ р.</p>
