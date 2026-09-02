@@ -170,7 +170,7 @@ export function Settings() {
 
   const handleCreateNew = () => {
     const id = uuidv4();
-    dispatch(createNewRules(id));
+    dispatch(createNewRules({ id, institutionType: preset.id }));
   };
 
   const handleSave = async () => {

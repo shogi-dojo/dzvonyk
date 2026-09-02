@@ -38,28 +38,35 @@ interface RulesState {
   modified: boolean;
 }
 
-const createDefaultRules = (id: string): TimetableRulesState => ({
-  id,
-  mode: OFFICIAL_MODE,
-  // Empty on purpose; the UI prompts for a real name (see placeholderName).
-  institutionName: '',
-  comments: '',
-  nDaysPerWeek: INSTITUTION_PRESETS.school.defaults.nDaysPerWeek,
-  nHoursPerDay: INSTITUTION_PRESETS.school.defaults.nHoursPerDay,
-  daysOfTheWeek: [
-    { name: 'Monday', longName: 'Monday' },
-    { name: 'Tuesday', longName: 'Tuesday' },
-    { name: 'Wednesday', longName: 'Wednesday' },
-    { name: 'Thursday', longName: 'Thursday' },
-    { name: 'Friday', longName: 'Friday' },
-  ],
-  // `name` is the period's label, `longName` its bell range. The preset's
-  // builder owns both columns so every seeding path stays identical.
-  hoursOfTheDay: buildDefaultHours(INSTITUTION_PRESETS.school),
-  modified: false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
+const createDefaultRules = (
+  id: string,
+  presetId: InstitutionPresetId = 'school'
+): TimetableRulesState => {
+  const preset = INSTITUTION_PRESETS[presetId] ?? INSTITUTION_PRESETS.school;
+  return {
+    id,
+    mode: OFFICIAL_MODE,
+    // Empty on purpose; the UI prompts for a real name (see placeholderName).
+    institutionName: '',
+    comments: '',
+    institutionType: preset.id,
+    nDaysPerWeek: preset.defaults.nDaysPerWeek,
+    nHoursPerDay: preset.defaults.nHoursPerDay,
+    daysOfTheWeek: [
+      { name: 'Monday', longName: 'Monday' },
+      { name: 'Tuesday', longName: 'Tuesday' },
+      { name: 'Wednesday', longName: 'Wednesday' },
+      { name: 'Thursday', longName: 'Thursday' },
+      { name: 'Friday', longName: 'Friday' },
+    ],
+    // `name` is the period's label, `longName` its bell range. The preset's
+    // builder owns both columns so every seeding path stays identical.
+    hoursOfTheDay: buildDefaultHours(preset),
+    modified: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};
 
 const initialState: RulesState = {
   current: null,
@@ -89,8 +96,13 @@ const rulesSlice = createSlice({
       state.current = normalizeRules(action.payload);
       state.modified = false;
     },
-    createNewRules: (state, action: PayloadAction<string>) => {
-      state.current = createDefaultRules(action.payload);
+    createNewRules: (
+      state,
+      action: PayloadAction<string | { id: string; institutionType?: InstitutionPresetId }>
+    ) => {
+      const payload =
+        typeof action.payload === 'string' ? { id: action.payload } : action.payload;
+      state.current = createDefaultRules(payload.id, payload.institutionType);
       state.modified = true;
     },
     updateInstitutionName: (state, action: PayloadAction<string>) => {

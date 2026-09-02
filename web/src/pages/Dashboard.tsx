@@ -26,7 +26,6 @@ import { renameSchoolAction, changeInstitutionTypeAction } from '@/store/slices/
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { isPlaceholderInstitutionName } from '@/lib/institution/placeholderName';
 import {
-  INSTITUTION_PRESETS,
   INSTITUTION_PRESET_LIST,
   type InstitutionPresetId,
 } from '@/lib/institution/presets';

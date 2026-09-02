@@ -13,8 +13,6 @@
 import type {
   Activity,
   Teacher,
-  Subject,
-  ActivityTag,
   StudentsYear,
   StudentsGroup,
   StudentsSubgroup,
