@@ -14,7 +14,15 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec\.ts$/ },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      // A project-level testIgnore replaces the top-level one, so the
+      // screenshot suites must be repeated here. The release illustration is
+      // regenerated deliberately via npm run e2e:whats-new-screenshot, never
+      // as a side effect of the ordinary suite.
+      testIgnore: [/mobile\.spec\.ts$/, /whats-new-screenshot\.spec\.ts$/],
+    },
     {
       name: 'iphone-se',
       // iPhone SE (1st gen): 320×568 CSS px. Run in chromium (CI only installs

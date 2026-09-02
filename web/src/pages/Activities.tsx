@@ -18,6 +18,7 @@ import {
 import { Pagination, usePagination } from '@/components/ui/pagination';
 import { PageHeader, EmptyState } from '@/components/PageTransition';
 import { useAppDispatch, useAppSelector, useInstitutionPreset } from '@/hooks';
+import { needsMultiValuePicker } from '@/lib/institution/multiValuePicker';
 import { loadActivities, addActivity, updateActivity, deleteActivity } from '@/store/slices/activitiesSlice';
 import { loadActivityTags, addActivityTag, updateActivityTag, deleteActivityTag } from '@/store/slices/activityTagsSlice';
 import type { Activity, ActivityTag, ActivitySubtype } from '@/types';
@@ -185,6 +186,9 @@ export function Activities() {
   // Streams (academic presets): one activity may name several student sets
   // (e.g. a whole year) and several co-teachers.
   const streamsEnabled = institutionPreset.features.streams;
+
+  const multiTeacherPicker = needsMultiValuePicker(streamsEnabled, formData.teacherIds);
+  const multiStudentSetPicker = needsMultiValuePicker(streamsEnabled, formData.studentSetIds);
 
   const toggleTeacher = (teacherName: string) => {
     setFormData(prev => ({
@@ -520,7 +524,7 @@ export function Activities() {
 
               <div className="grid gap-2">
                 <Label>{t('activities.dialog.teacher')}</Label>
-                {streamsEnabled ? (
+                {multiTeacherPicker ? (
                   <>
                     <div className="flex flex-wrap gap-2 p-3 rounded-md border border-border bg-card max-h-32 overflow-y-auto">
                       {teachers.map((tt) => {
@@ -547,7 +551,7 @@ export function Activities() {
 
               <div className="grid gap-2">
                 <Label>{t('activities.dialog.students')}</Label>
-                {streamsEnabled ? (
+                {multiStudentSetPicker ? (
                   <>
                     <div className="flex flex-wrap gap-2 p-3 rounded-md border border-border bg-card max-h-36 overflow-y-auto">
                       {studentOptions.map((opt) => {

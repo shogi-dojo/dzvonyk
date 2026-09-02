@@ -59,20 +59,23 @@ export function CreateSchoolDialog({ open, onOpenChange }: CreateSchoolDialogPro
           <DialogHeader>
             <DialogTitle>{t('workspace.createSchoolTitle', 'Новий заклад освіти')}</DialogTitle>
             <DialogDescription>
-              {t('workspace.createSchoolDesc', 'Введіть назву школи чи гімназії')}
+              {t('workspace.createSchoolDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <InstitutionTypePicker
-              value={institutionType}
-              onChange={setInstitutionType}
-              idPrefix="new-school-type"
-            />
+            {/* Name first: it is the required field. The type has a working
+                default, so it must not stand between the user and the input
+                they came here to fill in. */}
             <InstitutionDetailsFields
               value={details}
               onChange={setDetails}
               nameRequired
               idPrefix="new-school"
+            />
+            <InstitutionTypePicker
+              value={institutionType}
+              onChange={setInstitutionType}
+              idPrefix="new-school-type"
             />
           </div>
           <DialogFooter>

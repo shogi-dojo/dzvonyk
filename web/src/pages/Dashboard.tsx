@@ -25,10 +25,8 @@ import { RozImportDialog } from '@/components/RozImportDialog';
 import { renameSchoolAction, changeInstitutionTypeAction } from '@/store/slices/workspaceSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { isPlaceholderInstitutionName } from '@/lib/institution/placeholderName';
-import {
-  INSTITUTION_PRESET_LIST,
-  type InstitutionPresetId,
-} from '@/lib/institution/presets';
+import { type InstitutionPresetId } from '@/lib/institution/presets';
+import { InstitutionTypePicker } from '@/components/institution/InstitutionTypePicker';
 import { resolveInstitutionType } from '@/lib/institution/resolveInstitutionType';
 import { preserveInstitutionType } from '@/lib/institution/preserveInstitutionType';
 import { canChangeInstitutionType } from '@/lib/institution/canChangeInstitutionType';
@@ -348,44 +346,14 @@ export function Dashboard() {
             <CardDescription>{t('institution.changeCard.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div
-              className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-              role="radiogroup"
-              aria-label={t('institution.selector.legend')}
-            >
-              {INSTITUTION_PRESET_LIST.map((preset) => {
-                const selected = institutionChoice ?? currentPresetId;
-                const isActive = selected === preset.id;
-                const isCurrent = currentPresetId === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={isActive}
-                    onClick={() => setInstitutionChoice(preset.id)}
-                    className={
-                      'rounded-lg border p-2.5 text-left transition-colors ' +
-                      (isActive
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:bg-muted/60')
-                    }
-                  >
-                    <span className="block text-xs font-semibold text-foreground">
-                      {String(t(preset.labelKey))}
-                      {isCurrent && (
-                        <span className="ml-1 text-[10px] font-normal text-muted-foreground">
-                          ({t('institution.changeCard.current')})
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
-                      {String(t(preset.descriptionKey))}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <InstitutionTypePicker
+              value={institutionChoice ?? currentPresetId}
+              onChange={setInstitutionChoice}
+              currentPresetId={currentPresetId}
+              idPrefix="dashboard-institution-type"
+              hideLegend
+              className="sm:grid-cols-4"
+            />
             {institutionChoice && institutionChoice !== currentPresetId && (
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={handleChangeInstitutionType} disabled={changingInstitutionType}>
