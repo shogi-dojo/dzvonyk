@@ -595,6 +595,71 @@ describe('printDocument', () => {
       expect(html).toContain('border-left: 3px solid #ff0000');
     });
   });
+  describe('renderHeader institution details', () => {
+    const headerRules: TimetableRules = {
+      id: 'rules-header',
+      mode: 0,
+      institutionName: 'Тестова школа',
+      nDaysPerWeek: 1,
+      nHoursPerDay: 1,
+      daysOfTheWeek: [{ name: 'Понеділок' }],
+      hoursOfTheDay: [{ name: '1 урок' }],
+      modified: false,
+      createdAt: '',
+      updatedAt: '',
+    };
+    const grid: GridCell[][] = [[{ dayIndex: 0, hourIndex: 0, cells: [] }]];
+
+    const headerHtml = (options = {}) =>
+      generateClassPrintHtml('1-А', grid, headerRules, { includeApproval: true, ...options });
+
+    it('never prints the institution name as the director', () => {
+      // Regression: the approval block used to render
+      // «Директор ${rules.institutionName}», so every printed schedule was
+      // signed by the school itself.
+      expect(headerHtml()).not.toContain('Директор Тестова школа');
+    });
+
+    it('prints the director from the institution details', () => {
+      const html = headerHtml({ institution: { director: 'Шевченко І. І.' } });
+      expect(html).toContain('Директор Шевченко І. І.');
+    });
+
+    it('leaves a bare Директор label when no director is set', () => {
+      const html = headerHtml();
+      expect(html).toContain('<div>Директор</div>');
+    });
+
+    it('prints the institution address when set', () => {
+      const html = headerHtml({ institution: { address: 'м. Київ, вул. Шевченка, 1' } });
+      expect(html).toContain('<div class="school-address">');
+      expect(html).toContain('м. Київ, вул. Шевченка, 1');
+    });
+
+    it('omits the address block entirely when unset', () => {
+      // The class exists in the stylesheet either way; assert on the markup.
+      expect(headerHtml()).not.toContain('<div class="school-address">');
+    });
+
+    it('prefers the institution name over rules.institutionName', () => {
+      const html = headerHtml({ institution: { name: 'Ліцей №15 м. Києва' } });
+      expect(html).toContain('Ліцей №15 м. Києва');
+    });
+
+    it('falls back to rules.institutionName when no institution is passed', () => {
+      expect(headerHtml()).toContain('Тестова школа');
+    });
+
+    it('escapes the director and address', () => {
+      const html = headerHtml({
+        institution: {
+          director: '<script>alert("d")</script>',
+          address: '<img src=x onerror=alert(1)>',
+        },
+      });
+      expect(html).not.toContain('<script>alert("d")</script>');
+      expect(html).not.toContain('<img src=x onerror=alert(1)>');
+      expect(html).toContain('&lt;script&gt;');
+    });
+  });
 });
-
-
