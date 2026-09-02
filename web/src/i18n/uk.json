@@ -127,7 +127,11 @@
       "generate": "Згенерувати",
       "solutionComplete": "Розклад згенеровано повністю",
       "solutionPartial": "Згенеровано частковий розклад",
-      "solutionMeta": "{{count}} уроків • {{when}}"
+      "solutionMeta": "{{count}} уроків • {{when}}",
+      "editName": "Змінити назву",
+      "namePromptTitle": "Як називається ваш заклад?",
+      "namePromptHelp": "Назва друкується на всіх розкладах і звітах та потрапляє в .fet-експорт",
+      "renameTitle": "Перейменувати заклад"
     },
     "stats": {
       "teachers": "Вчителі",
