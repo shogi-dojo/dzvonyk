@@ -133,6 +133,8 @@ export const INSTITUTION_PRESETS: Record<InstitutionPresetId, InstitutionPreset>
   },
 };
 
+export const INSTITUTION_PRESET_LIST: InstitutionPreset[] = Object.values(INSTITUTION_PRESETS);
+
 export function isInstitutionPresetId(value: unknown): value is InstitutionPresetId {
   return typeof value === 'string' && value in INSTITUTION_PRESETS;
 }

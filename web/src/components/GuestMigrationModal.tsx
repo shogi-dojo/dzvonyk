@@ -15,13 +15,17 @@ import {
   EMPTY_INSTITUTION_DETAILS,
   type InstitutionDetailsValue,
 } from './InstitutionDetailsFields';
+import { InstitutionTypePicker } from './institution/InstitutionTypePicker';
+import { type InstitutionPresetId } from '@/lib/institution/presets';
+import { resolveInstitutionType } from '@/lib/institution/resolveInstitutionType';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { setShowMigrationDialog } from '@/store/slices/authSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { loadWorkspaceContext } from '@/store/slices/workspaceSlice';
 import { isPlaceholderInstitutionName } from '@/lib/institution/placeholderName';
-import { db } from '@/db';
+import { db, GUEST_SCHOOL_ID } from '@/db';
 import { syncService } from '@/lib/firebase/syncService';
+import type { TimetableRules } from '@/types';
 
 type MigrationMode = 'migrate' | 'fresh';
 
@@ -34,10 +38,11 @@ export function GuestMigrationModal() {
   const [step, setStep] = useState<'choose' | 'details'>('choose');
   const [pendingMode, setPendingMode] = useState<MigrationMode>('fresh');
   const [details, setDetails] = useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
+  const [institutionType, setInstitutionType] = useState<InstitutionPresetId>('school');
 
   if (!show || !user) return null;
 
-  const runFlow = async (mode: MigrationMode, flowDetails: InstitutionDetailsValue) => {
+  const runFlow = async (mode: MigrationMode, flowDetails: InstitutionDetailsValue, type: InstitutionPresetId) => {
     setIsProcessing(true);
     try {
       const school = await workspaceManager.createSchool(flowDetails.name.trim(), {
@@ -45,6 +50,7 @@ export function GuestMigrationModal() {
         address: flowDetails.address,
         director: flowDetails.director,
         ownerUid: user.uid,
+        institutionType: type,
       });
       const workspaces = await workspaceManager.listWorkspaces(school.id);
       const targetWs = workspaces[0];
@@ -73,11 +79,16 @@ export function GuestMigrationModal() {
   };
 
   const handleMigrate = async () => {
-    const rules = await db.rules.toArray();
-    const institutionName = rules[0]?.institutionName?.trim();
+    const rulesList = await db.rules.toArray();
+    const guestRules = (rulesList[0] as TimetableRules) || null;
+    const guestSchool = await db.schools.get(GUEST_SCHOOL_ID);
+    const existingType = resolveInstitutionType(guestSchool ?? undefined, guestRules ?? undefined);
+    setInstitutionType(existingType);
+
+    const institutionName = guestRules?.institutionName?.trim();
 
     if (!isPlaceholderInstitutionName(institutionName)) {
-      await runFlow('migrate', { ...EMPTY_INSTITUTION_DETAILS, name: institutionName! });
+      await runFlow('migrate', { ...EMPTY_INSTITUTION_DETAILS, name: institutionName! }, existingType);
       return;
     }
 
@@ -91,13 +102,14 @@ export function GuestMigrationModal() {
   const handleStartFresh = () => {
     setPendingMode('fresh');
     setDetails(EMPTY_INSTITUTION_DETAILS);
+    setInstitutionType('school');
     setStep('details');
   };
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPlaceholderInstitutionName(details.name)) return;
-    await runFlow(pendingMode, details);
+    await runFlow(pendingMode, details, institutionType);
   };
 
   return (
@@ -169,7 +181,14 @@ export function GuestMigrationModal() {
                     )}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-3 py-4">
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              {pendingMode === 'fresh' && (
+                <InstitutionTypePicker
+                  value={institutionType}
+                  onChange={setInstitutionType}
+                  idPrefix="migration-type"
+                />
+              )}
               <InstitutionDetailsFields
                 value={details}
                 onChange={setDetails}
