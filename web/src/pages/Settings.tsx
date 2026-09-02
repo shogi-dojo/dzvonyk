@@ -35,6 +35,7 @@ import { AccountSettingsCard } from '@/components/AccountSettingsCard';
 import { VersionManager } from '@/components/VersionManager';
 import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
 import { renameSchoolAction } from '@/store/slices/workspaceSlice';
+import { InstitutionDetailsFields } from '@/components/InstitutionDetailsFields';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import type { Day, Hour } from '@/types';
 
@@ -90,6 +91,11 @@ export function Settings() {
   } = useRozImport();
   
   const [institutionName, setInstitutionName] = useState('');
+  // Address and director live on the School record, not on the rules, so
+  // they are seeded from and saved back to activeSchool.
+  const [schoolShortName, setSchoolShortName] = useState('');
+  const [schoolAddress, setSchoolAddress] = useState('');
+  const [schoolDirector, setSchoolDirector] = useState('');
   const [days, setDays] = useState<Day[]>(DEFAULT_DAYS);
   const [hours, setHours] = useState<Hour[]>(DEFAULT_HOURS);
   const [importError, setImportError] = useState<string | null>(null);
@@ -128,10 +134,19 @@ export function Settings() {
         }
       : undefined;
     return institutionName !== rules.institutionName
+      || schoolShortName !== (activeSchool?.shortName ?? '')
+      || schoolAddress !== (activeSchool?.address ?? '')
+      || schoolDirector !== (activeSchool?.director ?? '')
       || JSON.stringify(days) !== JSON.stringify(rules.daysOfTheWeek)
       || JSON.stringify(hours) !== JSON.stringify(rules.hoursOfTheDay)
       || JSON.stringify(currentShifts) !== JSON.stringify(rules.shifts);
-  }, [rules, institutionName, days, hours, shiftsEnabled, shift1First, shift1Last, shift2First, shift2Last]);
+  }, [rules, institutionName, activeSchool, schoolShortName, schoolAddress, schoolDirector, days, hours, shiftsEnabled, shift1First, shift1Last, shift2First, shift2Last]);
+
+  useEffect(() => {
+    setSchoolShortName(activeSchool?.shortName ?? '');
+    setSchoolAddress(activeSchool?.address ?? '');
+    setSchoolDirector(activeSchool?.director ?? '');
+  }, [activeSchool]);
 
   useEffect(() => {
     if (rules) {
@@ -190,6 +205,9 @@ export function Settings() {
         renameSchoolAction({
           schoolId: targetSchoolId,
           name: trimmedInstitutionName,
+          shortName: schoolShortName,
+          address: schoolAddress,
+          director: schoolDirector,
         })
       ).unwrap();
     }
@@ -548,17 +566,23 @@ export function Settings() {
               <CardDescription>{t('settings.institution.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="institutionName">{t('settings.institution.nameLabel')}</Label>
-                <Input
-                  id="institutionName"
-                  value={institutionName}
-                  onChange={(e) => setInstitutionName(e.target.value)}
-                  placeholder={t('settings.institution.namePlaceholder')}
-                  className="max-w-md"
-                  aria-describedby="institutionName-desc"
+              <div className="max-w-md space-y-4">
+                <InstitutionDetailsFields
+                  value={{
+                    name: institutionName,
+                    shortName: schoolShortName,
+                    address: schoolAddress,
+                    director: schoolDirector,
+                  }}
+                  onChange={(next) => {
+                    setInstitutionName(next.name);
+                    setSchoolShortName(next.shortName);
+                    setSchoolAddress(next.address);
+                    setSchoolDirector(next.director);
+                  }}
+                  idPrefix="settings-institution"
                 />
-                <p id="institutionName-desc" className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {t('settings.institution.nameHelp')}
                 </p>
               </div>

@@ -43,7 +43,10 @@ export function parseFETFile(xmlContent: string): FETFile {
   const result: FETFile = {
     version,
     mode: parseMode(doc),
-    institutionName: getTextContent(doc, 'Institution_Name') || 'Default Institution',
+    // Left empty rather than defaulted: a .fet without an institution name
+    // should prompt the user, not silently inherit «Default Institution» and
+    // print it on every schedule.
+    institutionName: getTextContent(doc, 'Institution_Name') || '',
     comments: getTextContent(doc, 'Comments') || '',
     daysOfTheWeek,
     hoursOfTheDay,

@@ -37,12 +37,26 @@ import {
   computeAllClassesWeeklyLoad,
 } from './weeklyLoad';
 
+/**
+ * Institution identity for printed headers.
+ *
+ * These live on the School record (one per institution), not on the
+ * per-workspace TimetableRules, so they are passed in rather than read off
+ * `rules`. When absent the header falls back to `rules.institutionName`.
+ */
+export interface PrintInstitution {
+  name?: string;
+  address?: string;
+  director?: string;
+}
+
 export interface PrintOptions {
   includeApproval?: boolean;
   colorMode?: boolean;
   orientation?: 'landscape' | 'portrait';
   pageSize?: 'a4' | 'a3' | 'auto';
   academicYear?: string;
+  institution?: PrintInstitution;
 }
 
 /**
@@ -152,6 +166,10 @@ function getPrintStyles(
       font-size: 13px;
       font-weight: bold;
     }
+    .school-address {
+      font-size: 10px;
+      color: #444;
+    }
     .approval-block {
       width: 220px;
       border-left: 2px solid #ccc;
@@ -260,28 +278,32 @@ function getPrintStyles(
 
 function renderHeader(
   rules: TimetableRules,
-  includeApproval = true
+  includeApproval = true,
+  institution?: PrintInstitution
 ): string {
+  const schoolName = institution?.name?.trim() || rules.institutionName;
+  const address = institution?.address?.trim();
+  const director = institution?.director?.trim();
+
+  const schoolInfo = `
+        <div class="school-info">
+          <div class="school-name">${escapeHtml(schoolName)}</div>
+          ${address ? `<div class="school-address">${escapeHtml(address)}</div>` : ''}
+          ${rules.comments ? `<div>${escapeHtml(rules.comments)}</div>` : ''}
+        </div>`;
+
   if (!includeApproval) {
     return `
-      <div class="header-row">
-        <div class="school-info">
-          <div class="school-name">${escapeHtml(rules.institutionName)}</div>
-          ${rules.comments ? `<div>${escapeHtml(rules.comments)}</div>` : ''}
-        </div>
+      <div class="header-row">${schoolInfo}
       </div>
     `;
   }
 
   return `
-    <div class="header-row">
-      <div class="school-info">
-        <div class="school-name">${escapeHtml(rules.institutionName)}</div>
-        ${rules.comments ? `<div>${escapeHtml(rules.comments)}</div>` : ''}
-      </div>
+    <div class="header-row">${schoolInfo}
       <div class="approval-block">
         <div class="approval-title">«ЗАТВЕРДЖУЮ»</div>
-        <div>Директор ${escapeHtml(rules.institutionName)}</div>
+        <div>Директор${director ? ` ${escapeHtml(director)}` : ''}</div>
         <div style="margin-top: 12px; border-bottom: 1px solid #000; width: 140px;"></div>
         <div style="font-size: 8.5px; color: #666;">(підпис / ПІБ)</div>
         <div style="margin-top: 4px;">«____» ____________ 202___ р.</div>
@@ -426,7 +448,7 @@ export function generateClassPrintHtml(
   rules: TimetableRules,
   options: PrintOptions = {}
 ): string {
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', institution } = options;
 
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -437,7 +459,7 @@ export function generateClassPrintHtml(
 </head>
 <body>
   <div class="sheet">
-    ${renderHeader(rules, includeApproval)}
+    ${renderHeader(rules, includeApproval, institution)}
     <div class="doc-title">
       <h1>РОЗКЛАД УРОКІВ ${escapeHtml(className)} КЛАСУ</h1>
       <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
@@ -458,7 +480,7 @@ export function generateTeacherPrintHtml(
   rules: TimetableRules,
   options: PrintOptions = {}
 ): string {
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', institution } = options;
 
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -469,7 +491,7 @@ export function generateTeacherPrintHtml(
 </head>
 <body>
   <div class="sheet">
-    ${renderHeader(rules, includeApproval)}
+    ${renderHeader(rules, includeApproval, institution)}
     <div class="doc-title">
       <h1>РОЗКЛАД УРОКІВ ВИКЛАДАЧА: ${escapeHtml(teacherName)}</h1>
       <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
@@ -495,7 +517,7 @@ export function generateAllClassesPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { groups, solution, rules, activities, teachers, subjects, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', institution } = options;
 
   const sortedGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name, 'uk', { numeric: true }));
 
@@ -516,7 +538,7 @@ export function generateAllClassesPrintHtml(params: {
 
     pagesHtml += `
       <div class="sheet page-break">
-        ${renderHeader(rules, includeApproval)}
+        ${renderHeader(rules, includeApproval, institution)}
         <div class="doc-title">
           <h1>РОЗКЛАД УРОКІВ ${escapeHtml(group.name)} КЛАСУ</h1>
           <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
@@ -553,7 +575,7 @@ export function generateAllTeachersPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { teachers, solution, rules, activities, subjects, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', institution } = options;
 
   const sortedTeachers = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'uk'));
 
@@ -574,7 +596,7 @@ export function generateAllTeachersPrintHtml(params: {
 
     pagesHtml += `
       <div class="sheet page-break">
-        ${renderHeader(rules, includeApproval)}
+        ${renderHeader(rules, includeApproval, institution)}
         <div class="doc-title">
           <h1>РОЗКЛАД УРОКІВ ВИКЛАДАЧА: ${escapeHtml(teacher.name)}</h1>
           <p>${rules.daysOfTheWeek.length} навчальних днів • ${rules.hoursOfTheDay.length} уроків на день</p>
@@ -613,7 +635,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { solution, rules, activities, teachers, subjects, groups, subgroups, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4', institution } = options;
 
   const matrix = buildAllClassesGrid({
     solution,
@@ -665,7 +687,7 @@ export function generateSummaryClassesMatrixPrintHtml(params: {
 </head>
 <body>
   <div class="sheet">
-    ${renderHeader(rules, includeApproval)}
+    ${renderHeader(rules, includeApproval, institution)}
     <div class="doc-title">
       <h1>ЗВЕДЕНИЙ РОЗКЛАД УРОКІВ УСІХ КЛАСІВ</h1>
       <p>${rules.institutionName}</p>
@@ -750,7 +772,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { solution, rules, activities, teachers, subjects, rooms, options = {} } = params;
-  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4' } = options;
+  const { includeApproval = true, colorMode = true, orientation = 'landscape', pageSize = 'a4', institution } = options;
   const compactMatrixLabels = pageSize !== 'auto';
 
   const sortedTeachers = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'uk'));
@@ -855,7 +877,7 @@ export function generateSummaryTeachersMatrixPrintHtml(params: {
 </head>
 <body>
   <div class="sheet">
-    ${renderHeader(rules, includeApproval)}
+    ${renderHeader(rules, includeApproval, institution)}
     <div class="doc-title">
       <h1>ЗВЕДЕНИЙ РОЗКЛАД УСІХ ВИКЛАДАЧІВ</h1>
       <p>${rules.institutionName}</p>
@@ -937,7 +959,7 @@ export function generateTeacherWorkloadPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { rules, teachers, activities, subjects, options = {} } = params;
-  const { includeApproval = true, orientation = 'portrait' } = options;
+  const { includeApproval = true, orientation = 'portrait', institution } = options;
 
   const { rows, totalSchoolHours } = computeTeacherWorkloadReportData({
     teachers,
@@ -970,7 +992,7 @@ export function generateTeacherWorkloadPrintHtml(params: {
 </head>
 <body>
   <div class="sheet">
-    ${renderHeader(rules, includeApproval)}
+    ${renderHeader(rules, includeApproval, institution)}
     <div class="doc-title">
       <h1>ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ</h1>
       <p>${rules.institutionName}</p>
@@ -1056,7 +1078,7 @@ export function generateClassesWorkloadMatrixPrintHtml(params: {
   options?: PrintOptions;
 }): string {
   const { rules, groups, activities, options = {} } = params;
-  const { includeApproval = true, orientation = 'portrait' } = options;
+  const { includeApproval = true, orientation = 'portrait', institution } = options;
 
   const data = computeAllClassesWeeklyLoad(groups, activities);
 
@@ -1103,7 +1125,7 @@ export function generateClassesWorkloadMatrixPrintHtml(params: {
 </head>
 <body>
   <div class="sheet">
-    ${renderHeader(rules, includeApproval)}
+    ${renderHeader(rules, includeApproval, institution)}
     <div class="doc-title">
       <h1>ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ (ЧИСЕЛЬНИК / ЗНАМЕННИК)</h1>
       <p>${rules.institutionName}</p>
@@ -1213,6 +1235,7 @@ export function generateDailyMatrixPrintHtml(params: {
     colorMode = false,
     orientation = 'landscape',
     pageSize = 'a4',
+    institution,
   } = options;
 
   const matrix =
@@ -1358,7 +1381,7 @@ export function generateDailyMatrixPrintHtml(params: {
     sheets.push(`
       <div class="sheet day-sheet${!isLastDay ? ' page-break' : ''}">
         <div>
-          ${renderHeader(rules, includeApproval)}
+          ${renderHeader(rules, includeApproval, institution)}
           <div class="doc-title">
             <h1>${reportTitle}</h1>
             <p>${escapeHtml(rules.institutionName)}</p>

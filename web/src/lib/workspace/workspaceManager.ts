@@ -12,8 +12,16 @@ import {
   createSnapshotEnvelope,
   restoreSnapshotEnvelopeToDatabase,
 } from './snapshotCodec';
+import { formatAcademicYear } from '../academicYear';
+import { isPlaceholderInstitutionName } from '../institution/placeholderName';
 
 export const MAX_AUTO_VERSIONS = 20;
+
+/** Trims an optional text field; blank values normalize to undefined, not ''. */
+function normalizeOptionalText(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
 
 export interface ActiveWorkspaceContext {
   school: School;
@@ -37,9 +45,13 @@ export class WorkspaceManager {
     // 1. Ensure guest school exists
     let guestSchool = await this.database.schools.get(GUEST_SCHOOL_ID);
     if (!guestSchool) {
+      // Seeded nameless on purpose: a fake name like «Локальний розклад»
+      // reads as a real one, so it silently ends up printed on schedules and
+      // exported to .fet. The UI shows a translated placeholder for an empty
+      // name and prompts for a real one instead.
       guestSchool = {
         id: GUEST_SCHOOL_ID,
-        name: 'Локальний розклад',
+        name: '',
         createdAt: now,
         updatedAt: now,
       };
@@ -80,8 +92,7 @@ export class WorkspaceManager {
     const currentRulesName = (rulesList[0] as TimetableRules)?.institutionName?.trim();
     if (
       currentRulesName &&
-      currentRulesName !== 'Default Institution' &&
-      currentRulesName !== 'Untitled' &&
+      !isPlaceholderInstitutionName(currentRulesName) &&
       currentRulesName !== currentSchool.name
     ) {
       currentSchool = {
@@ -243,13 +254,23 @@ export class WorkspaceManager {
   /**
    * Creates a new School
    */
-  async createSchool(name: string, shortName?: string, ownerUid?: string): Promise<School> {
+  async createSchool(
+    name: string,
+    options?: {
+      shortName?: string;
+      address?: string;
+      director?: string;
+      ownerUid?: string;
+    }
+  ): Promise<School> {
     const now = new Date().toISOString();
     const school: School = {
       id: uuidv4(),
       name,
-      shortName,
-      ownerUid,
+      shortName: normalizeOptionalText(options?.shortName),
+      address: normalizeOptionalText(options?.address),
+      director: normalizeOptionalText(options?.director),
+      ownerUid: options?.ownerUid,
       createdAt: now,
       updatedAt: now,
     };
@@ -257,23 +278,42 @@ export class WorkspaceManager {
     await this.database.schools.put(school);
 
     // Create a default first academic year workspace for this school
-    await this.createWorkspace(school.id, '2025-2026');
+    await this.createWorkspace(school.id, formatAcademicYear());
 
     return school;
   }
 
   /**
-   * Renames a school and syncs the active timetable rules institution name if active
+   * Renames a school and syncs the active timetable rules institution name if active.
+   *
+   * Optional fields are updated only when present in `details`, so callers
+   * renaming just the name never wipe fields they know nothing about.
    */
-  async renameSchool(schoolId: string, newName: string, shortName?: string): Promise<School> {
+  async renameSchool(
+    schoolId: string,
+    details: {
+      name: string;
+      shortName?: string;
+      address?: string;
+      director?: string;
+    }
+  ): Promise<School> {
     const school = await this.database.schools.get(schoolId);
     if (!school) throw new Error(`School ${schoolId} not found`);
 
-    const trimmedName = newName.trim();
+    const trimmedName = details.name.trim();
     const updated: School = {
       ...school,
       name: trimmedName,
-      ...(shortName !== undefined ? { shortName: shortName.trim() || undefined } : {}),
+      ...(details.shortName !== undefined
+        ? { shortName: normalizeOptionalText(details.shortName) }
+        : {}),
+      ...(details.address !== undefined
+        ? { address: normalizeOptionalText(details.address) }
+        : {}),
+      ...(details.director !== undefined
+        ? { director: normalizeOptionalText(details.director) }
+        : {}),
       updatedAt: new Date().toISOString(),
     };
 

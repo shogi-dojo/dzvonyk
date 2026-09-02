@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   Users2, BookOpen, Calendar, Building2, Clock, Shield,
   Play, Upload, FilePlus, Download, AlertCircle, CheckCircle2, Eye,
-  Bell, ArrowRight, FileText, Zap, LayoutDashboard, GraduationCap
+  Bell, ArrowRight, FileText, Zap, LayoutDashboard, GraduationCap, Pencil
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,12 +24,19 @@ import { useRozImport } from '@/hooks/useRozImport';
 import { RozImportDialog } from '@/components/RozImportDialog';
 import { renameSchoolAction } from '@/store/slices/workspaceSlice';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { isPlaceholderInstitutionName } from '@/lib/institution/placeholderName';
+import {
+  InstitutionDetailsFields,
+  EMPTY_INSTITUTION_DETAILS,
+  type InstitutionDetailsValue,
+} from '@/components/InstitutionDetailsFields';
 import type { FETFile, TimetableSolution } from '@/types';
 
 export function Dashboard() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const rules = useAppSelector((state) => state.rules.current);
+  const activeSchool = useAppSelector((state) => state.workspace.activeSchool);
   const teachers = useAppSelector((state) => state.teachers.items);
   const subjects = useAppSelector((state) => state.subjects.items);
   const activities = useAppSelector((state) => state.activities.items);
@@ -54,6 +61,37 @@ export function Dashboard() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [lastSolution, setLastSolution] = useState<TimetableSolution | null>(null);
+
+  // The School record owns the institution name; rules only mirror it, and on
+  // a fresh install there is no rules row yet — keying off rules would leave
+  // the prompt up after a successful save.
+  const institutionName = activeSchool?.name || rules?.institutionName || '';
+  const institutionNameIsPlaceholder = isPlaceholderInstitutionName(institutionName);
+  const [isEditingInstitution, setIsEditingInstitution] = useState(false);
+  const [institutionDraft, setInstitutionDraft] = useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
+  const [isSavingInstitution, setIsSavingInstitution] = useState(false);
+
+  const openInstitutionEdit = () => {
+    setInstitutionDraft({ ...EMPTY_INSTITUTION_DETAILS, name: institutionName });
+    setIsEditingInstitution(true);
+  };
+
+  const handleSaveInstitutionName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSchool || isPlaceholderInstitutionName(institutionDraft.name)) return;
+    setIsSavingInstitution(true);
+    try {
+      await dispatch(
+        renameSchoolAction({
+          schoolId: activeSchool.id,
+          name: institutionDraft.name,
+        })
+      ).unwrap();
+      setIsEditingInstitution(false);
+    } finally {
+      setIsSavingInstitution(false);
+    }
+  };
 
   useEffect(() => {
     const loadLastSolution = async () => {
@@ -283,8 +321,24 @@ export function Dashboard() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Bell className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <CardTitle>{rules?.institutionName || t('dashboard.institution.empty')}</CardTitle>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="truncate">
+                  {institutionName || t('dashboard.institution.empty')}
+                </CardTitle>
+                {rules && !institutionNameIsPlaceholder && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={openInstitutionEdit}
+                    title={t('dashboard.institution.editName', 'Змінити назву')}
+                    aria-label={t('dashboard.institution.editName', 'Змінити назву')}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
               <CardDescription>
                 {rules ? t('dashboard.institution.meta', { days: rules.nDaysPerWeek, hours: rules.nHoursPerDay }) : t('dashboard.institution.prompt')}
               </CardDescription>
@@ -292,6 +346,49 @@ export function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
+          {(institutionNameIsPlaceholder || isEditingInstitution) && (
+            <form
+              onSubmit={handleSaveInstitutionName}
+              className="mb-4 p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3"
+            >
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {institutionNameIsPlaceholder
+                    ? t('dashboard.institution.namePromptTitle', 'Як називається ваш заклад?')
+                    : t('dashboard.institution.renameTitle', 'Перейменувати заклад')}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t(
+                    'dashboard.institution.namePromptHelp',
+                    'Назва друкується на всіх розкладах і звітах та потрапляє в .fet-експорт'
+                  )}
+                </p>
+              </div>
+              <div className="max-w-md">
+                <InstitutionDetailsFields
+                  value={institutionDraft}
+                  onChange={setInstitutionDraft}
+                  fields={['name']}
+                  nameRequired
+                  autoFocusName
+                  idPrefix="dashboard-institution"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  disabled={isSavingInstitution || isPlaceholderInstitutionName(institutionDraft.name)}
+                >
+                  {t('common.save', 'Зберегти')}
+                </Button>
+                {!institutionNameIsPlaceholder && (
+                  <Button type="button" variant="outline" onClick={() => setIsEditingInstitution(false)}>
+                    {t('common.cancel', 'Скасувати')}
+                  </Button>
+                )}
+              </div>
+            </form>
+          )}
           <div className="flex flex-wrap gap-3">
             <Button asChild className="gap-2 gradient-primary hover-lift">
               <Link to="/settings">

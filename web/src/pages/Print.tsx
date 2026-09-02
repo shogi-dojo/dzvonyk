@@ -60,6 +60,7 @@ type ReportType =
 export function Print() {
   const { t } = useTranslation();
   const rules = useAppSelector((state) => state.rules.current);
+  const activeSchool = useAppSelector((state) => state.workspace.activeSchool);
   const teachers = useAppSelector((state) => state.teachers.items);
   const activities = useAppSelector((state) => state.activities.items);
   const subjects = useAppSelector((state) => state.subjects.items);
@@ -73,6 +74,17 @@ export function Print() {
   const [selectedClassId, setSelectedClassId] = useState<string>(groups[0]?.name || '');
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.name || '');
   const [includeApproval, setIncludeApproval] = useState<boolean>(true);
+
+  // Institution identity lives on the School record, not on the per-workspace
+  // rules, so the printed header takes it from there.
+  const institution = useMemo(
+    () => ({
+      name: activeSchool?.name,
+      address: activeSchool?.address,
+      director: activeSchool?.director,
+    }),
+    [activeSchool]
+  );
   const [colorMode, setColorMode] = useState<boolean>(true);
   const [pageSize, setPageSize] = useState<'a4' | 'a3' | 'auto'>('auto');
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -280,6 +292,7 @@ export function Print() {
         includeApproval,
         colorMode,
         orientation,
+        institution,
       });
     } else if (reportType === 'teacher') {
       if (!teacherGrid) return '';
@@ -287,6 +300,7 @@ export function Print() {
         includeApproval,
         colorMode,
         orientation,
+        institution,
       });
     } else if (reportType === 'summary-classes') {
       if (!latestSolution) return '';
@@ -299,7 +313,7 @@ export function Print() {
         groups: sortedGroups,
         subgroups,
         rooms,
-        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize, institution },
       });
     } else if (reportType === 'summary-teachers') {
       if (!latestSolution) return '';
@@ -310,7 +324,7 @@ export function Print() {
         teachers: sortedTeachers,
         subjects,
         rooms,
-        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize, institution },
       });
     } else if (reportType === 'daily-teachers') {
       if (!latestSolution) return '';
@@ -325,7 +339,7 @@ export function Print() {
         subgroups,
         rooms,
         timeConstraints,
-        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize, institution },
       });
     } else if (reportType === 'daily-classes') {
       if (!latestSolution) return '';
@@ -339,7 +353,7 @@ export function Print() {
         groups: sortedGroups,
         subgroups,
         rooms,
-        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize },
+        options: { includeApproval, colorMode, orientation, pageSize: effectivePageSize, institution },
       });
     } else if (reportType === 'teacher-workload') {
       return generateTeacherWorkloadPrintHtml({
@@ -347,14 +361,14 @@ export function Print() {
         teachers: sortedTeachers,
         activities,
         subjects,
-        options: { includeApproval, orientation: 'portrait' },
+        options: { includeApproval, orientation: 'portrait', institution },
       });
     } else if (reportType === 'classes-workload') {
       return generateClassesWorkloadMatrixPrintHtml({
         rules,
         groups: sortedGroups,
         activities,
-        options: { includeApproval, orientation: 'portrait' },
+        options: { includeApproval, orientation: 'portrait', institution },
       });
     }
     return '';
@@ -428,7 +442,7 @@ export function Print() {
       teachers: sortedTeachers,
       subjects,
       rooms,
-      options: { includeApproval, colorMode },
+      options: { includeApproval, colorMode, institution },
     });
     printHtmlDocument(html);
   };
@@ -443,7 +457,7 @@ export function Print() {
       activities,
       subjects,
       rooms,
-      options: { includeApproval, colorMode },
+      options: { includeApproval, colorMode, institution },
     });
     printHtmlDocument(html);
   };
@@ -632,12 +646,18 @@ export function Print() {
         {includeApproval && (
           <div className="flex justify-between items-start mb-6 text-xs text-black">
             <div>
-              <p className="font-bold text-sm">{rules.institutionName}</p>
+              <p className="font-bold text-sm">{institution.name?.trim() || rules.institutionName}</p>
+              {institution.address?.trim() && (
+                <p className="text-neutral-600 text-xs">{institution.address.trim()}</p>
+              )}
               {rules.comments && <p className="text-neutral-600 text-xs">{rules.comments}</p>}
             </div>
             <div className="text-left w-64 border-l-2 border-neutral-300 pl-3">
               <p className="font-bold uppercase tracking-wider text-[11px]">«ЗАТВЕРДЖУЮ»</p>
-              <p className="mt-1">Директор {rules.institutionName}</p>
+              {/* Mirrors renderHeader: never fall back to the institution name. */}
+              <p className="mt-1">
+                Директор{institution.director?.trim() ? ` ${institution.director.trim()}` : ''}
+              </p>
               <div className="mt-3 border-b border-black w-40"></div>
               <p className="text-[10px] text-neutral-500 mt-0.5">(підпис / ПІБ)</p>
               <p className="mt-1.5 text-[11px]">«_____» ________________ 202___ р.</p>

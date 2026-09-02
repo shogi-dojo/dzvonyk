@@ -38,7 +38,8 @@ interface RulesState {
 const createDefaultRules = (id: string): TimetableRulesState => ({
   id,
   mode: OFFICIAL_MODE,
-  institutionName: 'Default Institution',
+  // Empty on purpose; the UI prompts for a real name (see placeholderName).
+  institutionName: '',
   comments: '',
   nDaysPerWeek: 5,
   nHoursPerDay: 8,

@@ -10,7 +10,7 @@ service cloud.firestore {
 
     function validSchool(uid, school) {
       return school.keys().hasOnly([
-          'id', 'name', 'shortName', 'address', 'ownerUid', 'createdAt', 'updatedAt'
+          'id', 'name', 'shortName', 'address', 'director', 'ownerUid', 'createdAt', 'updatedAt'
         ])
         && school.id is string
         && school.id.size() > 0
@@ -24,7 +24,8 @@ service cloud.firestore {
         && school.createdAt.size() <= 64
         && school.updatedAt.size() <= 64
         && (!('shortName' in school) || (school.shortName is string && school.shortName.size() <= 100))
-        && (!('address' in school) || (school.address is string && school.address.size() <= 300));
+        && (!('address' in school) || (school.address is string && school.address.size() <= 300))
+        && (!('director' in school) || (school.director is string && school.director.size() <= 200));
     }
 
     function validWorkspace(schoolId, workspace) {
