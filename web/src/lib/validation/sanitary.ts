@@ -18,8 +18,9 @@
 // brief: real schools breach these routinely and the завуч must still be able
 // to save the timetable she is required to produce.
 
-import type { Activity, StudentsGroup, StudentsSubgroup, TimetableRules } from '../../types';
+import type { Activity, StudentsGroup, StudentsSubgroup, StudentsYear, TimetableRules } from '../../types';
 import type { PreflightIssue } from './preflight';
+import { createIdOrNameIndex, resolveByIdOrName } from '@/lib/studentSetLookup';
 
 // Додаток 8 до Санітарного регламенту (МОЗ №2205, 2020).
 // Гранично допустиме тижневе навчальне навантаження, в академічних годинах.
@@ -56,6 +57,7 @@ export interface SanitaryInput {
   activities: Activity[];
   studentsGroups: StudentsGroup[];
   studentsSubgroups: StudentsSubgroup[];
+  studentsYears?: StudentsYear[];
 }
 
 // Returns warnings (never blockers) about classes exceeding the МОЗ №2205
@@ -72,6 +74,7 @@ export function runSanitaryChecks(input: SanitaryInput): PreflightIssue[] {
   // Reuse the same class-load counting as preflight.ts: sum durations per
   // group, counting parallel subgroup activities (same activityGroupId) once.
   const groupById = new Map(studentsGroups.map((g) => [g.id, g]));
+  const groupByIdOrName = createIdOrNameIndex(studentsGroups);
   const subgroupToGroup = new Map<string, string>();
   for (const g of studentsGroups) {
     for (const sgId of g.subgroups) subgroupToGroup.set(sgId, g.id);
@@ -87,6 +90,18 @@ export function runSanitaryChecks(input: SanitaryInput): PreflightIssue[] {
       else {
         const parent = subgroupToGroup.get(setId);
         if (parent) affected.add(parent);
+        else {
+          // Stream activities name a whole year — spread onto every group so
+          // the sanitary check never silently misses them.
+          const year = resolveByIdOrName(input.studentsYears ?? [], setId);
+          if (year) {
+            // `year.groups` may hold ids or names — see studentSetLookup.
+            for (const groupIdOrName of year.groups) {
+              const group = groupByIdOrName.get(groupIdOrName);
+              if (group) affected.add(group.id);
+            }
+          }
+        }
       }
     }
     for (const gid of affected) {
