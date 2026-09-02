@@ -23,6 +23,11 @@ import {
 } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import {
+  InstitutionDetailsFields,
+  EMPTY_INSTITUTION_DETAILS,
+  type InstitutionDetailsValue,
+} from './InstitutionDetailsFields';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import {
   switchWorkspaceAction,
@@ -59,8 +64,7 @@ export function WorkspaceSelector() {
   // Rename School Dialog
   const [renameSchoolDialogOpen, setRenameSchoolDialogOpen] = useState(false);
   const [schoolToRename, setSchoolToRename] = useState<School | null>(null);
-  const [newSchoolName, setNewSchoolName] = useState('');
-  const [newSchoolShortName, setNewSchoolShortName] = useState('');
+  const [renameDetails, setRenameDetails] = useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
 
   // Duplicate Dialog
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
@@ -77,8 +81,7 @@ export function WorkspaceSelector() {
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
 
   // New School Form
-  const [schoolName, setSchoolName] = useState('');
-  const [schoolShortName, setSchoolShortName] = useState('');
+  const [schoolDetails, setSchoolDetails] = useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
 
   // New Workspace Form
   const [workspaceLabel, setWorkspaceLabel] = useState('');
@@ -93,17 +96,18 @@ export function WorkspaceSelector() {
 
   const handleCreateSchool = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!schoolName.trim()) return;
+    if (!schoolDetails.name.trim()) return;
 
     await dispatch(
       createSchoolAction({
-        name: schoolName.trim(),
-        shortName: schoolShortName.trim() || undefined,
+        name: schoolDetails.name.trim(),
+        shortName: schoolDetails.shortName,
+        address: schoolDetails.address,
+        director: schoolDetails.director,
       })
     ).unwrap();
 
-    setSchoolName('');
-    setSchoolShortName('');
+    setSchoolDetails(EMPTY_INSTITUTION_DETAILS);
     setIsSchoolDialogOpen(false);
     await reloadState();
   };
@@ -128,20 +132,26 @@ export function WorkspaceSelector() {
 
   const openRenameSchool = (school: School) => {
     setSchoolToRename(school);
-    setNewSchoolName(school.name);
-    setNewSchoolShortName(school.shortName || '');
+    setRenameDetails({
+      name: school.name,
+      shortName: school.shortName || '',
+      address: school.address || '',
+      director: school.director || '',
+    });
     setRenameSchoolDialogOpen(true);
   };
 
   const handleRenameSchool = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!schoolToRename || !newSchoolName.trim()) return;
+    if (!schoolToRename || !renameDetails.name.trim()) return;
 
     await dispatch(
       renameSchoolAction({
         schoolId: schoolToRename.id,
-        name: newSchoolName.trim(),
-        shortName: newSchoolShortName.trim() || undefined,
+        name: renameDetails.name,
+        shortName: renameDetails.shortName,
+        address: renameDetails.address,
+        director: renameDetails.director,
       })
     ).unwrap();
 
@@ -530,27 +540,12 @@ export function WorkspaceSelector() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-4">
-              <div className="space-y-1">
-                <Label htmlFor="schoolName">{t('workspace.schoolName', 'Назва закладу')}</Label>
-                <Input
-                  id="schoolName"
-                  value={schoolName}
-                  onChange={(e) => setSchoolName(e.target.value)}
-                  placeholder="напр., Ліцей №15 м. Києва"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="schoolShortName">
-                  {t('workspace.schoolShortName', 'Скорочена назва (необовʼязково)')}
-                </Label>
-                <Input
-                  id="schoolShortName"
-                  value={schoolShortName}
-                  onChange={(e) => setSchoolShortName(e.target.value)}
-                  placeholder="напр., Ліцей 15"
-                />
-              </div>
+              <InstitutionDetailsFields
+                value={schoolDetails}
+                onChange={setSchoolDetails}
+                nameRequired
+                idPrefix="new-school"
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsSchoolDialogOpen(false)}>
@@ -637,28 +632,13 @@ export function WorkspaceSelector() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-4">
-              <div className="space-y-1">
-                <Label htmlFor="renameSchoolNameInput">{t('workspace.schoolName', 'Назва закладу')}</Label>
-                <Input
-                  id="renameSchoolNameInput"
-                  value={newSchoolName}
-                  onChange={(e) => setNewSchoolName(e.target.value)}
-                  placeholder="напр., Ліцей №15 м. Києва"
-                  required
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="renameSchoolShortNameInput">
-                  {t('workspace.schoolShortName', 'Скорочена назва (необовʼязково)')}
-                </Label>
-                <Input
-                  id="renameSchoolShortNameInput"
-                  value={newSchoolShortName}
-                  onChange={(e) => setNewSchoolShortName(e.target.value)}
-                  placeholder="напр., Ліцей 15"
-                />
-              </div>
+              <InstitutionDetailsFields
+                value={renameDetails}
+                onChange={setRenameDetails}
+                nameRequired
+                autoFocusName
+                idPrefix="rename-school"
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setRenameSchoolDialogOpen(false)}>

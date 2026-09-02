@@ -75,9 +75,22 @@ export const switchWorkspaceAction = createAsyncThunk(
 
 export const createSchoolAction = createAsyncThunk(
   'workspace/createSchool',
-  async ({ name, shortName }: { name: string; shortName?: string }, { getState }) => {
+  async (
+    {
+      name,
+      shortName,
+      address,
+      director,
+    }: { name: string; shortName?: string; address?: string; director?: string },
+    { getState }
+  ) => {
     const state = getState() as { auth: { user: { uid: string } | null } };
-    const school = await workspaceManager.createSchool(name, shortName, state.auth.user?.uid);
+    const school = await workspaceManager.createSchool(name, {
+      shortName,
+      address,
+      director,
+      ownerUid: state.auth.user?.uid,
+    });
     const newSchoolWorkspaces = await workspaceManager.listWorkspaces(school.id);
     const firstWorkspace = newSchoolWorkspaces[0];
     const context = firstWorkspace
@@ -97,10 +110,27 @@ export const createSchoolAction = createAsyncThunk(
 export const renameSchoolAction = createAsyncThunk(
   'workspace/renameSchool',
   async (
-    { schoolId, name, shortName }: { schoolId: string; name: string; shortName?: string },
+    {
+      schoolId,
+      name,
+      shortName,
+      address,
+      director,
+    }: {
+      schoolId: string;
+      name: string;
+      shortName?: string;
+      address?: string;
+      director?: string;
+    },
     { getState, dispatch }
   ) => {
-    const updated = await workspaceManager.renameSchool(schoolId, name, shortName);
+    const updated = await workspaceManager.renameSchool(schoolId, {
+      name,
+      shortName,
+      address,
+      director,
+    });
     const schools = await workspaceManager.listSchools();
     const activeContext = await workspaceManager.getActiveContext();
 

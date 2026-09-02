@@ -21,6 +21,7 @@ export interface School {
   name: string;
   shortName?: string;
   address?: string;
+  director?: string;
   createdAt: string;
   updatedAt: string;
   ownerUid?: string;

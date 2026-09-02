@@ -158,7 +158,10 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
     expect(activeRulesBefore[0].institutionName).toBe('Гімназія 131');
 
     // Rename school to "Гімназія 1"
-    const renamed = await workspaceManager.renameSchool(newSchool.id, 'Гімназія 1', 'Гімн 1');
+    const renamed = await workspaceManager.renameSchool(newSchool.id, {
+      name: 'Гімназія 1',
+      shortName: 'Гімн 1',
+    });
     expect(renamed.name).toBe('Гімназія 1');
     expect(renamed.shortName).toBe('Гімн 1');
 

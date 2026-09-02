@@ -34,7 +34,7 @@ export function GuestMigrationModal() {
       const institutionName = rules[0]?.institutionName || 'Моя школа';
 
       // 2. Create school owned by user
-      const school = await workspaceManager.createSchool(institutionName, undefined, user.uid);
+      const school = await workspaceManager.createSchool(institutionName, { ownerUid: user.uid });
       const workspaces = await workspaceManager.listWorkspaces(school.id);
       const targetWs = workspaces[0];
 
@@ -62,7 +62,7 @@ export function GuestMigrationModal() {
   const handleStartFresh = async () => {
     setIsProcessing(true);
     try {
-      const school = await workspaceManager.createSchool('Нова школа', undefined, user.uid);
+      const school = await workspaceManager.createSchool('Нова школа', { ownerUid: user.uid });
       const workspaces = await workspaceManager.listWorkspaces(school.id);
       if (workspaces[0]) {
         await workspaceManager.switchWorkspace(workspaces[0].id);

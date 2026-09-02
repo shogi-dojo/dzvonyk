@@ -102,6 +102,16 @@
     "actions": "Дії",
     "optional": "Необов'язково"
   },
+  "institutionDetails": {
+    "nameLabel": "Назва закладу",
+    "namePlaceholder": "напр., Ліцей №15 м. Києва",
+    "shortNameLabel": "Скорочена назва (необовʼязково)",
+    "shortNamePlaceholder": "напр., Ліцей 15",
+    "addressLabel": "Адреса (необовʼязково)",
+    "addressPlaceholder": "напр., м. Київ, вул. Шевченка, 1",
+    "directorLabel": "Директор (необовʼязково)",
+    "directorPlaceholder": "напр., Шевченко І. І."
+  },
   "dashboard": {
     "title": "Головна",
     "description": "Ласкаво просимо до Дзвоника — планувальника шкільного розкладу",
