@@ -42,6 +42,8 @@ import {
 import { useReloadTimetableState } from '@/hooks/useReloadTimetableState';
 import { GUEST_WORKSPACE_ID } from '@/db';
 import type { AcademicYearWorkspace, School } from '@/types';
+import { formatAcademicYear } from '@/lib/academicYear';
+import { isPlaceholderInstitutionName } from '@/lib/institution/placeholderName';
 import { cn } from '@/lib/utils';
 
 export function WorkspaceSelector() {
@@ -87,6 +89,12 @@ export function WorkspaceSelector() {
   const [workspaceLabel, setWorkspaceLabel] = useState('');
   const [cloneStructureOnly, setCloneStructureOnly] = useState(true);
   const [cloneFromCurrent, setCloneFromCurrent] = useState(true);
+  // A new schedule is the moment users are most likely to notice their
+  // institution is still called «Нова школа», so offer the fix right here
+  // rather than sending them to Settings.
+  const institutionNameIsPlaceholder = isPlaceholderInstitutionName(activeSchool?.name);
+  const [newScheduleInstitution, setNewScheduleInstitution] =
+    useState<InstitutionDetailsValue>(EMPTY_INSTITUTION_DETAILS);
 
   const handleSwitch = async (workspaceId: string) => {
     setDropdownOpen(false);
@@ -116,6 +124,16 @@ export function WorkspaceSelector() {
     e.preventDefault();
     if (!workspaceLabel.trim() || !activeSchool) return;
 
+    // Rename first: creating a workspace seeds its rules from the school's
+    // current name, so a later rename would leave the new schedule holding
+    // the placeholder.
+    const chosenName = newScheduleInstitution.name.trim();
+    if (institutionNameIsPlaceholder && chosenName) {
+      await dispatch(
+        renameSchoolAction({ schoolId: activeSchool.id, name: chosenName })
+      ).unwrap();
+    }
+
     await dispatch(
       createWorkspaceAction({
         schoolId: activeSchool.id,
@@ -126,6 +144,7 @@ export function WorkspaceSelector() {
     ).unwrap();
 
     setWorkspaceLabel('');
+    setNewScheduleInstitution(EMPTY_INSTITUTION_DETAILS);
     setIsWorkspaceDialogOpen(false);
     await reloadState();
   };
@@ -438,7 +457,7 @@ export function WorkspaceSelector() {
                   id="renameInput"
                   value={newWorkspaceLabel}
                   onChange={(e) => setNewWorkspaceLabel(e.target.value)}
-                  placeholder="напр., 2025-2026 (II семестр)"
+                  placeholder={`напр., ${formatAcademicYear()} (II семестр)`}
                   required
                   autoFocus
                 />
@@ -471,7 +490,7 @@ export function WorkspaceSelector() {
                   id="dupLabel"
                   value={duplicateLabel}
                   onChange={(e) => setDuplicateLabel(e.target.value)}
-                  placeholder="напр., 2025-2026 (варіант 2)"
+                  placeholder={`напр., ${formatAcademicYear()} (варіант 2)`}
                   required
                   autoFocus
                 />
@@ -568,13 +587,30 @@ export function WorkspaceSelector() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {institutionNameIsPlaceholder && (
+                <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'workspace.fixInstitutionName',
+                      'Ваш заклад ще має типову назву. Вкажіть справжню — вона друкується на всіх розкладах.'
+                    )}
+                  </p>
+                  <InstitutionDetailsFields
+                    value={newScheduleInstitution}
+                    onChange={setNewScheduleInstitution}
+                    fields={['name']}
+                    idPrefix="new-schedule-institution"
+                  />
+                </div>
+              )}
+
               <div className="space-y-1">
                 <Label htmlFor="yearLabel">{t('workspace.yearLabel', 'Назва / Рік')}</Label>
                 <Input
                   id="yearLabel"
                   value={workspaceLabel}
                   onChange={(e) => setWorkspaceLabel(e.target.value)}
-                  placeholder="напр., 2026-2027 (I семестр)"
+                  placeholder={`напр., ${formatAcademicYear()} (I семестр)`}
                   required
                 />
               </div>
