@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/db';
 import { workspaceManager } from './workspaceManager';
 import type { TimetableRules } from '@/types';
+import { isPlaceholderInstitutionName } from '@/lib/institution/placeholderName';
 
 const mockRules: TimetableRules = {
   id: 'rules-details',
@@ -24,6 +25,33 @@ describe('institution details on schools', () => {
     await db.workspaceSnapshots.clear();
     await db.history.clear();
     await db.activeWorkspaceState.clear();
+  });
+
+  it('seeds the guest school without a fabricated name', async () => {
+    // A seeded «Локальний розклад» reads like a real name, so it survived
+    // into printed schedules and .fet exports. Nameless means the UI prompts.
+    const context = await workspaceManager.init();
+
+    expect(context.school.name).toBe('');
+    expect(isPlaceholderInstitutionName(context.school.name)).toBe(true);
+  });
+
+  it('adopts a real rules name onto the nameless guest school', async () => {
+    await workspaceManager.init();
+    await db.rules.put({ ...mockRules, institutionName: 'Ліцей №15 м. Києва' });
+
+    const context = await workspaceManager.init();
+
+    expect(context.school.name).toBe('Ліцей №15 м. Києва');
+  });
+
+  it('leaves the guest school nameless when rules carry only a placeholder', async () => {
+    await workspaceManager.init();
+    await db.rules.put({ ...mockRules, institutionName: 'Нова школа' });
+
+    const context = await workspaceManager.init();
+
+    expect(context.school.name).toBe('');
   });
 
   it('createSchool persists name, short name, address, and director', async () => {

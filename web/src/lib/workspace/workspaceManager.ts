@@ -45,9 +45,13 @@ export class WorkspaceManager {
     // 1. Ensure guest school exists
     let guestSchool = await this.database.schools.get(GUEST_SCHOOL_ID);
     if (!guestSchool) {
+      // Seeded nameless on purpose: a fake name like «Локальний розклад»
+      // reads as a real one, so it silently ends up printed on schedules and
+      // exported to .fet. The UI shows a translated placeholder for an empty
+      // name and prompts for a real one instead.
       guestSchool = {
         id: GUEST_SCHOOL_ID,
-        name: 'Локальний розклад',
+        name: '',
         createdAt: now,
         updatedAt: now,
       };

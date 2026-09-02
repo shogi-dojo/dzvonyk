@@ -263,7 +263,7 @@ export function WorkspaceSelector() {
             <SchoolIcon className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-foreground truncate leading-tight">
-                {activeSchool?.name || t('workspace.guestSchool', 'Локальний розклад')}
+                {activeSchool?.name || t('workspace.guestSchool', 'Локальний заклад')}
               </p>
               <p className="text-[11px] text-muted-foreground truncate leading-tight flex items-center gap-1 mt-0.5">
                 <Calendar className="h-3 w-3 inline shrink-0" />
@@ -291,7 +291,7 @@ export function WorkspaceSelector() {
                     <div key={school.id} className="group/school">
                       <div className="flex items-center justify-between px-2 py-1">
                         <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px] truncate">
-                          {school.name}
+                          {school.name || t('workspace.guestSchool', 'Локальний заклад')}
                         </span>
                         <Button
                           variant="ghost"
