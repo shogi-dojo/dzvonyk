@@ -102,16 +102,6 @@
     "actions": "Дії",
     "optional": "Необов'язково"
   },
-  "institutionDetails": {
-    "nameLabel": "Назва закладу",
-    "namePlaceholder": "напр., Ліцей №15 м. Києва",
-    "shortNameLabel": "Скорочена назва (необовʼязково)",
-    "shortNamePlaceholder": "напр., Ліцей 15",
-    "addressLabel": "Адреса (необовʼязково)",
-    "addressPlaceholder": "напр., м. Київ, вул. Шевченка, 1",
-    "directorLabel": "Директор (необовʼязково)",
-    "directorPlaceholder": "напр., Шевченко І. І."
-  },
   "dashboard": {
     "title": "Головна",
     "description": "Ласкаво просимо до Дзвоника — планувальника шкільного розкладу",
@@ -127,7 +117,16 @@
       "generate": "Згенерувати",
       "solutionComplete": "Розклад згенеровано повністю",
       "solutionPartial": "Згенеровано частковий розклад",
-      "solutionMeta": "{{count}} уроків • {{when}}",
+      "solutionMeta_one": "{{count}} урок • {{when}}",
+      "solutionMeta_few": "{{count}} уроки • {{when}}",
+      "solutionMeta_many": "{{count}} уроків • {{when}}",
+      "solutionMeta_other": "{{count}} уроків • {{when}}",
+      "name": "Повна назва закладу",
+      "shortName": "Скорочена назва (для розкладів)",
+      "address": "Адреса закладу",
+      "director": "Керівник (директор)",
+      "namePlaceholder": "напр., Ліцей № 1",
+      "nameHelp": "Використовується в заголовках та друкованих бланках",
       "editName": "Змінити назву",
       "namePromptTitle": "Як називається ваш заклад?",
       "namePromptHelp": "Назва друкується на всіх розкладах і звітах та потрапляє в .fet-експорт",
@@ -165,9 +164,12 @@
       }
     },
     "import": {
-      "success": "Успішно імпортовано {{count}} уроків",
       "exportSuccess": "Експортовано успішно!",
-      "unknownError": "Невідома помилка"
+      "unknownError": "Невідома помилка",
+      "success_one": "Успішно імпортовано {{count}} урок",
+      "success_few": "Успішно імпортовано {{count}} уроки",
+      "success_many": "Успішно імпортовано {{count}} уроків",
+      "success_other": "Успішно імпортовано {{count}} уроків"
     }
   },
   "teachers": {
@@ -181,7 +183,7 @@
     "emptyDescription": "Почніть з додавання першого вчителя.",
     "emptyDescriptionSearch": "Жоден вчитель не відповідає пошуку.",
     "confirmDelete": "Видалити цього вчителя?",
-    "targetBadge": "{{count}}\u00A0год навантаження",
+    "targetBadge": "{{count}} год навантаження",
     "assignedVsTarget": "{{assigned}} / {{target}} год",
     "loadMismatch": "Призначене навантаження не збігається з плановим",
     "loadByWeek": "Чисельник: {{numerator}} год, знаменник: {{denominator}} год",
@@ -236,7 +238,8 @@
       "weekBreakdown": "У тиждень чисельника: {{numerator}} год · у тиждень знаменника: {{denominator}} год",
       "deleteButton": "Видалити навантаження",
       "confirmDelete": "Видалити весь цей рядок навантаження? Цю дію неможливо скасувати.",
-      "lowLevelHint": "Окремі уроки й додаткові параметри залишаються доступними на сторінці «Уроки»."
+      "lowLevelHint": "Окремі уроки й додаткові параметри залишаються доступними на сторінці «Уроки».",
+      "streamOption": "Потік {{name}} · одна пара для всіх груп"
     },
     "dialog": {
       "addTitle": "Додати вчителя",
@@ -290,8 +293,6 @@
     "emptyTitleSearch": "Паралелей не знайдено",
     "emptyDescription": "Почніть з додавання першої паралелі учнів.",
     "emptyDescriptionSearch": "Не знайдено паралелей за запитом.",
-    "studentsCount": "{{count}} учнів",
-    "groupsCount": "{{count}} класів",
     "noGroups": "Класів ще немає. Натисніть, щоб додати клас.",
     "confirmDeleteYear": "Видалити паралель «{{name}}» разом з усіма її класами?",
     "confirmDeleteGroup": "Видалити клас «{{name}}» разом з усіма підгрупами?",
@@ -320,7 +321,15 @@
       "shiftNone": "Не задано",
       "shift1": "1-ша зміна",
       "shift2": "2-га зміна"
-    }
+    },
+    "studentsCount_one": "{{count}} учень",
+    "studentsCount_few": "{{count}} учні",
+    "studentsCount_many": "{{count}} учнів",
+    "studentsCount_other": "{{count}} учнів",
+    "groupsCount_one": "{{count}} клас",
+    "groupsCount_few": "{{count}} класи",
+    "groupsCount_many": "{{count}} класів",
+    "groupsCount_other": "{{count}} класів"
   },
   "activities": {
     "title": "Уроки",
@@ -333,10 +342,10 @@
     "emptyDescription": "Почніть з додавання першого уроку.",
     "emptyDescriptionSearch": "Жоден урок не відповідає пошуку.",
     "confirmDelete": "Видалити цей урок?",
-    "durationLine_one": "Тривалість: {{count}}\u00A0год",
-    "durationLine_few": "Тривалість: {{count}}\u00A0год",
-    "durationLine_many": "Тривалість: {{count}}\u00A0год",
-    "durationLine_other": "Тривалість: {{count}}\u00A0год",
+    "durationLine_one": "Тривалість: {{count}} год",
+    "durationLine_few": "Тривалість: {{count}} год",
+    "durationLine_many": "Тривалість: {{count}} год",
+    "durationLine_other": "Тривалість: {{count}} год",
     "teacherLine": " • Вчитель: {{name}}",
     "activate": "Активувати",
     "deactivate": "Деактивувати",
@@ -384,10 +393,22 @@
       "weekParity": "Тиждень",
       "weekParityBoth": "Щотижня",
       "weekParityNumerator": "Чисельник",
-      "weekParityDenominator": "Знаменник"
+      "weekParityDenominator": "Знаменник",
+      "multiTeacherHint": "Оберіть одного або кількох викладачів — для спільного ведення пари",
+      "multiStudentsHint": "Оберіть кілька груп, щоб створити потік: одна пара для всіх водночас"
     },
     "studentLabelYear": "{{name}} (Паралель)",
-    "studentLabelGroup": "{{name}} (Клас)"
+    "studentLabelGroup": "{{name}} (Клас)",
+    "subtype": {
+      "label": "Тип пари",
+      "none": "Не визначено",
+      "all": "Усі типи пар",
+      "filterLabel": "Фільтр за типом пари",
+      "lecture": "Лекція",
+      "seminar": "Семінар",
+      "lab": "Лабораторна",
+      "practical": "Практична"
+    }
   },
   "activityTags": {
     "title": "Типи заняття",
@@ -421,7 +442,6 @@
       "buildings": "Корпуси"
     },
     "buildingsSection": "Корпуси",
-    "roomsInBuilding": "{{count}} кабінетів",
     "searchPlaceholder": "Пошук кабінетів…",
     "emptyTitle": "Кабінетів ще немає",
     "emptyTitleSearch": "Кабінетів не знайдено",
@@ -444,7 +464,11 @@
     "buildingDialog": {
       "description": "Корпуси допомагають організувати кабінети за розташуванням.",
       "namePlaceholder": "напр., Головний корпус"
-    }
+    },
+    "roomsInBuilding_one": "{{count}} кабінет",
+    "roomsInBuilding_few": "{{count}} кабінети",
+    "roomsInBuilding_many": "{{count}} кабінетів",
+    "roomsInBuilding_other": "{{count}} кабінетів"
   },
   "constraints": {
     "title": "Обмеження",
@@ -519,13 +543,16 @@
       "studentsMaxHours": "{{students}}: макс. {{count}} год",
       "studentsMaxGaps": "{{students}}: макс. {{count}} вікон/день",
       "studentsMaxGapsWeek": "{{students}}: макс. {{count}} вікон/тиж.",
-      "minDaysBetween": "{{count}} уроків, мін. {{days}} днів між ними",
       "activityAt": "Урок у день {{day}}, година {{hour}}",
       "basicSpace": "Базова валідність за простором",
       "roomSlots": "{{room}}: {{count}} слотів",
       "activityToRoom": "Урок → {{room}}",
       "subjectToRoom": "{{subject}} → {{room}}",
-      "teacherToRoom": "{{teacher}} → {{room}}"
+      "teacherToRoom": "{{teacher}} → {{room}}",
+      "minDaysBetween_one": "{{count}} урок, мін. {{days}} днів між ними",
+      "minDaysBetween_few": "{{count}} уроки, мін. {{days}} днів між ними",
+      "minDaysBetween_many": "{{count}} уроків, мін. {{days}} днів між ними",
+      "minDaysBetween_other": "{{count}} уроків, мін. {{days}} днів між ними"
     },
     "typeLabels": {
       "BasicCompulsoryTime": "Базове обов'язкове часове",
@@ -694,15 +721,24 @@
       "studentsUnavail": "{{students}}: {{count}} недоступних слотів",
       "studentsMaxHours": "{{students}}: макс. {{count}} год/день",
       "studentsMaxGaps": "{{students}}: макс. {{count}} вікон/тиж.",
-      "minDaysBetween": "{{count}} уроків, мін. {{days}} днів між ними",
-      "sameStart": "{{count}} уроків мають початися разом",
-      "notOverlapping": "{{count}} уроків не мають перетинатись",
       "activityAt": "Урок у день {{day}}, година {{hour}}",
-      "activityAtLocked": "Урок у день {{day}}, година {{hour}} (зафіксовано)"
+      "activityAtLocked": "Урок у день {{day}}, година {{hour}} (зафіксовано)",
+      "minDaysBetween_one": "{{count}} урок, мін. {{days}} днів між ними",
+      "minDaysBetween_few": "{{count}} уроки, мін. {{days}} днів між ними",
+      "minDaysBetween_many": "{{count}} уроків, мін. {{days}} днів між ними",
+      "minDaysBetween_other": "{{count}} уроків, мін. {{days}} днів між ними",
+      "sameStart_one": "{{count}} урок має початися разом",
+      "sameStart_few": "{{count}} уроки мають початися разом",
+      "sameStart_many": "{{count}} уроків мають початися разом",
+      "sameStart_other": "{{count}} уроків мають початися разом",
+      "notOverlapping_one": "{{count}} урок не має перетинатись",
+      "notOverlapping_few": "{{count}} уроки не мають перетинатись",
+      "notOverlapping_many": "{{count}} уроків не мають перетинатись",
+      "notOverlapping_other": "{{count}} уроків не мають перетинатись"
     },
     "unknown": "Невідомо",
     "noTeacher": "Без вчителя",
-    "activityLabel": "{{subject}} — {{teachers}} ({{duration}}\u00A0год)"
+    "activityLabel": "{{subject}} — {{teachers}} ({{duration}} год)"
   },
   "spaceConstraints": {
     "title": "Просторові обмеження",
@@ -843,7 +879,6 @@
     "bulkCreatingZip": "Створення ZIP-файлу…",
     "complete": "Повний розклад",
     "partial": "Частковий розклад",
-    "activitiesMeta": "{{count}} уроків • {{when}}",
     "regenerate": "Перегенерувати",
     "noRulesTitle": "Розклад не налаштовано",
     "noRulesDescription": "Спершу задайте параметри розкладу, щоб переглядати його",
@@ -912,71 +947,115 @@
     "grid": {
       "aria": "Розклад",
       "time": "Час",
-      "hours": "{{count}}\u00A0год"
+      "hours": "{{count}} год"
     },
     "stats": {
       "totalPeriods": "Всього уроків",
       "averagePerDay": "У середньому за день",
       "totalGaps": "Всього вікон",
       "conflicts": "Конфлікти"
-    }
+    },
+    "moveError": "Не вдалося перемістити урок",
+    "historyMoved": "Перенесено урок {{lesson}}: {{from}} → {{to}}",
+    "historyPlaced": "Поставлено урок {{lesson}}: {{slot}}",
+    "historyPaired": "Зʼєднано як чисельник/знаменник: {{a}} + {{b}} ({{slot}})",
+    "historyUnlocked": "Відкріплено урок {{lesson}} ({{slot}})",
+    "historyLocked": "Закріплено урок {{lesson}} ({{slot}})",
+    "roomPrintTitle": "Кабінет {{name}}",
+    "shiftBadge": "{{shift}}-а зміна",
+    "conflict": {
+      "teacherOverlap": "Накладка вчителя ({{teachers}})",
+      "classOverlap": "Накладка класу / групи",
+      "roomOverlap": "Накладка кабінету",
+      "lessonNotFound": "Урок не знайдено",
+      "slotOutOfRange": "Слот виходить за межі сітки розкладу",
+      "outsideShift": "Поза {{shift}}-ю зміною класу ({{from}}–{{to}} уроки)",
+      "teacherUnavailable": "Вчитель {{name}} не може викладати в цей час",
+      "classNotStudying": "Клас не навчається в цей час",
+      "teacherBusy": "Вчитель {{teachers}} вже має урок у цей час",
+      "classBusy": "Клас або підгрупа вже має інший урок у цей час",
+      "roomBusy": "Кабінет {{name}} вже зайнятий у цей час"
+    },
+    "activitiesMeta_one": "{{count}} урок • {{when}}",
+    "activitiesMeta_few": "{{count}} уроки • {{when}}",
+    "activitiesMeta_many": "{{count}} уроків • {{when}}",
+    "activitiesMeta_other": "{{count}} уроків • {{when}}",
+    "lessonLabelFull": "{{number}} урок",
+    "lessonLabelCompact": "{{number}} ур."
   },
   "settings": {
     "title": "Налаштування",
-    "description": "Налаштування параметрів розкладу",
-    "createNew": "Створити новий",
-    "saveChanges": "Зберегти зміни",
-    "importFileAria": "Імпортувати файл FET",
-    "importSection": {
-      "title": "Імпорт файлу FET",
-      "description": "Імпортуйте .fet файл з десктопного FET",
-      "chooseFile": "Обрати файл FET",
-      "importing": "Імпортування…",
-      "failureTitle": "Помилка імпорту",
-      "successTitle": "Імпорт успішний",
-      "importFailure": "Не вдалося імпортувати файл FET",
-      "successMessage": "Успішно імпортовано: {{teachers}} вчителів, {{subjects}} предметів, {{activities}} уроків, {{rooms}} кабінетів"
-    },
+    "description": "Налаштуйте параметри розкладу",
+    "fileInputLabel": "Імпортувати файл FET",
+    "chooseFile": "Обрати файл FET",
+    "importTitle": "Імпорт файлу FET",
+    "importDescription": "Імпортуйте файл .fet з настільної програми FET",
+    "importFailed": "Помилка імпорту",
+    "importSuccess": "Імпорт успішний",
+    "importSuccessDetail": "Успішно імпортовано: {{teachers}} вчителів, {{subjects}} предметів, {{activities}} уроків, {{rooms}} кабінетів",
+    "importFailedGeneric": "Не вдалося імпортувати файл FET",
     "institution": {
       "title": "Заклад освіти",
       "description": "Основна інформація про заклад",
       "nameLabel": "Назва закладу",
       "namePlaceholder": "Введіть назву закладу",
-      "nameHint": "Ця назва відображатиметься в експортованих розкладах"
+      "nameHelp": "Ця назва з'явиться в експортованих розкладах"
+    },
+    "sanitary": {
+      "title": "Санітарні норми",
+      "description": "Перевірка на відповідність Санітарному регламенту МОЗ №2205 (2020)",
+      "toggleLabel": "Дотримуватись санітарних норм",
+      "toggleHelp": "Попереджати про перевищення гранично допустимого тижневого навантаження за Додатком 8 (МОЗ №2205). Попередження не блокують генерацію."
+    },
+    "shifts": {
+      "title": "Зміни",
+      "description": "Двозмінне навчання: інтервали годин для 1-ї та 2-ї зміни",
+      "enableLabel": "Увімкнути двозмінне навчання",
+      "enableHelp": "Задайте діапазони годин для кожної зміни. Клас може мати призначену зміну, урок — перевизначити її (напр., онлайн у 1-й зміні).",
+      "shift1Title": "1-ша зміна",
+      "shift2Title": "2-га зміна",
+      "firstHour": "Перший урок (індекс)",
+      "lastHour": "Останній урок (індекс)"
     },
     "days": {
       "title": "Дні тижня",
-      "description": "Налаштуйте робочі дні ({{count}} днів)",
-      "resetDefaults": "Скинути до типових",
-      "addDay": "Додати день",
-      "removeAria": "Видалити {{name}}",
-      "dayIndex": "День {{index}}"
+      "description": "Налаштування робочих днів ({{count}} дн)",
+      "add": "Додати день",
+      "resetDefaults": "За замовчуванням",
+      "labelSr": "День {{index}}",
+      "removeSr": "Видалити {{name}}"
     },
     "hours": {
-      "title": "Години дня",
-      "description": "Налаштуйте часові слоти ({{count}} годин)",
-      "addHour": "Додати годину",
-      "removeAria": "Видалити {{name}}",
-      "hourIndex": "Урок {{index}}"
+      "title": "Уроки дня",
+      "description": "Налаштування часових слотів ({{count}} год)",
+      "add": "Додати урок",
+      "defaultName": "{{index}} урок",
+      "label": "Назва",
+      "start": "Початок",
+      "end": "Кінець",
+      "startAria": "Початок уроку {{index}}",
+      "endAria": "Кінець уроку {{index}}",
+      "labelSr": "Урок {{index}}",
+      "removeSr": "Видалити {{name}}"
     },
-    "info": {
-      "daysPerWeek": "Днів на тиждень",
-      "hoursPerDay": "Годин на день",
-      "totalSlots": "Слотів на тиждень",
-      "status": "Статус",
-      "modified": "Не збережено",
+    "stats": {
+      "days": "Днів на тиждень",
+      "hours": "Уроків на день",
+      "slots": "Слотів на тиждень",
+      "status": "Стан",
+      "modified": "Змінено",
       "saved": "Збережено"
     },
     "danger": {
       "title": "Небезпечна зона",
       "description": "Незворотні дії, що впливають на всі ваші дані",
-      "resetTitle": "Скинути всі дані",
-      "resetDescription": "Видалити всіх вчителів, предмети, уроки, кабінети, обмеження та згенеровані розклади",
+      "resetLabel": "Скинути всі дані",
+      "resetDetail": "Видалити всіх вчителів, предмети, уроки, кабінети, обмеження та згенеровані розклади",
       "resetButton": "Скинути дані",
-      "confirmTitle": "Ви точно впевнені?",
-      "confirmDescription": "Цю дію неможливо скасувати. Це остаточно видалить всі ваші дані: вчителів, предмети, уроки, кабінети, обмеження та згенеровані розклади.",
+      "confirmTitle": "Ви абсолютно впевнені?",
+      "confirmDetail": "Цю дію не можна скасувати. Це остаточно видалить усі ваші дані, включно з вчителями, предметами, уроками, кабінетами, обмеженнями та будь-якими згенерованими розкладами.",
       "resetting": "Скидання…",
-      "yesDelete": "Так, видалити все"
+      "confirmDelete": "Так, видалити все"
     },
     "empty": {
       "title": "Конфігурацію не знайдено",
@@ -1015,7 +1094,10 @@
       "confirmDelete": "Ви дійсно бажаєте видалити цей варіант розкладу?",
       "complete": "Повний",
       "partial": "Частковий",
-      "lessonsCount": "{{count}} уроків"
+      "lessonsCount_one": "{{count}} урок",
+      "lessonsCount_few": "{{count}} уроки",
+      "lessonsCount_many": "{{count}} уроків",
+      "lessonsCount_other": "{{count}} уроків"
     },
     "precheck": {
       "title": "Попередня перевірка",
@@ -1048,100 +1130,23 @@
     "lastSolution": {
       "success": "Розклад згенеровано успішно",
       "partial": "Створено частковий розклад",
-      "placed": "{{count}} уроків розміщено • {{when}}",
-      "view": "Переглянути розклад"
+      "view": "Переглянути розклад",
+      "placed_one": "{{count}} урок розміщено • {{when}}",
+      "placed_few": "{{count}} уроки розміщено • {{when}}",
+      "placed_many": "{{count}} уроків розміщено • {{when}}",
+      "placed_other": "{{count}} уроків розміщено • {{when}}"
     },
     "tips": {
-      "title": "Поради",
       "1": "Переконайтесь, що є базові обов'язкові часові та просторові обмеження",
       "2": "Якщо генерація не вдається, зменшіть вагу обмежень нижче 100 %",
       "3": "Уроки з більшою кількістю вчителів/учнів плануються першими",
       "4": "Перевірте, чи достатньо часу в тижні для всіх уроків",
-      "5": "Часткові розв'язки все одно можна переглянути на сторінці розкладу"
+      "5": "Часткові розв'язки все одно можна переглянути на сторінці розкладу",
+      "title": "Поради"
     },
     "errors": {
       "needRules": "Спочатку налаштуйте параметри розкладу.",
       "needActivities": "Додайте уроки перед генерацією."
-    }
-  },
-  "settings": {
-    "title": "Налаштування",
-    "description": "Налаштуйте параметри розкладу",
-    "fileInputLabel": "Імпортувати файл FET",
-    "chooseFile": "Обрати файл FET",
-    "importTitle": "Імпорт файлу FET",
-    "importDescription": "Імпортуйте файл .fet з настільної програми FET",
-    "importFailed": "Помилка імпорту",
-    "importSuccess": "Імпорт успішний",
-    "importSuccessDetail": "Успішно імпортовано: {{teachers}} вчителів, {{subjects}} предметів, {{activities}} уроків, {{rooms}} кабінетів",
-    "importFailedGeneric": "Не вдалося імпортувати файл FET",
-    "institution": {
-      "title": "Заклад освіти",
-      "description": "Основна інформація про заклад",
-      "nameLabel": "Назва закладу",
-      "namePlaceholder": "Введіть назву закладу",
-      "nameHelp": "Ці дані друкуються в шапці розкладів і звітів та потрапляють в експорт"
-    },
-    "sanitary": {
-      "title": "Санітарні норми",
-      "description": "Перевірка на відповідність Санітарному регламенту МОЗ №2205 (2020)",
-      "toggleLabel": "Дотримуватись санітарних норм",
-      "toggleHelp": "Попереджати про перевищення гранично допустимого тижневого навантаження за Додатком 8 (МОЗ №2205). Попередження не блокують генерацію."
-    },
-    "shifts": {
-      "title": "Зміни",
-      "description": "Двозмінне навчання: інтервали годин для 1-ї та 2-ї зміни",
-      "enableLabel": "Увімкнути двозмінне навчання",
-      "enableHelp": "Задайте діапазони годин для кожної зміни. Клас може мати призначену зміну, урок — перевизначити її (напр., онлайн у 1-й зміні).",
-      "shift1Title": "1-ша зміна",
-      "shift2Title": "2-га зміна",
-      "firstHour": "Перший урок (індекс)",
-      "lastHour": "Останній урок (індекс)"
-    },
-    "days": {
-      "title": "Дні тижня",
-      "description": "Налаштування робочих днів ({{count}}\u00A0дн)",
-      "add": "Додати день",
-      "resetDefaults": "За замовчуванням",
-      "labelSr": "День {{index}}",
-      "removeSr": "Видалити {{name}}"
-    },
-    "hours": {
-      "title": "Уроки дня",
-      "description": "Налаштування часових слотів ({{count}}\u00A0год)",
-      "add": "Додати урок",
-      "defaultName": "{{index}} урок",
-      "label": "Назва",
-      "start": "Початок",
-      "end": "Кінець",
-      "startAria": "Початок уроку {{index}}",
-      "endAria": "Кінець уроку {{index}}",
-      "labelSr": "Урок {{index}}",
-      "removeSr": "Видалити {{name}}"
-    },
-    "stats": {
-      "days": "Днів на тиждень",
-      "hours": "Уроків на день",
-      "slots": "Слотів на тиждень",
-      "status": "Стан",
-      "modified": "Змінено",
-      "saved": "Збережено"
-    },
-    "danger": {
-      "title": "Небезпечна зона",
-      "description": "Незворотні дії, що впливають на всі ваші дані",
-      "resetLabel": "Скинути всі дані",
-      "resetDetail": "Видалити всіх вчителів, предмети, уроки, кабінети, обмеження та згенеровані розклади",
-      "resetButton": "Скинути дані",
-      "confirmTitle": "Ви абсолютно впевнені?",
-      "confirmDetail": "Цю дію не можна скасувати. Це остаточно видалить усі ваші дані, включно з вчителями, предметами, уроками, кабінетами, обмеженнями та будь-якими згенерованими розкладами.",
-      "resetting": "Скидання…",
-      "confirmDelete": "Так, видалити все"
-    },
-    "empty": {
-      "title": "Конфігурацію не знайдено",
-      "description": "Створіть нову конфігурацію розкладу або імпортуйте з файлу FET.",
-      "importFile": "Імпортувати файл FET"
     }
   },
   "rozImport": {
@@ -1163,9 +1168,6 @@
     "constraintsNotImported": "Обмеження вчителів та простору не імпортовано — перевірте доступність",
     "roomsNotImported": "Кабінети відсутні у файлі aSc",
     "unplacedHours": "{{count}} год уроків не розміщено в сітці aSc",
-    "skippedLessons": "Пропущено {{count}} нерозпізнаних записів уроків",
-    "droppedCards": "Пропущено {{count}} зайвих розміщень, що не відповідають навантаженню",
-    "duplicateNamesResolved": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
     "sampleLessonsTitle": "Приклади розпізнаних уроків",
     "hoursSuffix": "год",
     "dangerNotice": "Це замінить усі поточні дані.",
@@ -1173,7 +1175,19 @@
     "cancelButton": "Скасувати",
     "success": "Розклад .roz успішно імпортовано",
     "successDetail": "Успішно імпортовано: {{classes}} класів, {{teachers}} вчителів, {{subjects}} предметів, {{hours}} год навантаження",
-    "error": "Не вдалося імпортувати файл .roz"
+    "error": "Не вдалося імпортувати файл .roz",
+    "skippedLessons_one": "Пропущено {{count}} нерозпізнаний запис уроків",
+    "skippedLessons_few": "Пропущено {{count}} нерозпізнаних записи уроків",
+    "skippedLessons_many": "Пропущено {{count}} нерозпізнаних записів уроків",
+    "skippedLessons_other": "Пропущено {{count}} нерозпізнаних записів уроків",
+    "duplicateNamesResolved_one": "Знайдено {{count}} однакову назву, автоматично додано суфікси",
+    "duplicateNamesResolved_few": "Знайдено {{count}} однакові назви, автоматично додано суфікси",
+    "duplicateNamesResolved_many": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
+    "duplicateNamesResolved_other": "Знайдено {{count}} однакових назв, автоматично додано суфікси",
+    "droppedCards_one": "Пропущено {{count}} зайве розміщення, що не відповідає навантаженню",
+    "droppedCards_few": "Пропущено {{count}} зайві розміщення, що не відповідають навантаженню",
+    "droppedCards_many": "Пропущено {{count}} зайвих розміщень, що не відповідають навантаженню",
+    "droppedCards_other": "Пропущено {{count}} зайвих розміщень, що не відповідають навантаженню"
   },
   "mobileBanner": {
     "text": "Мобільна версія ще не повністю оптимізована",
@@ -1223,7 +1237,7 @@
     "newYear": "Новий розклад",
     "newSchool": "Додати заклад освіти",
     "createSchoolTitle": "Новий заклад освіти",
-    "createSchoolDesc": "Введіть назву школи чи гімназії",
+    "createSchoolDesc": "Вкажіть назву закладу та оберіть його тип",
     "renameSchool": "Перейменувати заклад освіти",
     "renameSchoolTitle": "Перейменувати заклад освіти",
     "renameSchoolDesc": "Вкажіть нову назву для цього закладу освіти",
@@ -1239,9 +1253,9 @@
     "deleteDesc": "Ви впевнені, що хочете видалити цей розклад? Усі повʼязані дані та знімки версій буде остаточно видалено.",
     "forceSave": "Примусово зберегти версію",
     "yearLabel": "Назва / Рік",
-    "fixInstitutionName": "Ваш заклад ще має типову назву. Вкажіть справжню — вона друкується на всіх розкладах.",
     "cloneFromCurrent": "Копіювати з поточного розкладу",
-    "cloneStructureOnly": "Лише структуру (вчителі, предмети, класи, обмеження без розкладу)"
+    "cloneStructureOnly": "Лише структуру (вчителі, предмети, класи, обмеження без розкладу)",
+    "fixInstitutionName": "Ваш заклад ще має типову назву. Вкажіть справжню — вона друкується на всіх розкладах."
   },
   "versions": {
     "title": "Збережені версії та контрольні точки",
@@ -1286,6 +1300,145 @@
     "dailyTeachersTitle": "ПОДОБОВИЙ РОЗКЛАД УРОКІВ (ВЧИТЕЛІ)",
     "dailyClassesTitle": "ПОДОБОВИЙ РОЗКЛАД УРОКІВ (КЛАСИ)",
     "shift1": "I зміна",
-    "shift2": "II зміна"
+    "shift2": "II зміна",
+    "approvalTitle": "«ЗАТВЕРДЖУЮ»",
+    "approvalRole": "Директор",
+    "approvalSign": "(підпис / ПІБ)",
+    "approvalDate": "«____» ____________ 202___ р.",
+    "approvalDateBlank": "«_____» ________________ 202___ р.",
+    "approvalToggle": "Гриф «ЗАТВЕРДЖУЮ» директора",
+    "deputy": "Заступник директора з НВР: __________________ / __________________",
+    "generatedBy": "Сформовано в системі «Дзвоник»: {{date}}",
+    "numerator": "Чисельник",
+    "denominator": "Знаменник",
+    "lessonCol": "Урок",
+    "roomShort": "каб. {{room}}",
+    "classTitle": "РОЗКЛАД УРОКІВ {{name}} КЛАСУ",
+    "classTitleFor": "РОЗКЛАД УРОКІВ ДЛЯ {{name}} КЛАСУ",
+    "teacherTitle": "РОЗКЛАД УРОКІВ ВИКЛАДАЧА: {{name}}",
+    "summaryClassesTitle": "ЗВЕДЕНИЙ РОЗКЛАД УРОКІВ УСІХ КЛАСІВ",
+    "summaryTeachersTitle": "ЗВЕДЕНИЙ РОЗКЛАД УСІХ ВИКЛАДАЧІВ",
+    "workloadTitle": "ТАРИФІКАЦІЙНИЙ ЗВІТ ТИЖНЕВОГО НАВАНТАЖЕННЯ ВИКЛАДАЧІВ",
+    "classesWorkloadTitle": "ЗВЕДЕНЕ НАВАНТАЖЕННЯ КЛАСІВ ПО ТИЖНЯХ (ЧИСЕЛЬНИК / ЗНАМЕННИК)",
+    "dailyTitle": "РОЗКЛАД УРОКІВ — {{day}}",
+    "daysHoursMeta": "{{days}} навчальних днів • {{hours}} уроків на день",
+    "workDaysMeta": "{{days}} робочих днів • {{hours}} уроків на день",
+    "timeCol": "Час",
+    "firstColTeachers": "Викладач",
+    "firstColClasses": "Клас",
+    "teacherNameCol": "ПІБ Викладача",
+    "subjectCol": "Предмет",
+    "classesHoursCol": "Класи / підгрупи та години",
+    "hoursCol": "Годин",
+    "totalPerWeekCol": "Разом / тижд.",
+    "plannedHours": "(план: {{hours}})",
+    "totalHoursRow": "РАЗОМ ГОДИН ПО ЗАКЛАДУ:",
+    "totalRow": "РАЗОМ ПО ЗАКЛАДУ:",
+    "classCol": "Клас",
+    "numeratorCol": "Чисельник",
+    "denominatorCol": "Знаменник",
+    "averageCol": "Середнє",
+    "balanceCol": "Баланс тижнів",
+    "subjectsCol": "Предметів",
+    "lessonsCol": "Уроків",
+    "balanced": "✓ Збалансовано",
+    "diffWarn": "⚠ Різниця {{hours}} год",
+    "classDocTitle": "Розклад {{name}}",
+    "teacherDocTitle": "Розклад: {{name}}",
+    "allClassesDocTitle": "Розклади всіх класів",
+    "allTeachersDocTitle": "Розклади всіх учителів",
+    "summaryClassesDocTitle": "Зведений розклад усіх класів",
+    "summaryTeachersDocTitle": "Зведений розклад учителів",
+    "workloadDocTitle": "Тарифікаційний звіт навантаження",
+    "classesWorkloadDocTitle": "Навантаження класів по тижнях",
+    "dailyTeachersDocTitle": "Розклад уроків по днях (вчителі)",
+    "dailyClassesDocTitle": "Розклад уроків по днях (класи)",
+    "reportClass": "Окремий клас",
+    "reportTeacher": "Окремий вчитель",
+    "reportSummaryClasses": "Зведений (Класи)",
+    "reportSummaryTeachers": "Зведений (Вчителі)",
+    "reportWorkload": "Тарифікація / Навантаження",
+    "reportClassesWorkload": "Навантаження класів (Тижні)",
+    "classSelector": "Клас:",
+    "teacherSelector": "Вчитель:",
+    "colorToggle": "Кольорове виділення предметів",
+    "paperLabel": "Формат аркуша для друку:",
+    "paperAuto": "Авто (без стиснення для PDF/екрана)",
+    "paperA3": "A3 (великий аркуш)",
+    "paperA4": "A4 (стандартний)",
+    "dayFallback": "День {{n}}",
+    "title": "Друк та експорт звітів",
+    "emptyTitle": "Друк звітів та розкладу",
+    "noRulesDesc": "Спершу налаштуйте дані закладу в налаштуваннях",
+    "needRulesPrompt": "Дані закладу ще не налаштовано",
+    "generatingPdf": "Формування PDF...",
+    "savePdfButton": "Зберегти PDF",
+    "printButton": "Друк (Папір)",
+    "printAllClasses": "Друк усіх класів",
+    "printAllTeachers": "Друк усіх учителів",
+    "reportSettings": "Параметри звіту",
+    "needSolutionPrompt": "Розклад ще не сформовано для цієї таблиці. Згенеруйте розклад у розділі «Генерація»."
+  },
+  "preflight": {
+    "rulesMissing": "Не задано параметри розкладу. Відкрийте розділ «Налаштування» і задайте кількість днів та годин на день.",
+    "rulesZeroSlots": "У тижні {{slots}} годин. Задайте додатні значення днів на тиждень і годин на день у «Налаштуваннях».",
+    "noActivities": "Немає жодного активного уроку. Додайте уроки перед генерацією розкладу.",
+    "classOverload": "Клас {{name}}: заплановано {{load}} уроків на тиждень, а в розкладі лише {{slots}} слотів ({{days}} × {{hours}}). Приберіть {{excess}} урок(и) або збільште кількість годин на день.",
+    "classNearCapacity": "Клас {{name}} завантажено на {{percent}} % ({{load}}/{{slots}}). Мало простору для маневру — можливі складнощі з генерацією.",
+    "teacherNoSlots": "Вчитель {{name}}: заявлено {{load}} уроків, але всі слоти позначено як «недоступний». Перевірте обмеження «TeacherNotAvailableTimes».",
+    "teacherOverload": "Вчитель {{name}}: заплановано {{load}} уроків, а доступно лише {{available}} слотів ({{slots}} − {{unavailable}} недоступних). Зменште навантаження або перегляньте обмеження.",
+    "teacherNearCapacity": "Вчитель {{name}}: навантаження {{load}}/{{available}} ({{percent}} %). Може бути важко скласти без «вікон».",
+    "roomNoSlots": "Аудиторія {{name}}: усі слоти позначено як недоступні, але на неї є жорсткі прив'язки уроків.",
+    "roomOverload": "Аудиторія {{name}}: жорстко закріплено {{demand}} уроків, а вміщує лише {{supply}}. Розширте перелік аудиторій для цього предмета або приберіть частину прив'язок.",
+    "roomNearCapacity": "Аудиторія {{name}}: заповнення {{demand}}/{{supply}} ({{percent}} %).",
+    "splitOrphan": "Знайдено «розщеплений» урок (activityGroupId={{group}}) без пари для другої підгрупи. Перевірте, чи створено обидві підгрупи для цього предмета.",
+    "roomNoSlotsSoft": "Аудиторія {{name}}: усі слоти позначено як недоступні, але для неї є побажання за предметом.",
+    "roomOversubscribed": "Аудиторія {{name}}: за предметом на неї орієнтовано {{demand}} уроків, а вміщує {{supply}}. Частину буде проведено в інших аудиторіях."
+  },
+  "institution": {
+    "presets": {
+      "school": {
+        "label": "Школа",
+        "description": "Уроки по 45 хв, зміни, санітарні норми МОЗ"
+      },
+      "gymnasium": {
+        "label": "Гімназія",
+        "description": "Та сама лексика й дзвінки, що й у школі"
+      },
+      "lyceum": {
+        "label": "Ліцей",
+        "description": "Та сама лексика й дзвінки, що й у школі"
+      },
+      "college": {
+        "label": "Коледж",
+        "description": "Пари по 80 хв, викладачі, студенти, групи"
+      }
+    },
+    "selector": {
+      "legend": "Тип закладу",
+      "hint": "Тип визначає термінологію, дзвінки й функції. Після створення закладу його не можна змінити."
+    },
+    "changeCard": {
+      "title": "Це не школа?",
+      "description": "Оберіть тип закладу, поки робочий простір ще порожній. Після перших даних тип залишиться незмінним.",
+      "current": "поточний",
+      "apply": "Застосувати тип"
+    }
+  },
+  "whatsNew": {
+    "heading": "Що нового в Дзвонику",
+    "subheading": "Оновлення {{version}} — найголовніше за хвилину",
+    "screenshotAlt": "Ілюстрація до оновлення: {{title}}",
+    "dismiss": "Гаразд"
+  },
+  "institutionDetails": {
+    "nameLabel": "Назва закладу",
+    "namePlaceholder": "напр., Ліцей №15 м. Києва",
+    "shortNameLabel": "Скорочена назва (необовʼязково)",
+    "shortNamePlaceholder": "напр., Ліцей 15",
+    "addressLabel": "Адреса (необовʼязково)",
+    "addressPlaceholder": "напр., м. Київ, вул. Шевченка, 1",
+    "directorLabel": "Директор (необовʼязково)",
+    "directorPlaceholder": "напр., Шевченко І. І."
   }
 }

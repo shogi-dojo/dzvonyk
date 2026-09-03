@@ -18,12 +18,13 @@ describe('About Page Component', () => {
     renderAbout();
 
     expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
-    expect(screen.getByText('v1.5.0')).toBeInTheDocument();
+    expect(screen.getByText('v1.6.0')).toBeInTheDocument();
   });
 
   it('renders all historical milestones in the changelog', () => {
     renderAbout();
 
+    expect(screen.getByText(/версія 1.6.0/i)).toBeInTheDocument();
     expect(screen.getByText(/версія 1.5.0/i)).toBeInTheDocument();
     expect(screen.getByText(/версія 1.4.0/i)).toBeInTheDocument();
     expect(screen.getByText(/версія 1.3.0/i)).toBeInTheDocument();
@@ -32,10 +33,10 @@ describe('About Page Component', () => {
     expect(screen.getByText(/версія 1.0.0/i)).toBeInTheDocument();
   });
 
-  it('has version 1.5.0 expanded with daily report highlights', () => {
+  it('has version 1.6.0 expanded with institution type highlights', () => {
     renderAbout();
 
-    expect(screen.getByText(/щоденні матриці для вчителів і класів:/i)).toBeInTheDocument();
-    expect(screen.getByText(/підтримка кількох змін:/i)).toBeInTheDocument();
+    expect(screen.getByText(/оберіть тип закладу під час створення:/i)).toBeInTheDocument();
+    expect(screen.getByText(/дзвінки за пресетом:/i)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db, GUEST_SCHOOL_ID, GUEST_WORKSPACE_ID } from '@/db';
 import { workspaceManager } from './workspaceManager';
+import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
+import { formatAcademicYear } from '@/lib/academicYear';
 import type { TimetableRules, Teacher } from '@/types';
 
 const mockRules: TimetableRules = {
@@ -79,6 +81,71 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
     await workspaceManager.switchWorkspace(GUEST_WORKSPACE_ID);
     const restoredTeacher = await db.teachers.get('t-guest-1');
     expect(restoredTeacher?.name).toBe('Франко І. Я.');
+  });
+
+  it('seeds an empty workspace with the school preset bell schedule', async () => {
+    await workspaceManager.init();
+
+    const newSchool = await workspaceManager.createSchool('Колегіум');
+    const workspaces = await workspaceManager.listWorkspaces(newSchool.id);
+    await workspaceManager.switchWorkspace(workspaces[0].id);
+
+    const seeded = await db.rules.toArray();
+    expect(seeded).toHaveLength(1);
+    const rules = seeded[0] as TimetableRules;
+    expect(rules.institutionName).toBe('Колегіум');
+    expect(rules.nDaysPerWeek).toBe(INSTITUTION_PRESETS.school.defaults.nDaysPerWeek);
+    expect(rules.nHoursPerDay).toBe(INSTITUTION_PRESETS.school.defaults.nHoursPerDay);
+    expect(rules.hoursOfTheDay).toEqual(buildDefaultHours(INSTITUTION_PRESETS.school));
+    // Period labels follow the «N урок» convention, not bare times.
+    expect(rules.hoursOfTheDay[0].name).toBe('1 урок');
+  });
+
+  it('seeds an academic workspace from the college preset when chosen at creation', async () => {
+    await workspaceManager.init();
+
+    const college = await workspaceManager.createSchool('Політехнічний фаховий коледж', {
+      institutionType: 'college',
+    });
+    const workspaces = await workspaceManager.listWorkspaces(college.id);
+    await workspaceManager.switchWorkspace(workspaces[0].id);
+
+    const storedSchool = await db.schools.get(college.id);
+    expect(storedSchool?.institutionType).toBe('college');
+
+    const seeded = (await db.rules.toArray())[0] as TimetableRules;
+    expect(seeded.institutionType).toBe('college');
+    expect(seeded.nHoursPerDay).toBe(
+      INSTITUTION_PRESETS.college.defaults.nHoursPerDay
+    );
+    expect(seeded.hoursOfTheDay).toEqual(buildDefaultHours(INSTITUTION_PRESETS.college));
+    expect(seeded.hoursOfTheDay[0].name).toBe('1 пара');
+  });
+
+  it('re-seeds untouched bells when the type changes on an empty workspace', async () => {
+    await workspaceManager.init();
+
+    const school = await workspaceManager.createSchool('Ще невизначились');
+    const workspaces = await workspaceManager.listWorkspaces(school.id);
+    await workspaceManager.switchWorkspace(workspaces[0].id);
+    expect(((await db.rules.toArray())[0] as TimetableRules).institutionType).toBe('school');
+
+    const updated = await workspaceManager.changeSchoolInstitutionType(school.id, 'college');
+    expect(updated.institutionType).toBe('college');
+
+    const rules = (await db.rules.toArray())[0] as TimetableRules;
+    expect(rules.institutionType).toBe('college');
+    expect(rules.hoursOfTheDay).toEqual(buildDefaultHours(INSTITUTION_PRESETS.college));
+  });
+
+  it('refuses to change the institution type once entities exist', async () => {
+    await workspaceManager.init();
+    await db.teachers.put(mockTeacher);
+
+    const school = await workspaceManager.createSchool('Школа №1');
+    await expect(
+      workspaceManager.changeSchoolInstitutionType(school.id, 'college')
+    ).rejects.toThrow(/no entities/);
   });
 
   it('prunes automatic versions exceeding MAX_AUTO_VERSIONS', async () => {
@@ -208,5 +275,15 @@ describe('Workspace Manager & Local Multi-Workspace Storage', () => {
 
     const schools = await workspaceManager.listSchools();
     expect(schools[0].name).toBe('Гімназія 1');
+  });
+
+  it('labels the first workspace with the current academic year, not a fixed one', async () => {
+    const school = await workspaceManager.createSchool('Новий ліцей');
+    const workspaces = await workspaceManager.listWorkspaces(school.id);
+
+    expect(workspaces).toHaveLength(1);
+    // Derived from today rather than the literal '2025-2026' this used to ship.
+    expect(workspaces[0].label).toBe(formatAcademicYear());
+    expect(workspaces[0].label).toMatch(/^\d{4}-\d{4}$/);
   });
 });

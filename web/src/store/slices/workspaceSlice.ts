@@ -5,11 +5,13 @@ import type {
   WorkspaceVersionMetadata,
   SyncStatus,
 } from '@/types';
+import { db } from '@/db';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
 import { historyManager } from '@/lib/history';
 import { trackEvent } from '@/lib/analytics';
 import { syncService } from '@/lib/firebase/syncService';
-import { updateInstitutionName } from '@/store/slices/rulesSlice';
+import { setRules, updateInstitutionName } from '@/store/slices/rulesSlice';
+import type { InstitutionPresetId } from '@/lib/institution/presets';
 
 interface WorkspaceState {
   activeSchool: School | null;
@@ -81,7 +83,14 @@ export const createSchoolAction = createAsyncThunk(
       shortName,
       address,
       director,
-    }: { name: string; shortName?: string; address?: string; director?: string },
+      institutionType,
+    }: {
+      name: string;
+      shortName?: string;
+      address?: string;
+      director?: string;
+      institutionType?: InstitutionPresetId;
+    },
     { getState }
   ) => {
     const state = getState() as { auth: { user: { uid: string } | null } };
@@ -90,6 +99,7 @@ export const createSchoolAction = createAsyncThunk(
       address,
       director,
       ownerUid: state.auth.user?.uid,
+      institutionType,
     });
     const newSchoolWorkspaces = await workspaceManager.listWorkspaces(school.id);
     const firstWorkspace = newSchoolWorkspaces[0];
@@ -104,6 +114,30 @@ export const createSchoolAction = createAsyncThunk(
     const workspaces = await workspaceManager.listWorkspaces();
 
     return { school, workspace: context.workspace, schools, workspaces, isGuest: context.isGuest };
+  }
+);
+
+export const changeInstitutionTypeAction = createAsyncThunk(
+  'workspace/changeInstitutionType',
+  async (
+    { schoolId, institutionType }: { schoolId: string; institutionType: InstitutionPresetId },
+    { getState, dispatch }
+  ) => {
+    const school = await workspaceManager.changeSchoolInstitutionType(schoolId, institutionType);
+    const schools = await workspaceManager.listSchools();
+
+    // Reload the materialised rules so the new preset's bell schedule is live.
+    const rulesList = await db.rules.toArray();
+    if (rulesList.length > 0) {
+      dispatch(setRules(rulesList[0]));
+    }
+
+    const state = getState() as { auth: { user: { uid: string } | null } };
+    if (state.auth.user && school.ownerUid) {
+      await syncService.syncSchool(state.auth.user.uid, school);
+    }
+
+    return { school, schools };
   }
 );
 
@@ -331,6 +365,13 @@ const workspaceSlice = createSlice({
         state.activeWorkspace = action.payload.workspace;
         state.isGuest = action.payload.isGuest;
         state.workspaces = action.payload.workspaces;
+      })
+      // Change institution type
+      .addCase(changeInstitutionTypeAction.fulfilled, (state, action) => {
+        state.schools = action.payload.schools;
+        if (state.activeSchool?.id === action.payload.school.id) {
+          state.activeSchool = action.payload.school;
+        }
       })
       // Rename school
       .addCase(renameSchoolAction.fulfilled, (state, action) => {

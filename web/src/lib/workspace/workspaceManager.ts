@@ -14,6 +14,13 @@ import {
 } from './snapshotCodec';
 import { formatAcademicYear } from '../academicYear';
 import { isPlaceholderInstitutionName } from '../institution/placeholderName';
+import {
+  INSTITUTION_PRESETS,
+  buildDefaultHours,
+  type InstitutionPresetId,
+} from '@/lib/institution/presets';
+import { canChangeInstitutionType } from '@/lib/institution/canChangeInstitutionType';
+import { resolveInstitutionType } from '@/lib/institution/resolveInstitutionType';
 
 export const MAX_AUTO_VERSIONS = 20;
 
@@ -205,13 +212,15 @@ export class WorkspaceManager {
       } else {
         // Empty workspace initialization
         await this.database.clearAllData();
+        const preset = INSTITUTION_PRESETS[targetSchool.institutionType ?? 'school'];
         const rulesId = uuidv4();
         const defaultRules: TimetableRules = {
           id: rulesId,
           mode: 0,
           institutionName: targetSchool.name,
-          nDaysPerWeek: 5,
-          nHoursPerDay: 7,
+          institutionType: preset.id,
+          nDaysPerWeek: preset.defaults.nDaysPerWeek,
+          nHoursPerDay: preset.defaults.nHoursPerDay,
           daysOfTheWeek: [
             { name: 'Monday', longName: 'Monday' },
             { name: 'Tuesday', longName: 'Tuesday' },
@@ -219,15 +228,7 @@ export class WorkspaceManager {
             { name: 'Thursday', longName: 'Thursday' },
             { name: 'Friday', longName: 'Friday' },
           ],
-          hoursOfTheDay: [
-            { name: '08:30', longName: '08:30 - 09:15' },
-            { name: '09:25', longName: '09:25 - 10:10' },
-            { name: '10:20', longName: '10:20 - 11:05' },
-            { name: '11:20', longName: '11:20 - 12:05' },
-            { name: '12:20', longName: '12:20 - 13:05' },
-            { name: '13:15', longName: '13:15 - 14:00' },
-            { name: '14:10', longName: '14:10 - 14:55' },
-          ],
+          hoursOfTheDay: buildDefaultHours(preset),
           modified: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -261,6 +262,7 @@ export class WorkspaceManager {
       address?: string;
       director?: string;
       ownerUid?: string;
+      institutionType?: InstitutionPresetId;
     }
   ): Promise<School> {
     const now = new Date().toISOString();
@@ -271,6 +273,7 @@ export class WorkspaceManager {
       address: normalizeOptionalText(options?.address),
       director: normalizeOptionalText(options?.director),
       ownerUid: options?.ownerUid,
+      institutionType: options?.institutionType ?? 'school',
       createdAt: now,
       updatedAt: now,
     };
@@ -281,6 +284,63 @@ export class WorkspaceManager {
     await this.createWorkspace(school.id, formatAcademicYear());
 
     return school;
+  }
+
+  /**
+   * Changes the institution type of an existing school.
+   *
+   * Only permitted while the active workspace contains 0 entities. Reseeds
+   * default hours if the hours have not been customized.
+   */
+  async changeSchoolInstitutionType(
+    schoolId: string,
+    institutionType: InstitutionPresetId
+  ): Promise<School> {
+    const school = await this.database.schools.get(schoolId);
+    if (!school) throw new Error(`School ${schoolId} not found`);
+
+    const counts = {
+      teachers: await this.database.teachers.count(),
+      subjects: await this.database.subjects.count(),
+      activityTags: await this.database.activityTags.count(),
+      studentsYears: await this.database.studentsYears.count(),
+      studentsGroups: await this.database.studentsGroups.count(),
+      studentsSubgroups: await this.database.studentsSubgroups.count(),
+      activities: await this.database.activities.count(),
+      buildings: await this.database.buildings.count(),
+      rooms: await this.database.rooms.count(),
+      timeConstraints: await this.database.timeConstraints.count(),
+      spaceConstraints: await this.database.spaceConstraints.count(),
+      solutions: await this.database.solutions.count(),
+    };
+    if (!canChangeInstitutionType(counts)) {
+      throw new Error('Institution type can only be changed while the workspace has no entities.');
+    }
+
+    const now = new Date().toISOString();
+    const updated: School = { ...school, institutionType, updatedAt: now };
+    await this.database.schools.put(updated);
+
+    const rulesList = await this.database.rules.toArray();
+    const rules = rulesList[0] as TimetableRules | undefined;
+    if (rules) {
+      const preset = INSTITUTION_PRESETS[institutionType];
+      const previousPreset = INSTITUTION_PRESETS[resolveInstitutionType(school, rules)];
+      const bellsUntouched =
+        JSON.stringify(rules.hoursOfTheDay) === JSON.stringify(buildDefaultHours(previousPreset));
+      await this.database.rules.update(rules.id, {
+        institutionType,
+        ...(bellsUntouched
+          ? {
+              nHoursPerDay: preset.defaults.nHoursPerDay,
+              hoursOfTheDay: buildDefaultHours(preset),
+            }
+          : {}),
+        updatedAt: now,
+      });
+    }
+
+    return updated;
   }
 
   /**

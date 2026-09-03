@@ -3,6 +3,7 @@ import { Provider } from 'react-redux';
 import { store } from './store';
 import { Layout } from './components/Layout';
 import { AppInitializer } from './components/AppInitializer';
+import { WhatsNewDialog } from './components/WhatsNewDialog';
 import {
   Dashboard,
   Teachers,
@@ -41,6 +42,7 @@ function App() {
               <Route path="/faq" element={<FAQ />} />
               <Route path="/about" element={<About />} />
             </Routes>
+            <WhatsNewDialog />
           </Layout>
         </HashRouter>
       </AppInitializer>

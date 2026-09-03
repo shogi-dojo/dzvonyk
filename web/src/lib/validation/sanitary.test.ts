@@ -144,3 +144,34 @@ describe('runSanitaryChecks', () => {
     expect(on.warnings.some((w) => w.code === 'SANITARY_WEEKLY_OVERLOAD')).toBe(true);
   });
 });
+
+describe('sanitary feature gate contract', () => {
+  // A «1 курс» group would parse as grade 1 via gradeFromName. For academic
+  // presets the check is gated off at the call site — this pins the pure
+  // contract: no gate input, no warnings, whatever the class is named.
+  const academicGroup = { id: 'g1', name: '1 курс', numberOfStudents: 90, type: 2 as const, subgroups: [] };
+
+  const overLoaded: Activity[] = Array.from({ length: 40 }, (_, i) => ({
+    id: `a${i}`,
+    activityGroupId: 0,
+    teacherIds: ['t1'],
+    subjectId: 's1',
+    activityTagIds: [],
+    studentSetIds: ['g1'],
+    duration: 1,
+    totalDuration: 1,
+    active: true,
+    computeNTotalStudents: false,
+    nTotalStudents: 0,
+  }));
+
+  it('still computes school warnings for a school preset with a named class', () => {
+    const warnings = runSanitaryChecks({
+      rules: baseRules(5, 7),
+      activities: overLoaded,
+      studentsGroups: [academicGroup as never],
+      studentsSubgroups: [],
+    });
+    expect(warnings.some((w) => w.code === 'SANITARY_WEEKLY_OVERLOAD')).toBe(true);
+  });
+});

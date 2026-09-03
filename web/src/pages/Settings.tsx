@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader, StatCard, EmptyState } from '@/components/PageTransition';
 import { getConsentStatus, setConsentStatus, CONSENT_CHANGED_EVENT, trackEvent, type ConsentStatus } from '@/lib/analytics';
-import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useAppDispatch, useAppSelector, useInstitutionPreset } from '@/hooks';
 import {
   createNewRules,
   updateInstitutionName,
@@ -37,6 +37,8 @@ import { KeyboardShortcutsCard } from '@/components/KeyboardShortcutsCard';
 import { renameSchoolAction } from '@/store/slices/workspaceSlice';
 import { InstitutionDetailsFields } from '@/components/InstitutionDetailsFields';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { preserveInstitutionType } from '@/lib/institution/preserveInstitutionType';
+import { buildDefaultHours } from '@/lib/institution/presets';
 import type { Day, Hour } from '@/types';
 
 const DEFAULT_DAYS: Day[] = [
@@ -75,6 +77,7 @@ function serializeDates<T>(obj: T): T {
 export function Settings() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const preset = useInstitutionPreset();
   const rules = useAppSelector((state) => state.rules.current);
   const modified = useAppSelector((state) => state.rules.modified);
   const activeSchool = useAppSelector((state) => state.workspace.activeSchool);
@@ -97,7 +100,7 @@ export function Settings() {
   const [schoolAddress, setSchoolAddress] = useState('');
   const [schoolDirector, setSchoolDirector] = useState('');
   const [days, setDays] = useState<Day[]>(DEFAULT_DAYS);
-  const [hours, setHours] = useState<Hour[]>(DEFAULT_HOURS);
+  const [hours, setHours] = useState<Hour[]>(buildDefaultHours(preset));
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
@@ -167,7 +170,7 @@ export function Settings() {
 
   const handleCreateNew = () => {
     const id = uuidv4();
-    dispatch(createNewRules(id));
+    dispatch(createNewRules({ id, institutionType: preset.id }));
   };
 
   const handleSave = async () => {
@@ -233,7 +236,7 @@ export function Settings() {
       // Reset local state
       setInstitutionName('');
       setDays(DEFAULT_DAYS);
-      setHours(DEFAULT_HOURS);
+      setHours(buildDefaultHours(preset));
       setImportError(null);
       setImportSuccess(null);
       setShowResetConfirm(false);
@@ -262,12 +265,14 @@ export function Settings() {
       
       await db.clearAllData();
       
+      const institutionType = preserveInstitutionType(activeSchool ?? undefined, rules ?? undefined);
       const rulesId = uuidv4();
       const newRules = {
         id: rulesId,
         mode: data.mode,
         institutionName: data.institutionName,
         comments: data.comments,
+        institutionType,
         nDaysPerWeek: data.daysOfTheWeek.length,
         nHoursPerDay: data.hoursOfTheDay.length,
         daysOfTheWeek: data.daysOfTheWeek,
@@ -589,93 +594,97 @@ export function Settings() {
             </CardContent>
           </Card>
 
-          {/* Sanitary regulation preset */}
-          <Card className="animate-slide-up" style={{ animationDelay: '75ms' }}>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
+          {/* Sanitary regulation preset — МОЗ №2205 covers schools only */}
+          {preset.features.sanitaryChecks && (
+            <Card className="animate-slide-up" style={{ animationDelay: '75ms' }}>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <CardTitle>{t('settings.sanitary.title')}</CardTitle>
+                    <CardDescription>{t('settings.sanitary.description')}</CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>{t('settings.sanitary.title')}</CardTitle>
-                  <CardDescription>{t('settings.sanitary.description')}</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 accent-primary"
-                  checked={sanitaryMode}
-                  onChange={(e) => setSanitaryModeState(e.target.checked)}
-                />
-                <div>
-                  <p className="font-medium text-foreground">{t('settings.sanitary.toggleLabel')}</p>
-                  <p className="text-sm text-muted-foreground">{t('settings.sanitary.toggleHelp')}</p>
-                </div>
-              </label>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-primary"
+                    checked={sanitaryMode}
+                    onChange={(e) => setSanitaryModeState(e.target.checked)}
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">{t('settings.sanitary.toggleLabel')}</p>
+                    <p className="text-sm text-muted-foreground">{t('settings.sanitary.toggleHelp')}</p>
+                  </div>
+                </label>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Shifts (двозмінне навчання) */}
-          <Card className="animate-slide-up" style={{ animationDelay: '85ms' }}>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
+          {preset.features.shifts && (
+            <Card className="animate-slide-up" style={{ animationDelay: '85ms' }}>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <CardTitle>{t('settings.shifts.title')}</CardTitle>
+                    <CardDescription>{t('settings.shifts.description')}</CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>{t('settings.shifts.title')}</CardTitle>
-                  <CardDescription>{t('settings.shifts.description')}</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 accent-primary"
-                  checked={shiftsEnabled}
-                  onChange={(e) => setShiftsEnabled(e.target.checked)}
-                />
-                <div>
-                  <p className="font-medium text-foreground">{t('settings.shifts.enableLabel')}</p>
-                  <p className="text-sm text-muted-foreground">{t('settings.shifts.enableHelp')}</p>
-                </div>
-              </label>
-              {shiftsEnabled && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2 p-3 border rounded-lg">
-                    <p className="font-medium">{t('settings.shifts.shift1Title')}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="grid gap-1">
-                        <Label>{t('settings.shifts.firstHour')}</Label>
-                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift1First} onChange={(e) => setShift1First(parseInt(e.target.value) || 0)} />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <label className="flex items-start gap-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-primary"
+                    checked={shiftsEnabled}
+                    onChange={(e) => setShiftsEnabled(e.target.checked)}
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">{t('settings.shifts.enableLabel')}</p>
+                    <p className="text-sm text-muted-foreground">{t('settings.shifts.enableHelp')}</p>
+                  </div>
+                </label>
+                {shiftsEnabled && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-2 p-3 border rounded-lg">
+                      <p className="font-medium">{t('settings.shifts.shift1Title')}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="grid gap-1">
+                          <Label>{t('settings.shifts.firstHour')}</Label>
+                          <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift1First} onChange={(e) => setShift1First(parseInt(e.target.value) || 0)} />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label>{t('settings.shifts.lastHour')}</Label>
+                          <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift1Last} onChange={(e) => setShift1Last(parseInt(e.target.value) || 0)} />
+                        </div>
                       </div>
-                      <div className="grid gap-1">
-                        <Label>{t('settings.shifts.lastHour')}</Label>
-                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift1Last} onChange={(e) => setShift1Last(parseInt(e.target.value) || 0)} />
+                    </div>
+                    <div className="grid gap-2 p-3 border rounded-lg">
+                      <p className="font-medium">{t('settings.shifts.shift2Title')}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="grid gap-1">
+                          <Label>{t('settings.shifts.firstHour')}</Label>
+                          <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift2First} onChange={(e) => setShift2First(parseInt(e.target.value) || 0)} />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label>{t('settings.shifts.lastHour')}</Label>
+                          <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift2Last} onChange={(e) => setShift2Last(parseInt(e.target.value) || 0)} />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="grid gap-2 p-3 border rounded-lg">
-                    <p className="font-medium">{t('settings.shifts.shift2Title')}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="grid gap-1">
-                        <Label>{t('settings.shifts.firstHour')}</Label>
-                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift2First} onChange={(e) => setShift2First(parseInt(e.target.value) || 0)} />
-                      </div>
-                      <div className="grid gap-1">
-                        <Label>{t('settings.shifts.lastHour')}</Label>
-                        <Input type="number" min="0" max={Math.max(0, hours.length - 1)} value={shift2Last} onChange={(e) => setShift2Last(parseInt(e.target.value) || 0)} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Days of the Week */}
           <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>

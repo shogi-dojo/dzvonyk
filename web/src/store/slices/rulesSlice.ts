@@ -6,6 +6,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Day, Hour } from '../../types';
 import { OFFICIAL_MODE } from '../../types';
+import type { InstitutionPresetId } from '@/lib/institution/presets';
+import { INSTITUTION_PRESETS, buildDefaultHours } from '@/lib/institution/presets';
 
 // Interface with string dates for Redux compatibility
 export interface TimetableRulesState {
@@ -13,6 +15,7 @@ export interface TimetableRulesState {
   mode: number;
   institutionName: string;
   comments?: string;
+  institutionType?: InstitutionPresetId;
   nDaysPerWeek: number;
   nHoursPerDay: number;
   daysOfTheWeek: Day[];
@@ -35,37 +38,35 @@ interface RulesState {
   modified: boolean;
 }
 
-const createDefaultRules = (id: string): TimetableRulesState => ({
-  id,
-  mode: OFFICIAL_MODE,
-  // Empty on purpose; the UI prompts for a real name (see placeholderName).
-  institutionName: '',
-  comments: '',
-  nDaysPerWeek: 5,
-  nHoursPerDay: 8,
-  daysOfTheWeek: [
-    { name: 'Monday', longName: 'Monday' },
-    { name: 'Tuesday', longName: 'Tuesday' },
-    { name: 'Wednesday', longName: 'Wednesday' },
-    { name: 'Thursday', longName: 'Thursday' },
-    { name: 'Friday', longName: 'Friday' },
-  ],
-  // `name` is the period's label, `longName` its bell range. Seeding the label
-  // with a time made the «Назва» column look like a broken copy of «Початок».
-  hoursOfTheDay: [
-    { name: '1 урок', longName: '08:00 - 09:00' },
-    { name: '2 урок', longName: '09:00 - 10:00' },
-    { name: '3 урок', longName: '10:00 - 11:00' },
-    { name: '4 урок', longName: '11:00 - 12:00' },
-    { name: '5 урок', longName: '12:00 - 13:00' },
-    { name: '6 урок', longName: '13:00 - 14:00' },
-    { name: '7 урок', longName: '14:00 - 15:00' },
-    { name: '8 урок', longName: '15:00 - 16:00' },
-  ],
-  modified: false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
+const createDefaultRules = (
+  id: string,
+  presetId: InstitutionPresetId = 'school'
+): TimetableRulesState => {
+  const preset = INSTITUTION_PRESETS[presetId] ?? INSTITUTION_PRESETS.school;
+  return {
+    id,
+    mode: OFFICIAL_MODE,
+    // Empty on purpose; the UI prompts for a real name (see placeholderName).
+    institutionName: '',
+    comments: '',
+    institutionType: preset.id,
+    nDaysPerWeek: preset.defaults.nDaysPerWeek,
+    nHoursPerDay: preset.defaults.nHoursPerDay,
+    daysOfTheWeek: [
+      { name: 'Monday', longName: 'Monday' },
+      { name: 'Tuesday', longName: 'Tuesday' },
+      { name: 'Wednesday', longName: 'Wednesday' },
+      { name: 'Thursday', longName: 'Thursday' },
+      { name: 'Friday', longName: 'Friday' },
+    ],
+    // `name` is the period's label, `longName` its bell range. The preset's
+    // builder owns both columns so every seeding path stays identical.
+    hoursOfTheDay: buildDefaultHours(preset),
+    modified: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};
 
 const initialState: RulesState = {
   current: null,
@@ -95,8 +96,13 @@ const rulesSlice = createSlice({
       state.current = normalizeRules(action.payload);
       state.modified = false;
     },
-    createNewRules: (state, action: PayloadAction<string>) => {
-      state.current = createDefaultRules(action.payload);
+    createNewRules: (
+      state,
+      action: PayloadAction<string | { id: string; institutionType?: InstitutionPresetId }>
+    ) => {
+      const payload =
+        typeof action.payload === 'string' ? { id: action.payload } : action.payload;
+      state.current = createDefaultRules(payload.id, payload.institutionType);
       state.modified = true;
     },
     updateInstitutionName: (state, action: PayloadAction<string>) => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppDispatch } from '@/hooks';
+import { useAppDispatch, useInstitutionPreset } from '@/hooks';
 import { setRules } from '@/store/slices/rulesSlice';
 import { setTeachers } from '@/store/slices/teachersSlice';
 import { setSubjects } from '@/store/slices/subjectsSlice';
@@ -39,6 +39,7 @@ export function AppInitializer({ children }: AppInitializerProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [initialized, setInitialized] = useState(false);
+  useInstitutionPreset();
 
   useEffect(() => {
     // 1. Initialize Auth redirect check and auth subscription

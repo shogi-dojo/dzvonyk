@@ -11,10 +11,18 @@
 // is true — see sanitary.ts. Those checks are warnings only, not blockers.
 
 import type {
-  Activity, Teacher, Room, TimeConstraint, SpaceConstraint,
-  TimetableRules, StudentsGroup, StudentsSubgroup, StudentsYear,
+  Activity,
+  Teacher,
+  StudentsYear,
+  StudentsGroup,
+  StudentsSubgroup,
+  Room,
+  TimeConstraint,
+  SpaceConstraint,
+  TimetableRules,
 } from '../../types';
 import { runSanitaryChecks } from './sanitary';
+import { createIdOrNameIndex, resolveByIdOrName } from '@/lib/studentSetLookup';
 import { sumWeeklyLoad, type WeeklyLoad } from '../weeklyLoad';
 
 export type IssueSeverity = 'blocking' | 'warning';
@@ -195,6 +203,8 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   // For each class (StudentsGroup), sum durations of activities that include it
   // (directly OR via one of its subgroups). Compare to weeklySlots.
   const groupById = new Map(studentsGroups.map((g) => [g.id, g]));
+  const groupByIdOrName = createIdOrNameIndex(studentsGroups);
+  const years = input.studentsYears ?? [];
   const subgroupToGroup = new Map<string, string>();  // subgroupId → parent groupId
   for (const g of studentsGroups) {
     for (const sgId of g.subgroups) subgroupToGroup.set(sgId, g.id);
@@ -216,6 +226,18 @@ export function runPreflight(input: PreflightInput): PreflightResult {
       else {
         const parent = subgroupToGroup.get(setId);
         if (parent) affectedGroups.add(parent);
+        else {
+          // A stream: the activity names a whole year, so every group of the
+          // year carries its duration. `year.groups` may hold ids or names
+          // (see studentSetLookup) — resolve either form, as the engine does.
+          const year = resolveByIdOrName(years, setId);
+          if (year) {
+            for (const groupIdOrName of year.groups) {
+              const group = groupByIdOrName.get(groupIdOrName);
+              if (group) affectedGroups.add(group.id);
+            }
+          }
+        }
       }
     }
     for (const gid of affectedGroups) {
