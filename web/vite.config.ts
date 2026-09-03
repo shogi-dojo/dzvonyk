@@ -31,7 +31,7 @@ export default defineConfig({
       // Set VITE_DISABLE_PWA=true to skip PWA entirely for deploy builds from Termux.
       disable: process.env.VITE_DISABLE_PWA === 'true',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'Дзвоник — шкільний розклад',
         short_name: 'Дзвоник',
