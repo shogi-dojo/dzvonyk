@@ -18,7 +18,6 @@ import { ConsentBanner } from './ConsentBanner';
 import { MobileBetaBanner } from './MobileBetaBanner';
 import { HistoryControls } from './HistoryDrawer';
 import { UserProfileButton } from './UserProfileButton';
-import { GuestMigrationModal } from './GuestMigrationModal';
 import { WorkspaceSelector } from './WorkspaceSelector';
 import { MobileHeaderMenu } from './MobileHeaderMenu';
 import { usePageTracking } from '@/hooks/usePageTracking';
@@ -383,7 +382,6 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </main>
       </div>
-      <GuestMigrationModal />
       <ConsentBanner />
     </div>
   );

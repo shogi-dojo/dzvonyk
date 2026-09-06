@@ -9,11 +9,13 @@ import { setRooms, setBuildings } from '@/store/slices/roomsSlice';
 import { setTimeConstraints, setSpaceConstraints } from '@/store/slices/constraintsSlice';
 import { setStudents } from '@/store/slices/studentsSlice';
 import { loadWorkspaceContext, setSyncStatus } from '@/store/slices/workspaceSlice';
-import { setUser, setShowMigrationDialog, initAuthThunk } from '@/store/slices/authSlice';
+import { setUser, initAuthThunk } from '@/store/slices/authSlice';
 import { subscribeToAuthState } from '@/lib/firebase/auth';
 import { historyManager } from '@/lib/history';
 import { syncService } from '@/lib/firebase/syncService';
 import { workspaceManager } from '@/lib/workspace/workspaceManager';
+import { planSignInMigration } from '@/lib/workspace/planSignInMigration';
+import { hasMigratedGuest, markGuestMigrated } from '@/lib/workspace/guestMigrationRecord';
 import { db } from '@/db';
 
 interface AppInitializerProps {
@@ -50,18 +52,33 @@ export function AppInitializer({ children }: AppInitializerProps) {
 
       try {
         const cloudWorkspaces = await syncService.hydrateCloudWorkspaces(user.uid);
-        if (cloudWorkspaces.length === 0) return;
 
-        dispatch(setShowMigrationDialog(false));
-        const current = await workspaceManager.getActiveContext();
-        const currentBelongsToUser = current.school.ownerUid === user.uid;
-        const targetWorkspace = currentBelongsToUser
-          ? current.workspace
-          : cloudWorkspaces[0];
+        // Signing in used to create nothing unless the user acted on a
+        // dismissible dialog, so anyone who closed it kept working locally
+        // with no cloud copy at all. Decide and act without asking.
+        const plan = planSignInMigration({
+          cloudWorkspaceCount: cloudWorkspaces.length,
+          guestHasContent: await workspaceManager.guestWorkspaceHasContent(),
+          guestAlreadyMigrated: hasMigratedGuest(user.uid),
+        });
 
-        if (targetWorkspace.id !== current.workspace.id) {
-          await workspaceManager.switchWorkspace(targetWorkspace.id);
+        if (plan.action === 'none') return;
+
+        if (plan.action === 'migrate-guest') {
+          await workspaceManager.migrateGuestWorkspaceToCloud(user.uid);
+          markGuestMigrated(user.uid);
+        } else {
+          const current = await workspaceManager.getActiveContext();
+          const currentBelongsToUser = current.school.ownerUid === user.uid;
+          const targetWorkspace = currentBelongsToUser
+            ? current.workspace
+            : cloudWorkspaces[0];
+
+          if (targetWorkspace.id !== current.workspace.id) {
+            await workspaceManager.switchWorkspace(targetWorkspace.id);
+          }
         }
+
         await syncService.syncActiveWorkspace(user.uid);
         const context = await dispatch(loadWorkspaceContext()).unwrap();
         await historyManager.init(context.activeWorkspace.id);
