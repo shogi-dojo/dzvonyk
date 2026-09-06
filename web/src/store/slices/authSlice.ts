@@ -13,14 +13,12 @@ interface AuthState {
   user: AuthUserProfile | null;
   loading: boolean;
   error: string | null;
-  showMigrationDialog: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
   loading: true,
   error: null,
-  showMigrationDialog: false,
 };
 
 export const initAuthThunk = createAsyncThunk('auth/init', async () => {
@@ -51,9 +49,6 @@ const authSlice = createSlice({
       state.user = action.payload;
       state.loading = false;
     },
-    setShowMigrationDialog: (state, action: PayloadAction<boolean>) => {
-      state.showMigrationDialog = action.payload;
-    },
     clearError: (state) => {
       state.error = null;
     },
@@ -67,7 +62,6 @@ const authSlice = createSlice({
       .addCase(signInWithGoogleThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
-        state.showMigrationDialog = true;
       })
       .addCase(signInWithGoogleThunk.rejected, (state, action) => {
         state.loading = false;
@@ -75,17 +69,15 @@ const authSlice = createSlice({
       })
       .addCase(signOutThunk.fulfilled, (state) => {
         state.user = null;
-        state.showMigrationDialog = false;
       })
       .addCase(initAuthThunk.fulfilled, (state, action) => {
         if (action.payload) {
           state.user = action.payload;
-          state.showMigrationDialog = true;
         }
         state.loading = false;
       });
   },
 });
 
-export const { setUser, setShowMigrationDialog, clearError } = authSlice.actions;
+export const { setUser, clearError } = authSlice.actions;
 export default authSlice.reducer;

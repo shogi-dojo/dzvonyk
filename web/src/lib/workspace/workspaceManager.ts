@@ -578,6 +578,64 @@ export class WorkspaceManager {
   /**
    * Lists all academic year workspaces for a school
    */
+  /**
+   * Whether the local guest workspace holds anything worth pushing to the
+   * cloud. A bare rules row is what `init` seeds for everyone, so it does not
+   * count on its own — only real entities do.
+   */
+  async guestWorkspaceHasContent(): Promise<boolean> {
+    const counts = await Promise.all([
+      this.database.teachers.count(),
+      this.database.subjects.count(),
+      this.database.studentsGroups.count(),
+      this.database.activities.count(),
+      this.database.rooms.count(),
+      this.database.solutions.count(),
+    ]);
+    return counts.some((count) => count > 0);
+  }
+
+  /**
+   * Adopts the local guest workspace into a cloud-owned school.
+   *
+   * The guest tables are the live ones, so the snapshot is taken before any
+   * switch: `switchWorkspace` clears them when it opens an empty workspace.
+   * Returns the school now owning the migrated data.
+   */
+  async migrateGuestWorkspaceToCloud(
+    ownerUid: string,
+    details?: { name?: string; institutionType?: InstitutionPresetId }
+  ): Promise<{ school: School; workspace: AcademicYearWorkspace }> {
+    const guestSchool = await this.database.schools.get(GUEST_SCHOOL_ID);
+    const guestRules = (await this.database.rules.toArray())[0] as TimetableRules | undefined;
+
+    // An empty name is deliberate: the dashboard prompts for a real one rather
+    // than inventing «Моя школа» the way the old dialog did.
+    const name = details?.name?.trim() || '';
+    const institutionType =
+      details?.institutionType ?? resolveInstitutionType(guestSchool ?? undefined, guestRules);
+
+    const school = await this.createSchool(name, { ownerUid, institutionType });
+    const [workspace] = await this.listWorkspaces(school.id);
+    if (!workspace) throw new Error('Migrated school has no workspace');
+
+    // Capture the guest tables into the new workspace before switching away.
+    const envelope = await createSnapshotEnvelope(this.database, {
+      workspaceId: workspace.id,
+      schoolId: school.id,
+      description: 'Перенесено з локального розкладу',
+    });
+    await this.saveSnapshotInternal(
+      workspace.id,
+      'manual',
+      envelope,
+      'Перенесено з локального розкладу'
+    );
+
+    await this.switchWorkspace(workspace.id);
+    return { school, workspace };
+  }
+
   async listWorkspaces(schoolId?: string): Promise<AcademicYearWorkspace[]> {
     if (schoolId) {
       return this.database.workspaces.where('schoolId').equals(schoolId).toArray();
