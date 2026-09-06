@@ -80,6 +80,9 @@ export function AppInitializer({ children }: AppInitializerProps) {
         }
 
         await syncService.syncActiveWorkspace(user.uid);
+        // Academic years other than the open one were never pushed, so older
+        // accounts still hold workspaces that exist only in this browser.
+        await syncService.backfillUnsyncedWorkspaces(user.uid);
         const context = await dispatch(loadWorkspaceContext()).unwrap();
         await historyManager.init(context.activeWorkspace.id);
         await loadAllData();

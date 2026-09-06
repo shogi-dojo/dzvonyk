@@ -5,6 +5,7 @@ import { firestore, storage, functions } from './client';
 import { db, type FETDatabase } from '@/db';
 import type {
   AcademicYearWorkspace,
+  WorkspaceSnapshotEnvelope,
   School,
   SyncStatus,
 } from '@/types';
@@ -206,6 +207,86 @@ export class SyncService {
   /**
    * Pushes active workspace snapshot to Cloud Storage and updates Firestore metadata
    */
+  /**
+   * Pushes every owned workspace that has never reached the cloud.
+   *
+   * `syncActiveWorkspace` only covers the workspace currently open, so a user
+   * with several academic years had the rest sitting purely in IndexedDB. This
+   * uploads the stored snapshot for each missing one — never a live snapshot,
+   * which would carry the *active* workspace's tables under another
+   * workspace's id.
+   *
+   * Best-effort by design: one failing workspace must not stop the others, and
+   * anything skipped is retried on the next sign-in.
+   */
+  public async backfillUnsyncedWorkspaces(uid: string): Promise<number> {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return 0;
+
+    let pushed = 0;
+    const schools = await this.database.schools.toArray();
+
+    for (const school of schools) {
+      if (school.ownerUid !== uid) continue;
+
+      const workspaces = await this.database.workspaces
+        .where('schoolId')
+        .equals(school.id)
+        .toArray();
+
+      for (const workspace of workspaces) {
+        try {
+          const workspaceRef = doc(
+            firestore,
+            `users/${uid}/schools/${school.id}/workspaces/${workspace.id}`
+          );
+          if ((await getDoc(workspaceRef)).exists()) continue;
+
+          const [latest] = await workspaceManager.listVersions(workspace.id);
+          if (!latest?.snapshotEnvelope) continue;
+
+          await this.pushStoredSnapshot(uid, school, workspace, latest.snapshotEnvelope);
+          pushed += 1;
+        } catch (err) {
+          console.warn('[SyncService] Backfill skipped a workspace:', workspace.id, err);
+        }
+      }
+    }
+
+    return pushed;
+  }
+
+  /**
+   * Uploads an already-materialised snapshot envelope, as opposed to
+   * snapshotting whatever is live in the database right now.
+   */
+  private async pushStoredSnapshot(
+    uid: string,
+    school: School,
+    workspace: AcademicYearWorkspace,
+    envelope: WorkspaceSnapshotEnvelope
+  ): Promise<void> {
+    const serialized = serializeSnapshotEnvelope(envelope);
+    const newRevision = 1;
+
+    const fileRef = ref(storage, `snapshots/${uid}/${workspace.id}/rev_${newRevision}.json`);
+    await uploadString(fileRef, serialized, 'raw', {
+      contentType: 'application/json',
+      customMetadata: {
+        workspaceId: workspace.id,
+        schoolId: school.id,
+        revision: String(newRevision),
+      },
+    });
+
+    await setDoc(doc(firestore, `users/${uid}/schools/${school.id}`), school, { merge: true });
+
+    const now = new Date().toISOString();
+    await setDoc(
+      doc(firestore, `users/${uid}/schools/${school.id}/workspaces/${workspace.id}`),
+      { ...workspace, cloudRevision: newRevision, lastSyncedAt: now, updatedAt: now }
+    );
+  }
+
   private async pushToCloud(
     uid: string,
     school: School,
