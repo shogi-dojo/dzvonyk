@@ -17,6 +17,7 @@ import { InstallPwaButton } from './InstallPwaButton';
 import { ConsentBanner } from './ConsentBanner';
 import { MobileBetaBanner } from './MobileBetaBanner';
 import { HistoryControls } from './HistoryDrawer';
+import { SyncNowButton } from './SyncNowButton';
 import { UserProfileButton } from './UserProfileButton';
 import { WorkspaceSelector } from './WorkspaceSelector';
 import { MobileHeaderMenu } from './MobileHeaderMenu';
@@ -187,6 +188,7 @@ export function Layout({ children }: LayoutProps) {
             <UserProfileButton compact={desktopSidebarCollapsed} />
             <div className={cn("flex items-center gap-0.5", desktopSidebarCollapsed && "flex-col")}>
               <HistoryControls vertical={desktopSidebarCollapsed} />
+              <SyncNowButton vertical={desktopSidebarCollapsed} />
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
                   <TooltipTrigger asChild>
